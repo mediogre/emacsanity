@@ -1,3 +1,50 @@
+2009-03-17  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* dired.c (file_name_completion): Check completion-ignored-extensions
+	only if the entry can't affect bestmatch anyway.
+	Stop the search early, as Ftry_completion already does.
+
+2009-03-17  Chong Yidong  <cyd@stupidchicken.com>
+
+	* minibuf.c (Vminibuffer_completion_confirm): Doc fix.
+
+2009-03-15  Chong Yidong  <cyd@stupidchicken.com>
+
+	* keyboard.c (parse_menu_item): Don't display remappings as menu
+	equivalent bindings (Bug#788).
+
+2009-03-15  Jason Rumney  <jasonr@gnu.org>
+
+	* w32term.h (WM_EMACS_PAINT): New message.
+	* w32term.c (w32_read_socket): Use it instead of WM_PAINT.
+	* w32fns.c (w32_wnd_proc): Change WM_PAINT to WM_EMACS_PAINT
+	before passing to lisp thread.  (Bug#950)
+
+2009-03-14  David Reitter <david.reitter@gmail.com>
+
+	* nsterm.m (ns_shutdown_properly, -terminate): Remove global state
+	variable as it was never reset.
+	(ns_term_init): Remove initialization of Lisp-settable defaults
+	and ns_expand_space.
+	(-setPanelFromDefaultValues): Remove ns_expand_space.
+	(-showPreferencesWindow): Send new KEY_NS_SHOW_PREFS key.
+	* nsfont.m (nsfont_open): Remove ns_expand_space, assume -0.5
+	i.e. no additional spacing, similar to Carbon port.
+
+	* nsterm.h: Define KEY_NS_SHOW_PREFS key.
+	* nsfns.m (ns-popup-prefs-panel): Remove.
+
+2009-03-14  Jan Djärv  <jan.h.d@swipnet.se>
+
+	* sound.c (alsa_configure): Remove call to deprecated
+	snd_pcm_sw_params_set_xfer_align.
+
+2009-03-14  Stephen Berman <stephen.berman@gmx.net>
+
+	* gtkutil.c (xg_tool_bar_callback): Set focus back to the frame
+	after clicking in a detached tool bar.
+	(xg_tool_bar_proxy_callback): Remove call to Fx_focus_frame.
+
 2009-03-13  Stefan Monnier  <monnier@iro.umontreal.ca>
 
 	* fontset.c (fontset_from_font, Ffontset_info): YAILOM (Yet another

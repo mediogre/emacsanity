@@ -149,7 +149,7 @@ macos.texi     -- contents need to be evaluated and see what is still
 maintaining.texi  -- cyd
 major.texi        -- cyd
 mark.texi         -- cyd
-mini.texi         -- cyd
+mini.texi
 misc.texi
 msdog.texi
 msdog-xtra.texi
@@ -160,7 +160,8 @@ regs.texi         -- cyd
 rmail.texi        -- rgm
 screen.texi       -- cyd
 search.texi       -- cyd
-sending.texi
+sending.texi      -- rgm (maybe needs some brief mailclient.el details in
+                          "Mail Sending" section?)
 text.texi         -- cyd
 trouble.texi
 windows.texi      -- rudalics
@@ -178,7 +179,7 @@ commands.texi
 compile.texi      -- cyd
 control.texi      -- cyd
 customize.texi    -- cyd
-debugging.texi
+debugging.texi    -- cyd
 display.texi
 edebug.texi
 elisp.texi
@@ -210,7 +211,7 @@ positions.texi
 processes.texi
 searching.texi
 sequences.texi    -- cyd
-streams.texi
+streams.texi      -- cyd
 strings.texi      -- cyd
 symbols.texi      -- cyd
 syntax.texi

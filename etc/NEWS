@@ -411,6 +411,19 @@ Emacs asks for confirmation.  The default value is `after-completion'.
 If you change it to t, Emacs always asks for confirmation; if you
 change it to nil, Emacs never asks for confirmation.
 +++
+*** The rules for performing completion have been changed.
+When generating completion alternatives, Emacs now takes the
+minibuffer text after point, if any, into account: this text is
+treated as a substring of the remaining part of the completion
+alternative (i.e., the part not matched by the minibuffer text before
+point).  If no completion alternatives are found this way, Emacs
+attempts to perform partial-completion.  If still no completion
+alternatives are found, we fall back on the Emacs 22 rules for
+performing completion.
+
+The new variable `completion-styles' can be customized to choose your
+favorite completion style.
++++
 *** When M-n in the minibuffer reaches the end of the list of defaults,
 it adds the completion list to the end, so next M-n continues putting
 completion items to the minibuffer.  The same principle applies to
@@ -447,17 +460,12 @@ next history elements.  When the reverse search reaches the first history
 element, it wraps to the last history element, and the forward search
 wraps to the first history element.  When the search is terminated, the
 history element containing the search string becomes the current.
-
++++
 *** The variable read-file-name-completion-ignore-case overrides
 completion-ignore-case for file name completion.
-
++++
 *** The variable read-buffer-completion-ignore-case overrides
 completion-ignore-case for buffer name completion.
----
-*** `completion-styles' can be customized to choose your favorite
-completion style.
----
-*** The default completion styles include a form of partial-completion.
 ---
 *** The new command `minibuffer-force-complete' chooses one of the
 possible completions, rather than stopping at the common prefix.
@@ -1057,6 +1065,9 @@ from that sequence is used.  The special value `t' means "no switches".
 *** Clicking on the VC mode-line entry now pops the VC menu.
 +++
 *** The VC mode-line entry now has a tooltip that explains the VC file status.
+
+*** In VC Annotate mode, the key bindings have changed to use lower
+case keys instead of the upper case keys used in the past.
 +++
 *** In VC Annotate mode, for VC systems that support changesets, you can
 see the diff for the whole changeset (not only for the current file)

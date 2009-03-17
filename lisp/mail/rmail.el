@@ -771,7 +771,8 @@ that knows the exact ordering of the \\( \\) subexpressions.")
 	   (cite-suffix (concat cite-prefix "0-9_.@-`'\"")))
       (list '("^\\(From\\|Sender\\|Resent-From\\):"
 	      . 'rmail-header-name)
-	    '("^Reply-To:.*$" . 'rmail-header-name)
+	    '("^\\(Mail-\\)?Reply-To:.*$" . 'rmail-header-name)
+	    ;; FIXME Mail-Followup-To should probably be here too.
 	    '("^Subject:" . 'rmail-header-name)
 	    '("^X-Spam-Status:" . 'rmail-header-name)
 	    '("^\\(To\\|Apparently-To\\|Cc\\|Newsgroups\\):"
@@ -3262,16 +3263,20 @@ See also user-option `rmail-confirm-expunge'."
   "Erase deleted messages from Rmail file and summary buffer."
   (interactive)
   (when (rmail-expunge-confirmed)
-    (let ((old-total rmail-total-messages)
-	  (opoint (with-current-buffer rmail-buffer
-		    (when (rmail-buffers-swapped-p)
-		      (point)))))
-      (rmail-only-expunge dont-show)
-      (if (rmail-summary-exists)
-	  (rmail-select-summary (rmail-update-summary))
-	(rmail-show-message-1 rmail-current-message)
-	(if (and (eq old-total rmail-total-messages) opoint)
-	    (goto-char opoint))))))
+    (let ((was-deleted (rmail-message-deleted-p rmail-current-message))
+	  (was-swapped (rmail-buffers-swapped-p)))
+      (rmail-only-expunge t)
+      (unless dont-show
+	(if (rmail-summary-exists)
+	    (rmail-select-summary (rmail-update-summary))
+	  ;; If we expunged the current message, a new one is current now,
+	  ;; so show it.  If we weren't showing a message, show it. 
+	  (if (or was-deleted (not was-swapped))
+	      (rmail-show-message-1 rmail-current-message)
+	    ;; Show the same message that was being shown before.
+	    (rmail-display-labels)
+	    (rmail-swap-buffers)
+	    (setq rmail-buffer-swapped t)))))))
 
 ;;;; *** Rmail Mailing Commands ***
 
@@ -3757,6 +3762,7 @@ specifying headers which should not be copied into the new message."
 	    (mail-sendmail-delimit-header)
 	    (save-restriction
 	      (narrow-to-region (point-min) (mail-header-end))
+	      (rmail-delete-headers rmail-ignored-headers)
 	      (rmail-delete-headers rmail-retry-ignored-headers)
 	      (rmail-delete-headers "^\\(sender\\|return-path\\|received\\):")
 	      (setq resending (mail-fetch-field "resent-to"))

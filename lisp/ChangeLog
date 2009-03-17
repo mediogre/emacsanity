@@ -1,3 +1,113 @@
+2009-03-17  Juanma Barranquero  <lekktu@gmail.com>
+
+	* emacs-lisp/benchmark.el (benchmark): Reflow docstring.
+
+2009-03-17  ARISAWA Akihiro  <ari@mbf.ocn.ne.jp>  (tiny change)
+
+	* international/characters.el (cjk-char-width-table):
+	Add cp932-2-byte.
+
+2009-03-17  Chong Yidong  <cyd@stupidchicken.com>
+
+	* minibuffer.el (minibuffer-complete-and-exit): Doc fix.
+
+2009-03-16  David Reitter  <david.reitter@gmail.com>
+
+	* faces.el (set-face-attributes-from-resources)
+	(face-set-after-frame-default): Do not import X resources on NS
+	because NS does not have system-wide X resources.
+
+2009-03-16  Richard M Stallman  <rms@gnu.org>
+
+	* mail/rmail.el (rmail-retry-failure): Discard rmail-ignored-headers.
+	(rmail-expunge): Show the message only once, and only if needed.
+	If the current message was current before, just re-swap.
+
+2009-03-16  Kenichi Handa  <handa@m17n.org>
+
+	* international/ccl.el (ccl-compile-if): Signal an error for
+	invalid operator.
+
+2009-03-16  Chong Yidong  <cyd@stupidchicken.com>
+
+	* minibuffer.el (read-file-name): Doc fix.
+
+	* tooltip.el (tooltip-show-help-non-mode): Don't set
+	tooltip-previous-message if called with the same tooltip that is
+	showing (Bug#2680).
+
+	* emacs-lisp/crm.el (crm--choose-completion-string): New function.
+	(completing-read-multiple): Set and restore
+	choose-completion-string-functions (Bug#1080).
+
+2009-03-15  Glenn Morris  <rgm@gnu.org>
+
+	* calendar/cal-tex.el (cal-tex-preamble-extra): Add an example string
+	value to help people with the formatting.
+
+	* mail/sendmail.el (mail-yank-prefix): Doc fix.
+	(mail-mode-map): Only enable the "Cite Original" menu-item when
+	appropriate.  Standardize the text used for other headers re hyphens.
+
+	* mail/rmail.el (rmail-font-lock-keywords): Treat "Mail-Reply-To"
+	like "Reply-To".
+
+2009-03-15  Chong Yidong  <cyd@stupidchicken.com>
+
+	* minibuffer.el (completion-styles): Add emacs22 completion style
+	as fallback.
+
+2009-03-15  Dan Nicolaescu  <dann@ics.uci.edu>
+
+	* vc.el (vc-checkin): Add an extra argument for the VC backend,
+	pass it down to vc-start-logentry.
+	(vc-next-action, vc-transfer-file): Pass the VC backend to
+	vc-checkin.
+	(vc-next-action): Do not assume that all backends in
+	vc-handled-backends are upper case.
+
+2009-03-15  Chong Yidong  <cyd@stupidchicken.com>
+
+	* files.el (get-free-disk-space): Ensure that default-directory is
+	usable before calling call-process.  Suggested by Kevin
+	Ryde (Bug#2631).
+
+2009-03-14  David Reitter  <david.reitter@gmail.com>
+
+	* term/ns-win.el (ns-expand-space): Remove.
+	(ns-show-prefs event): Run `customize'.
+	(ns-power-off): Run `save-buffers-kill-emacs', but ask user
+	whether to save files (as is standard).
+	(clipboard-yank, clipboard-kill-ring-save, clipboard-kill-region)
+	(menu-bar-enable-clipboard): Do not undefine these.
+	(ns-save-preferences, ns-save-options, ns-show-preferences-help):
+	Remove.
+
+2009-03-14  Glenn Morris  <rgm@gnu.org>
+
+	* mail/mailalias.el: Remove leading `*' from defcustom docs.
+
+	* mail/sendmail.el (mail-interactive): Doc fix.
+	(mail-yank-ignored-headers): Add X-RMAIL- headers, bump :version.
+	(mail-setup): Use the function mail-signature.
+	(mail-mode-hook): Doc fix.
+	(mail-to, mail-subject, mail-cc, mail-bcc, mail-reply-to)
+	(mail-mail-reply-to, mail-mail-followup-to): Doc fixes.
+	(mail-signature): Check the signature file is readable.
+	With the argument ATPOINT, really insert at point.
+	Handle the case when the variable mail-signature is an expression.
+
+2009-03-14  Chong Yidong  <cyd@stupidchicken.com>
+
+	* simple.el (undo-outer-limit-truncate): Mention that
+	warning-suppress-types is defined in the warnings
+	library (Bug#2668).
+
+2009-03-14  Dan Nicolaescu  <dann@ics.uci.edu>
+
+	* vc.el (vc-default-receive-file): The 'register method now
+	expects a list, pass a list.
+
 2009-03-14  Chong Yidong  <cyd@stupidchicken.com>
 
 	* doc-view.el (doc-view-sentinel): Strip trailing newline from
