@@ -229,7 +229,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #define close   sys_close
 #undef creat
 #define creat   sys_creat
-#define ctime	sys_ctime
 #undef dup
 #define dup     sys_dup
 #undef dup2

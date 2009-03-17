@@ -115,28 +115,6 @@ struct w32_display_info *x_display_list;
    FONT-LIST-CACHE records previous values returned by x-list-fonts.  */
 Lisp_Object w32_display_name_list;
 
-
-#ifndef GLYPHSET
-/* Pre Windows 2000, this was not available, but define it here so
-   that Emacs compiled on such a platform will run on newer versions.  */
-
-typedef struct tagWCRANGE
-{
-  WCHAR wcLow;
-  USHORT cGlyphs;
-} WCRANGE;
-
-typedef struct tagGLYPHSET
-{
-  DWORD cbThis;
-  DWORD flAccel;
-  DWORD cGlyphsSupported;
-  DWORD cRanges;
-  WCRANGE ranges[1];
-} GLYPHSET;
-
-#endif
-
 /* Dynamic linking to SetLayeredWindowAttribute (only since 2000).  */
 BOOL (PASCAL *pfnSetLayeredWindowAttributes) (HWND, COLORREF, BYTE, DWORD);
 

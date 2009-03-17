@@ -92,21 +92,6 @@ typedef struct _MEMORY_STATUS_EX {
 
 #include <tlhelp32.h>
 #include <psapi.h>
-/* This either is not in psapi.h or guarded by higher value of
-   _WIN32_WINNT than what we use.  */
-typedef struct _PROCESS_MEMORY_COUNTERS_EX {
-	DWORD cb;
-	DWORD PageFaultCount;
-	DWORD PeakWorkingSetSize;
-	DWORD WorkingSetSize;
-	DWORD QuotaPeakPagedPoolUsage;
-	DWORD QuotaPagedPoolUsage;
-	DWORD QuotaPeakNonPagedPoolUsage;
-	DWORD QuotaNonPagedPoolUsage;
-	DWORD PagefileUsage;
-	DWORD PeakPagefileUsage;
-	DWORD PrivateUsage;
-} PROCESS_MEMORY_COUNTERS_EX,*PPROCESS_MEMORY_COUNTERS_EX;
 
 #ifdef HAVE_SOCKETS	/* TCP connection support, if kernel can do it */
 #include <sys/socket.h>
@@ -1378,7 +1363,7 @@ init_environment (char ** argv)
 	 read-only filesystem, like CD-ROM or a write-protected floppy.
 	 The only way to be really sure is to actually create a file and
 	 see if it succeeds.  But I think that's too much to ask.  */
-      if (tmp && _access (tmp, D_OK) == 0)
+      if (tmp && _access (tmp, /*D_OK*/ 6) == 0)
 	{
 	  char * var = alloca (strlen (tmp) + 8);
 	  sprintf (var, "TMPDIR=%s", tmp);
@@ -1777,16 +1762,6 @@ gettimeofday (struct timeval *tv, struct timezone *tz)
 /* ------------------------------------------------------------------------- */
 /* IO support and wrapper functions for W32 API. */
 /* ------------------------------------------------------------------------- */
-
-/* Place a wrapper around the MSVC version of ctime.  It returns NULL
-   on network directories, so we handle that case here.
-   (Ulrich Leodolter, 1/11/95).  */
-char *
-sys_ctime (const time_t *t)
-{
-  char *str = (char *) ctime (t);
-  return (str ? str : "Sun Jan 01 00:00:00 1970");
-}
 
 /* Emulate sleep...we could have done this with a define, but that
    would necessitate including windows.h in the files that used it.
@@ -3380,43 +3355,6 @@ fstat (int desc, struct stat * buf)
 
   buf->st_mode |= permission | (permission >> 3) | (permission >> 6);
 
-  return 0;
-}
-
-int
-utime (const char *name, struct utimbuf *times)
-{
-  struct utimbuf deftime;
-  HANDLE fh;
-  FILETIME mtime;
-  FILETIME atime;
-
-  if (times == NULL)
-    {
-      deftime.modtime = deftime.actime = time (NULL);
-      times = &deftime;
-    }
-
-  /* Need write access to set times.  */
-  fh = CreateFile (name, GENERIC_WRITE, FILE_SHARE_READ | FILE_SHARE_WRITE,
-		   0, OPEN_EXISTING, 0, NULL);
-  if (fh)
-    {
-      convert_from_time_t (times->actime, &atime);
-      convert_from_time_t (times->modtime, &mtime);
-      if (!SetFileTime (fh, NULL, &atime, &mtime))
-	{
-	  CloseHandle (fh);
-	  errno = EACCES;
-	  return -1;
-	}
-      CloseHandle (fh);
-    }
-  else
-    {
-      errno = EINVAL;
-      return -1;
-    }
   return 0;
 }
 

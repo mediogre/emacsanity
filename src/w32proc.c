@@ -1046,7 +1046,7 @@ sys_spawnve (int mode, char *cmdname, char **argv, char **envp)
   merge_and_sort_env (envp, extra_env, targ);
 
   /* concatenate env entries.  */
-  env = alloca (arglen);
+  env = alloca (arglen + 1);
   parg = env;
   while (*targ)
     {

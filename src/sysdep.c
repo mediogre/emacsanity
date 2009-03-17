@@ -2759,10 +2759,10 @@ set_file_times (filename, atime, mtime)
   tv[1] = mtime;
   return utimes (filename, tv);
 #else /* not HAVE_UTIMES */
-  struct utimbuf utb;
+  struct _utimbuf utb;
   utb.actime = EMACS_SECS (atime);
   utb.modtime = EMACS_SECS (mtime);
-  return utime (filename, &utb);
+  return _utime (filename, &utb);
 #endif /* not HAVE_UTIMES */
 }
 
