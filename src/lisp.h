@@ -79,7 +79,7 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* Extra internal type checking?  */
 extern int suppress_checking;
-extern void die P_((const char *, const char *, int)) NO_RETURN;
+NO_RETURN extern void die P_((const char *, const char *, int));
 
 #ifdef ENABLE_CHECKING
 
@@ -2175,7 +2175,7 @@ extern Lisp_Object Qinteger;
 
 extern Lisp_Object Qfont_spec, Qfont_entity, Qfont_object;
 
-extern void circular_list_error P_ ((Lisp_Object)) NO_RETURN;
+NO_RETURN extern void circular_list_error P_ ((Lisp_Object));
 EXFUN (Finteractive_form, 1);
 
 /* Defined in frame.c */
@@ -2264,10 +2264,10 @@ EXFUN (Fmake_variable_buffer_local, 1);
 extern struct Lisp_Symbol *indirect_variable (struct Lisp_Symbol *);
 extern Lisp_Object long_to_cons P_ ((unsigned long));
 extern unsigned long cons_to_long P_ ((Lisp_Object));
-extern void args_out_of_range P_ ((Lisp_Object, Lisp_Object)) NO_RETURN;
-extern void args_out_of_range_3 P_ ((Lisp_Object, Lisp_Object,
-				     Lisp_Object)) NO_RETURN;
-extern Lisp_Object wrong_type_argument P_ ((Lisp_Object, Lisp_Object)) NO_RETURN;
+NO_RETURN extern void args_out_of_range P_ ((Lisp_Object, Lisp_Object));
+NO_RETURN extern void args_out_of_range_3 P_ ((Lisp_Object, Lisp_Object,
+				     Lisp_Object));
+NO_RETURN extern Lisp_Object wrong_type_argument P_ ((Lisp_Object, Lisp_Object));
 extern void store_symval_forwarding P_ ((Lisp_Object, Lisp_Object,
 					 Lisp_Object, struct buffer *));
 extern Lisp_Object do_symval_forwarding P_ ((Lisp_Object));
@@ -2554,8 +2554,8 @@ extern void allocate_string_data P_ ((struct Lisp_String *, int, int));
 extern void reset_malloc_hooks P_ ((void));
 extern void uninterrupt_malloc P_ ((void));
 extern void malloc_warning P_ ((char *));
-extern void memory_full P_ ((void)) NO_RETURN;
-extern void buffer_memory_full P_ ((void)) NO_RETURN;
+NO_RETURN extern void memory_full P_ ((void)) ;
+NO_RETURN extern void buffer_memory_full P_ ((void)) ;
 extern int survives_gc_p P_ ((Lisp_Object));
 extern void mark_object P_ ((Lisp_Object));
 extern Lisp_Object Vpurify_flag;
@@ -2739,16 +2739,16 @@ EXFUN (Flet, UNEVALLED);
 EXFUN (FletX, UNEVALLED);
 EXFUN (Fwhile, UNEVALLED);
 EXFUN (Fcatch, UNEVALLED);
-EXFUN (Fthrow, 2) NO_RETURN;
+NO_RETURN EXFUN (Fthrow, 2) ;
 EXFUN (Funwind_protect, UNEVALLED);
 EXFUN (Fcondition_case, UNEVALLED);
 EXFUN (Fsignal, 2);
-extern void xsignal P_ ((Lisp_Object, Lisp_Object)) NO_RETURN;
-extern void xsignal0 P_ ((Lisp_Object)) NO_RETURN;
-extern void xsignal1 P_ ((Lisp_Object, Lisp_Object)) NO_RETURN;
-extern void xsignal2 P_ ((Lisp_Object, Lisp_Object, Lisp_Object)) NO_RETURN;
-extern void xsignal3 P_ ((Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object)) NO_RETURN;
-extern void signal_error P_ ((char *, Lisp_Object)) NO_RETURN;
+NO_RETURN extern void xsignal P_ ((Lisp_Object, Lisp_Object)) ;
+NO_RETURN extern void xsignal0 P_ ((Lisp_Object)) ;
+NO_RETURN extern void xsignal1 P_ ((Lisp_Object, Lisp_Object)) ;
+NO_RETURN extern void xsignal2 P_ ((Lisp_Object, Lisp_Object, Lisp_Object)) ;
+NO_RETURN extern void xsignal3 P_ ((Lisp_Object, Lisp_Object, Lisp_Object, Lisp_Object)) ;
+NO_RETURN extern void signal_error P_ ((char *, Lisp_Object)) ;
 EXFUN (Fautoload, 5);
 EXFUN (Fcommandp, 2);
 EXFUN (Feval, 1);
@@ -2773,7 +2773,7 @@ extern Lisp_Object internal_condition_case_2 P_ ((Lisp_Object (*) (int, Lisp_Obj
 extern void specbind P_ ((Lisp_Object, Lisp_Object));
 extern void record_unwind_protect P_ ((Lisp_Object (*) (Lisp_Object), Lisp_Object));
 extern Lisp_Object unbind_to P_ ((int, Lisp_Object));
-extern void error P_ ((/* char *, ... */)) NO_RETURN;
+NO_RETURN extern void error P_ ((/* char *, ... */)) ;
 extern void do_autoload P_ ((Lisp_Object, Lisp_Object));
 extern Lisp_Object un_autoload P_ ((Lisp_Object));
 EXFUN (Ffetch_bytecode, 1);
@@ -2842,7 +2842,7 @@ extern void set_time_zone_rule P_ ((char *));
 
 /* defined in buffer.c */
 extern int mouse_face_overlay_overlaps P_ ((Lisp_Object));
-extern void nsberror P_ ((Lisp_Object)) NO_RETURN;
+NO_RETURN extern void nsberror P_ ((Lisp_Object)) ;
 EXFUN (Fset_buffer_multibyte, 1);
 EXFUN (Foverlay_start, 1);
 EXFUN (Foverlay_end, 1);
@@ -2926,7 +2926,7 @@ EXFUN (Ffile_readable_p, 1);
 EXFUN (Ffile_executable_p, 1);
 EXFUN (Fread_file_name, 6);
 extern Lisp_Object close_file_unwind P_ ((Lisp_Object));
-extern void report_file_error P_ ((const char *, Lisp_Object)) NO_RETURN;
+NO_RETURN extern void report_file_error P_ ((const char *, Lisp_Object)) ;
 extern int internal_delete_file P_ ((Lisp_Object));
 extern void syms_of_fileio P_ ((void));
 extern void init_fileio_once P_ ((void));
@@ -3292,7 +3292,7 @@ extern Lisp_Object directory_files_internal P_ ((Lisp_Object, Lisp_Object,
 
 /* Defined in term.c */
 extern void syms_of_term P_ ((void));
-extern void fatal P_ ((const char *msgid, ...)) NO_RETURN;
+NO_RETURN extern void fatal P_ ((const char *msgid, ...)) ;
 
 /* Defined in terminal.c */
 EXFUN (Fdelete_terminal, 2);

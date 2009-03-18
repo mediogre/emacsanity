@@ -1110,11 +1110,11 @@ A non-nil FLAG means mark the buffer modified.  */)
      (flag)
      register Lisp_Object flag;
 {
-  register int already;
-  register Lisp_Object fn;
   Lisp_Object buffer, window;
 
 #ifdef CLASH_DETECTION
+  register int already;
+  register Lisp_Object fn;
   /* If buffer becoming modified, lock the file.
      If buffer becoming unmodified, unlock the file.  */
 
@@ -1785,8 +1785,6 @@ messing with the window-buffer correspondences.  */)
      (buffer_or_name, norecord)
      Lisp_Object buffer_or_name, norecord;
 {
-  char *err;
-
   if (EQ (buffer_or_name, Fwindow_buffer (selected_window)))
     {
       /* Basically a NOP.  Avoid signalling an error in the case where

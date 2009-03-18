@@ -186,7 +186,7 @@ static int baud_convert[] =
 
 int emacs_ospeed;
 
-void croak P_ ((char *)) NO_RETURN;
+NO_RETURN void croak P_ ((char *)) ;
 
 /* Temporary used by `sigblock' when defined in terms of signprocmask.  */
 

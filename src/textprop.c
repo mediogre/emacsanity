@@ -77,7 +77,7 @@ Lisp_Object Vtext_property_default_nonsticky;
 Lisp_Object interval_insert_behind_hooks;
 Lisp_Object interval_insert_in_front_hooks;
 
-static void text_read_only P_ ((Lisp_Object)) NO_RETURN;
+NO_RETURN static void text_read_only P_ ((Lisp_Object)) ;
 
 
 /* Signal a `text-read-only' error.  This function makes it easier

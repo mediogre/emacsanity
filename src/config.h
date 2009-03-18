@@ -448,7 +448,7 @@ extern char *getenv ();
 #if defined __GNUC__ && (__GNUC__ > 2 || (__GNUC__ == 2 && __GNUC_MINOR >= 5))
 #define NO_RETURN	__attribute__ ((__noreturn__))
 #else
-#define NO_RETURN	/* nothing */
+#define NO_RETURN	__declspec(noreturn)
 #endif
 #endif
 
@@ -456,7 +456,7 @@ extern char *getenv ();
 #ifndef NOT_C_CODE
 #ifdef HAVE_NTGUI
 #define abort	w32_abort
-void w32_abort (void) NO_RETURN;
+NO_RETURN void w32_abort (void);
 #endif
 #endif
 

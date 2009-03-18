@@ -224,8 +224,8 @@ static void readevalloop P_ ((Lisp_Object, FILE*, Lisp_Object,
 static Lisp_Object load_unwind P_ ((Lisp_Object));
 static Lisp_Object load_descriptor_unwind P_ ((Lisp_Object));
 
-static void invalid_syntax P_ ((const char *, int)) NO_RETURN;
-static void end_of_file_error P_ (()) NO_RETURN;
+NO_RETURN static void invalid_syntax P_ ((const char *, int)) ;
+NO_RETURN static void end_of_file_error P_ (()) ;
 
 
 /* Functions that read one byte from the current source READCHARFUN

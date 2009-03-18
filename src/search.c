@@ -102,7 +102,7 @@ static void save_search_regs ();
 static int simple_search ();
 static int boyer_moore ();
 static int search_buffer ();
-static void matcher_overflow () NO_RETURN;
+NO_RETURN static void matcher_overflow () ;
 
 static void
 matcher_overflow ()
