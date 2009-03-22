@@ -538,6 +538,7 @@ file_name_completion (file, dirname, all_flag, ver_flag, predicate)
 	{
 	  int skip;
 
+#if 0 /* FIXME: The `scmp' call compares an encoded and a decoded string. */
 	  /* If this entry matches the current bestmatch, the only
 	     thing it can do is increase matchcount, so don't bother
 	     investigating it any further.  */
@@ -548,6 +549,7 @@ file_name_completion (file, dirname, all_flag, ver_flag, predicate)
 	      && len >= bestmatchsize
 	      && 0 > scmp (dp->d_name, SDATA (bestmatch), bestmatchsize))
 	    continue;
+#endif
 
 	  if (directoryp)
 	    {
@@ -892,6 +894,29 @@ stat_gname (struct stat *st)
 #endif
 }
 
+/* Make an integer or float number for UID and GID, while being
+   careful not to produce negative numbers due to signed integer
+   overflow.  */
+static Lisp_Object
+make_uid (struct stat *st)
+{
+  EMACS_INT uid = st->st_uid;
+
+  if (sizeof (st->st_uid) > sizeof (uid) || uid < 0 || FIXNUM_OVERFLOW_P (uid))
+    return make_float ((double)st->st_uid);
+  return make_number (uid);
+}
+
+static Lisp_Object
+make_gid (struct stat *st)
+{
+  EMACS_INT gid = st->st_gid;
+
+  if (sizeof (st->st_gid) > sizeof (gid) || gid < 0 || FIXNUM_OVERFLOW_P (gid))
+    return make_float ((double)st->st_gid);
+  return make_number (gid);
+}
+
 DEFUN ("file-attributes", Ffile_attributes, Sfile_attributes, 1, 2, 0,
        doc: /* Return a list of attributes of file FILENAME.
 Value is nil if specified file cannot be opened.
@@ -904,8 +929,8 @@ ID-FORMAT if you use the returned uid or gid.
 Elements of the attribute list are:
  0. t for directory, string (name linked to) for symbolic link, or nil.
  1. Number of links to file.
- 2. File uid as a string or an integer.  If a string value cannot be
-  looked up, the integer value is returned.
+ 2. File uid as a string or a number.  If a string value cannot be
+  looked up, a numeric value, either an integer or a float, is returned.
  3. File gid, likewise.
  4. Last access time, as a list of two integers.
   First integer has high-order 16 bits of time, second has low 16 bits.
@@ -939,7 +964,7 @@ which see.  */)
   Lisp_Object handler;
   struct gcpro gcpro1;
   EMACS_INT ino, uid, gid;
-  char *uname, *gname;
+  char *uname = NULL, *gname = NULL;
 
   filename = Fexpand_file_name (filename, Qnil);
 
@@ -974,24 +999,23 @@ which see.  */)
 #endif
     }
   values[1] = make_number (s.st_nlink);
-  uid = s.st_uid;
-  gid = s.st_gid;
-  if (NILP (id_format) || EQ (id_format, Qinteger))
-    {
-      values[2] = make_fixnum_or_float (uid);
-      values[3] = make_fixnum_or_float (gid);
-    }
-  else
+
+  if (!(NILP (id_format) || EQ (id_format, Qinteger)))
     {
       BLOCK_INPUT;
       uname = stat_uname (&s);
-      values[2] = (uname ? build_string (uname)
-		   : make_fixnum_or_float (uid));
       gname = stat_gname (&s);
-      values[3] = (gname ? build_string (gname)
-		   : make_fixnum_or_float (gid));
       UNBLOCK_INPUT;
     }
+  if (uname)
+    values[2] = build_string (uname);
+  else
+    values[2] = make_uid (&s);
+  if (gname)
+    values[3] = build_string (gname);
+  else
+    values[3] = make_gid (&s);
+
   values[4] = make_time (s.st_atime);
   values[5] = make_time (s.st_mtime);
   values[6] = make_time (s.st_ctime);

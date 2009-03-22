@@ -371,10 +371,11 @@ If nil, display all header fields except those matched by
   :group 'rmail-headers)
 
 ;;;###autoload
-(defcustom rmail-retry-ignored-headers "^x-authentication-warning:"
+(defcustom rmail-retry-ignored-headers "^x-authentication-warning:\\|content-type:\\|content-transfer-encoding:\\|mime-version:"
   "Headers that should be stripped when retrying a failed message."
   :type '(choice regexp (const nil :tag "None"))
-  :group 'rmail-headers)
+  :group 'rmail-headers
+  :version "23.1")	   ; added content-type/encoding, mime-version
 
 ;;;###autoload
 (defcustom rmail-highlighted-headers "^From:\\|^Subject:"
@@ -3762,7 +3763,6 @@ specifying headers which should not be copied into the new message."
 	    (mail-sendmail-delimit-header)
 	    (save-restriction
 	      (narrow-to-region (point-min) (mail-header-end))
-	      (rmail-delete-headers rmail-ignored-headers)
 	      (rmail-delete-headers rmail-retry-ignored-headers)
 	      (rmail-delete-headers "^\\(sender\\|return-path\\|received\\):")
 	      (setq resending (mail-fetch-field "resent-to"))
