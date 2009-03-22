@@ -5421,6 +5421,8 @@ check_windows_init_file ()
       Lisp_Object init_file;
       int fd;
 
+      if (Vload_path)
+      {
       objs[0] = Vload_path;
       objs[1] = decode_env_path (0, (getenv ("EMACSLOADPATH")));
       full_load_path = Fappend (2, objs);
@@ -5458,6 +5460,7 @@ check_windows_init_file ()
 	  _close (fd);
 	}
     }
+  }
 }
 
 void
