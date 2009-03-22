@@ -1,3 +1,113 @@
+2009-03-21  Jari Aalto  <jari.aalto@cante.net>
+
+	* time.el (display-time-default-load-average): Doc fix.
+
+2009-03-21  Eli Zaretskii  <eliz@gnu.org>
+
+	* simple.el (handle-shift-selection): Doc fix.  (Bug#2738)
+
+2009-03-21  Chong Yidong  <cyd@stupidchicken.com>
+
+	* files.el (file-modes-rights-to-number): Doc fix.
+	(file-modes-symbolic-to-number): Handle empty permissions
+	arg (Bug#2729).
+
+2009-03-21  Dan Nicolaescu  <dann@ics.uci.edu>
+
+	* vc.el (Todo): Add note on simplifying vc-register.
+
+2009-03-21  Eli Zaretskii  <eliz@gnu.org>
+
+	* eshell/em-ls.el (eshell-ls-dir): Call
+	eshell-directory-files-and-attributes with additional argument
+	'integer or 'string, according to numeric-uid-gid.
+	(eshell-ls-file): Don't convert UID and GID to strings, as
+	eshell-ls-dir already did.  Enlarge max user-name string length to
+	14 characters.
+	(eshell-do-ls): Fix the long name of the -L option.
+
+	* eshell/esh-util.el (directory-files-and-attributes): Accept and
+	ignore additional optional argument id-format.
+	(eshell-directory-files-and-attributes): Call
+	directory-files-and-attributes with additional argument id-format.
+
+	* eshell/em-ls.el (eshell-ls-file): Enlarge default size-width to 8.
+	(eshell-ls-dir): Under -l, call eshell-ls-printable-size with last
+	argument nil.
+
+2009-03-21  David Reitter <david.reitter@gmail.com>
+
+	* cus-start.el (all): Use existing `ns' rather than new `nextstep'
+	group for variables affected by last two changes.
+
+2009-03-21  Eli Zaretskii  <eliz@gnu.org>
+
+	* cus-start.el (all): Fix last change.
+
+2009-03-21  David Reitter <david.reitter@gmail.com>
+
+	* cus-start.el (all): Add ns-control-modifier,
+	ns-command-modifier, ns-alternate-modifier, ns-function-modifier,
+	ns-antialias-text, and ns-use-qd-smoothing.
+
+2009-03-20  Dan Nicolaescu  <dann@ics.uci.edu>
+
+	* vc-dir.el (vc-dir-deduce-fileset): Make the error message more explicit.
+
+2009-03-19  Juanma Barranquero  <lekktu@gmail.com>
+
+	* subr.el (forward-point): Add obsolescence declaration.
+
+	* paren.el (show-paren-function):
+	* simple.el (kill-forward-chars, kill-backward-chars):
+	 Use (+/- (point) N), instead of `forward-point'.
+
+2009-03-19  Glenn Morris  <rgm@gnu.org>
+
+	* mail/rmail.el (rmail-retry-ignored-headers): Add :version tag.
+
+	* mail/supercite.el (sc-version): Doc fix.
+
+2009-03-19  Leo  <sdl.web@gmail.com>  (tiny change)
+
+	* mail/supercite.el (sc-version): Fix typo in interactive spec.
+
+2009-03-19  Kenichi Handa  <handa@m17n.org>
+
+	* international/quail.el (quail-update-leim-list-file):
+	Save leim-list.el in utf-8.
+
+	* international/mule-cmds.el (leim-list-header):
+	Use utf-8 coding tag.
+
+	* term/ns-win.el: Call create-default-fontset, not
+	setup-default-fontset.  Call create-fontset-from-fontset-spec
+	within condition-case.
+
+	* term/w32-win.el (w32-initialize-window-system):
+	Call create-default-fontset, not setup-default-fontset.
+	Call create-fontset-from-fontset-spec within condition-case.
+
+	* term/x-win.el (x-initialize-window-system):
+	Call create-default-fontset, not setup-default-fontset.
+	Call create-fontset-from-fontset-spec within condition-case.
+
+	* international/fontset.el (create-default-fontset): New function.
+	(create-fontset-from-x-resource): Use display-warning instead of
+	message.
+
+2009-03-18  Richard M Stallman  <rms@gnu.org>
+
+	* mail/rmail.el (rmail-retry-ignored-headers): Add usual mime headers.
+	(rmail-retry-failure): Undo previous change.
+
+2009-03-18  Kenichi Handa  <handa@m17n.org>
+
+	* international/mule.el (after-insert-file-set-coding):
+	Set buffer-file-coding-system directly without calling
+	set-buffer-file-coding-system.  (Fixes bug described in
+	follow-up to bug#2317).
+
 2009-03-17  Juanma Barranquero  <lekktu@gmail.com>
 
 	* emacs-lisp/benchmark.el (benchmark): Reflow docstring.
