@@ -619,7 +619,7 @@ make_gap (nbytes_added)
 {
   if (nbytes_added >= 0)
     make_gap_larger (nbytes_added);
-#if defined USE_MMAP_FOR_BUFFERS || defined REL_ALLOC || defined DOUG_LEA_MALLOC
+#if defined REL_ALLOC || defined DOUG_LEA_MALLOC
   else
     make_gap_smaller (-nbytes_added);
 #endif

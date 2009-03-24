@@ -2374,14 +2374,8 @@ You must run Emacs in batch mode in order to dump it.  */)
   malloc_state_ptr = malloc_get_state ();
 #endif
 
-#ifdef USE_MMAP_FOR_BUFFERS
-  mmap_set_vars (0);
-#endif
   unexec (SDATA (filename),
 	  !NILP (symfile) ? SDATA (symfile) : 0, my_edata, 0, 0);
-#ifdef USE_MMAP_FOR_BUFFERS
-  mmap_set_vars (1);
-#endif
 #ifdef DOUG_LEA_MALLOC
   free (malloc_state_ptr);
 #endif
