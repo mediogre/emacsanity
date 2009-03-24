@@ -41,14 +41,9 @@ typedef size_t SIZE;
 
 extern void safe_bcopy ();
 
-#ifdef DOUG_LEA_MALLOC
-#define M_TOP_PAD           -2
-extern int mallopt ();
-#else /* not DOUG_LEA_MALLOC */
 #ifndef SYSTEM_MALLOC
 extern size_t __malloc_extra_blocks;
 #endif /* SYSTEM_MALLOC */
-#endif /* not DOUG_LEA_MALLOC */
 
 #else /* not emacs */
 
@@ -1115,25 +1110,6 @@ r_alloc_thaw ()
     }
 }
 
-
-#if defined (emacs) && defined (DOUG_LEA_MALLOC)
-
-/* Reinitialize the morecore hook variables after restarting a dumped
-   Emacs.  This is needed when using Doug Lea's malloc from GNU libc.  */
-void
-r_alloc_reinit ()
-{
-  /* Only do this if the hook has been reset, so that we don't get an
-     infinite loop, in case Emacs was linked statically.  */
-  if (__morecore != r_alloc_sbrk)
-    {
-      real_morecore = __morecore;
-      __morecore = r_alloc_sbrk;
-    }
-}
-
-#endif /* emacs && DOUG_LEA_MALLOC */
-
 #ifdef DEBUG
 
 #include <assert.h>
@@ -1286,16 +1262,10 @@ r_alloc_init ()
   extra_bytes = ROUNDUP (50000);
 #endif
 
-#ifdef DOUG_LEA_MALLOC
-  BLOCK_INPUT;
-  mallopt (M_TOP_PAD, 64 * 4096);
-  UNBLOCK_INPUT;
-#else
 #ifndef SYSTEM_MALLOC
   /* Give GNU malloc's morecore some hysteresis
      so that we move all the relocatable blocks much less often.  */
   __malloc_extra_blocks = 64;
-#endif
 #endif
 
 #ifndef SYSTEM_MALLOC

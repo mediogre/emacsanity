@@ -148,19 +148,6 @@ Lisp_Object Vpath_separator;
   on subsequent starts.  */
 int initialized;
 
-#ifdef DOUG_LEA_MALLOC
-/* Preserves a pointer to the memory allocated that copies that
-   static data inside glibc's malloc.  */
-void *malloc_state_ptr;
-/* From glibc, a routine that returns a copy of the malloc internal state.  */
-extern void *malloc_get_state ();
-/* From glibc, a routine that overwrites the malloc internal state.  */
-extern int malloc_set_state ();
-/* Non-zero if the MALLOC_CHECK_ enviroment variable was set while
-   dumping.  Used to work around a bug in glibc's malloc.  */
-int malloc_using_checking;
-#endif
-
 /* Variable whose value is symbol giving operating system type.  */
 Lisp_Object Vsystem_type;
 
@@ -697,56 +684,6 @@ argmatch (argv, argc, sstr, lstr, minlen, valptr, skipptr)
     }
 }
 
-#ifdef DOUG_LEA_MALLOC
-
-/* malloc can be invoked even before main (e.g. by the dynamic
-   linker), so the dumped malloc state must be restored as early as
-   possible using this special hook.  */
-
-static void
-malloc_initialize_hook ()
-{
-#ifndef USE_CRT_DLL
-  extern char **environ;
-#endif
-
-  if (initialized)
-    {
-      if (!malloc_using_checking)
-	/* Work around a bug in glibc's malloc.  MALLOC_CHECK_ must be
-	   ignored if the heap to be restored was constructed without
-	   malloc checking.  Can't use unsetenv, since that calls malloc.  */
-	{
-	  char **p;
-
-	  for (p = environ; p && *p; p++)
-	    if (strncmp (*p, "MALLOC_CHECK_=", 14) == 0)
-	      {
-		do
-		  *p = p[1];
-		while (*++p);
-		break;
-	      }
-	}
-
-      malloc_set_state (malloc_state_ptr);
-#ifndef XMALLOC_OVERRUN_CHECK
-      free (malloc_state_ptr);
-#endif
-    }
-  else
-    {
-      if (my_heap_start == 0)
-        my_heap_start = sbrk (0);
-      malloc_using_checking = getenv ("MALLOC_CHECK_") != NULL;
-    }
-}
-
-void (*__malloc_initialize_hook) () = malloc_initialize_hook;
-
-#endif /* DOUG_LEA_MALLOC */
-
-
 #define REPORT_EMACS_BUG_ADDRESS "bug-gnu-emacs@gnu.org"
 #define REPORT_EMACS_BUG_PRETEST_ADDRESS "emacs-pretest-bug@gnu.org"
 
@@ -1230,7 +1167,7 @@ main (int argc, char **argv)
       setpgrp ();
 #endif
 #endif
-#if defined (HAVE_GTK_AND_PTHREAD) && !defined (SYSTEM_MALLOC) && !defined (DOUG_LEA_MALLOC)
+#if defined (HAVE_GTK_AND_PTHREAD) && !defined (SYSTEM_MALLOC) 
       {
 	extern void malloc_enable_thread P_ ((void));
 
@@ -2370,15 +2307,9 @@ You must run Emacs in batch mode in order to dump it.  */)
      it is called on some systems.  */
   reset_malloc_hooks ();
 #endif
-#ifdef DOUG_LEA_MALLOC
-  malloc_state_ptr = malloc_get_state ();
-#endif
 
   unexec (SDATA (filename),
 	  !NILP (symfile) ? SDATA (symfile) : 0, my_edata, 0, 0);
-#ifdef DOUG_LEA_MALLOC
-  free (malloc_state_ptr);
-#endif
 
   Vpurify_flag = tem;
 

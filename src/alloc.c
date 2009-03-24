@@ -60,7 +60,7 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 /* GC_MALLOC_CHECK defined means perform validity checks of malloc'd
    memory.  Can do this only if using gmalloc.c.  */
 
-#if defined SYSTEM_MALLOC || defined DOUG_LEA_MALLOC
+#if defined SYSTEM_MALLOC
 #undef GC_MALLOC_CHECK
 #endif
 
@@ -83,28 +83,11 @@ extern POINTER_TYPE *sbrk ();
 #include "w32.h"
 #endif
 
-#ifdef DOUG_LEA_MALLOC
-
-#include <malloc.h>
-/* malloc.h #defines this as size_t, at least in glibc2.  */
-#ifndef __malloc_size_t
-#define __malloc_size_t int
-#endif
-
-/* Specify maximum number of areas to mmap.  It would be nice to use a
-   value that explicitly means "no limit".  */
-
-#define MMAP_MAX_AREAS 100000000
-
-#else /* not DOUG_LEA_MALLOC */
-
 /* The following come from gmalloc.c.  */
 
 #define	__malloc_size_t		size_t
 extern __malloc_size_t _bytes_used;
 extern __malloc_size_t __malloc_extra_blocks;
-
-#endif /* not DOUG_LEA_MALLOC */
 
 #if ! defined (SYSTEM_MALLOC) && defined (HAVE_GTK_AND_PTHREAD)
 
@@ -545,11 +528,7 @@ display_malloc_warning ()
 }
 
 
-#ifdef DOUG_LEA_MALLOC
-#  define BYTES_USED (mallinfo ().uordblks)
-#else
-#  define BYTES_USED _bytes_used
-#endif
+#define BYTES_USED _bytes_used
 
 /* Called if we can't allocate relocatable space for a buffer.  */
 
@@ -1012,13 +991,6 @@ lisp_align_malloc (nbytes, type)
       int i;
       EMACS_INT aligned; /* int gets warning casting to 64-bit pointer.  */
 
-#ifdef DOUG_LEA_MALLOC
-      /* Prevent mmap'ing the chunk.  Lisp data may not be mmap'ed
-	 because mapped region contents are not preserved in
-	 a dumped Emacs.  */
-      mallopt (M_MMAP_MAX, 0);
-#endif
-
 #ifdef USE_POSIX_MEMALIGN
       {
 	int err = posix_memalign (&base, BLOCK_ALIGN, ABLOCKS_BYTES);
@@ -1040,11 +1012,6 @@ lisp_align_malloc (nbytes, type)
       aligned = (base == abase);
       if (!aligned)
 	((void**)abase)[-1] = base;
-
-#ifdef DOUG_LEA_MALLOC
-      /* Back to a reasonable maximum of mmap'ed areas.  */
-      mallopt (M_MMAP_MAX, MMAP_MAX_AREAS);
-#endif
 
 #ifndef USE_LSB_TAG
       /* If the memory just allocated cannot be addressed thru a Lisp
@@ -1174,12 +1141,10 @@ allocate_buffer ()
 /* When using SYNC_INPUT, we don't call malloc from a signal handler, so
    there's no need to block input around malloc.  */
 
-#ifndef DOUG_LEA_MALLOC
 extern void * (*__malloc_hook) P_ ((size_t, const void *));
 extern void * (*__realloc_hook) P_ ((void *, size_t, const void *));
 extern void (*__free_hook) P_ ((void *, const void *));
-/* Else declared in malloc.h, perhaps with an extra arg.  */
-#endif /* DOUG_LEA_MALLOC */
+
 static void * (*old_malloc_hook) P_ ((size_t, const void *));
 static void * (*old_realloc_hook) P_ ((void *,  size_t, const void*));
 static void (*old_free_hook) P_ ((void*, const void*));
@@ -1245,12 +1210,7 @@ emacs_blocked_malloc (size, ptr)
 
   BLOCK_INPUT_ALLOC;
   __malloc_hook = old_malloc_hook;
-#ifdef DOUG_LEA_MALLOC
-  /* Segfaults on my system.  --lorentey */
-  /* mallopt (M_TOP_PAD, malloc_hysteresis * 4096); */
-#else
-    __malloc_extra_blocks = malloc_hysteresis;
-#endif
+  __malloc_extra_blocks = malloc_hysteresis;
 
   value = (void *) malloc (size);
 
@@ -1366,19 +1326,9 @@ void
 uninterrupt_malloc ()
 {
 #ifdef HAVE_GTK_AND_PTHREAD
-#ifdef DOUG_LEA_MALLOC
-  pthread_mutexattr_t attr;
-
-  /*  GLIBC has a faster way to do this, but lets keep it portable.
-      This is according to the Single UNIX Specification.  */
-  pthread_mutexattr_init (&attr);
-  pthread_mutexattr_settype (&attr, PTHREAD_MUTEX_RECURSIVE);
-  pthread_mutex_init (&alloc_mutex, &attr);
-#else  /* !DOUG_LEA_MALLOC */
   /* Some systems such as Solaris 2.6 doesn't have a recursive mutex,
      and the bundled gmalloc.c doesn't require it.  */
   pthread_mutex_init (&alloc_mutex, NULL);
-#endif /* !DOUG_LEA_MALLOC */
 #endif /* HAVE_GTK_AND_PTHREAD */
 
   if (__free_hook != emacs_blocked_free)
@@ -1975,25 +1925,7 @@ allocate_string_data (s, nchars, nbytes)
     {
       size_t size = sizeof *b - sizeof (struct sdata) + needed;
 
-#ifdef DOUG_LEA_MALLOC
-      /* Prevent mmap'ing the chunk.  Lisp data may not be mmap'ed
-	 because mapped region contents are not preserved in
-	 a dumped Emacs.
-
-         In case you think of allowing it in a dumped Emacs at the
-         cost of not being able to re-dump, there's another reason:
-         mmap'ed data typically have an address towards the top of the
-         address space, which won't fit into an EMACS_INT (at least on
-         32-bit systems with the current tagging scheme).  --fx  */
-      mallopt (M_MMAP_MAX, 0);
-#endif
-
       b = (struct sblock *) lisp_malloc (size + GC_STRING_EXTRA, MEM_TYPE_NON_LISP);
-
-#ifdef DOUG_LEA_MALLOC
-      /* Back to a reasonable maximum of mmap'ed areas. */
-      mallopt (M_MMAP_MAX, MMAP_MAX_AREAS);
-#endif
 
       b->next_free = &b->first_data;
       b->first_data.string = NULL;
@@ -2923,23 +2855,11 @@ allocate_vectorlike (len)
 
   MALLOC_BLOCK_INPUT;
 
-#ifdef DOUG_LEA_MALLOC
-  /* Prevent mmap'ing the chunk.  Lisp data may not be mmap'ed
-     because mapped region contents are not preserved in
-     a dumped Emacs.  */
-  mallopt (M_MMAP_MAX, 0);
-#endif
-
   /* This gets triggered by code which I haven't bothered to fix.  --Stef  */
   /* eassert (!handling_signal); */
 
   nbytes = sizeof *p + (len - 1) * sizeof p->contents[0];
   p = (struct Lisp_Vector *) lisp_malloc (nbytes, MEM_TYPE_VECTORLIKE);
-
-#ifdef DOUG_LEA_MALLOC
-  /* Back to a reasonable maximum of mmap'ed areas.  */
-  mallopt (M_MMAP_MAX, MMAP_MAX_AREAS);
-#endif
 
   consing_since_gc += nbytes;
   vector_cells_consed += len;
@@ -6243,11 +6163,6 @@ init_alloc_once ()
 
   all_vectors = 0;
   ignore_warnings = 1;
-#ifdef DOUG_LEA_MALLOC
-  mallopt (M_TRIM_THRESHOLD, 128*1024); /* trim threshold */
-  mallopt (M_MMAP_THRESHOLD, 64*1024); /* mmap threshold */
-  mallopt (M_MMAP_MAX, MMAP_MAX_AREAS); /* max. number of mmap'ed areas */
-#endif
   init_strings ();
   init_cons ();
   init_symbol ();
