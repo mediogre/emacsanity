@@ -348,15 +348,6 @@ int fatal_error_in_progress;
 
 void (*fatal_error_signal_hook) P_ ((void));
 
-#ifdef FORWARD_SIGNAL_TO_MAIN_THREAD
-/* When compiled with GTK and running under Gnome,
-   multiple threads may be created.  Keep track of our main
-   thread to make sure signals are delivered to it (see syssignal.h).  */
-
-pthread_t main_thread;
-#endif
-
-
 /* Handle bus errors, invalid instruction, etc.  */
 SIGTYPE
 fatal_error_signal (sig)
@@ -380,48 +371,13 @@ fatal_error_signal (sig)
      Remember that since we're in a signal handler, the signal we're
      going to send is probably blocked, so we have to unblock it if we
      want to really receive it.  */
-#ifndef MSDOS
   sigunblock (sigmask (fatal_error_code));
-#endif
 
   if (fatal_error_signal_hook)
     fatal_error_signal_hook ();
 
   kill (getpid (), fatal_error_code);
 }
-
-#ifdef SIGDANGER
-
-/* Handler for SIGDANGER.  */
-SIGTYPE
-memory_warning_signal (sig)
-     int sig;
-{
-  signal (sig, memory_warning_signal);
-  SIGNAL_THREAD_CHECK (sig);
-
-  malloc_warning ("Operating system warns that virtual memory is running low.\n");
-
-  /* It might be unsafe to call do_auto_save now.  */
-  force_auto_save_soon ();
-}
-#endif
-
-/* We define abort, rather than using it from the library,
-   so that GDB can return from a breakpoint here.
-   MSDOS has its own definition in msdos.c.  */
-
-#if ! defined (DOS_NT) && ! defined (NO_ABORT)
-
-void
-abort ()
-{
-  kill (getpid (), SIGABRT);
-  /* This shouldn't be executed, but it prevents a warning.  */
-  exit (1);
-}
-#endif
-
 
 /* Code for dealing with Lisp access to the Unix command line.  */
 
@@ -491,15 +447,7 @@ init_cmdargs (argc, argv, skip_args)
 	  tem = Fexpand_file_name (build_string ("lib-src"), dir);
 	  lib_src_exists = Ffile_exists_p (tem);
 
-#ifdef MSDOS
-	  /* MSDOS installations frequently remove lib-src, but we still
-	     must set installation-directory, or else info won't find
-	     its files (it uses the value of installation-directory).  */
-	  tem = Fexpand_file_name (build_string ("info"), dir);
-	  info_exists = Ffile_exists_p (tem);
-#else
 	  info_exists = Qnil;
-#endif
 
 	  if (!NILP (lib_src_exists) || !NILP (info_exists))
 	    {
@@ -518,13 +466,7 @@ init_cmdargs (argc, argv, skip_args)
 	  lib_src_exists = Ffile_exists_p (tem);
 
 
-#ifdef MSDOS
-	  /* See the MSDOS commentary above.  */
-	  tem = Fexpand_file_name (build_string ("../info"), dir);
-	  info_exists = Ffile_exists_p (tem);
-#else
 	  info_exists = Qnil;
-#endif
 
 	  if (!NILP (lib_src_exists) || !NILP (info_exists))
 	    {
@@ -907,37 +849,9 @@ main (int argc, char **argv)
 # endif /* not SYNC_INPUT */
 #endif	/* not SYSTEM_MALLOC */
 
-#ifdef FORWARD_SIGNAL_TO_MAIN_THREAD
-  main_thread = pthread_self ();
-#endif /* FORWARD_SIGNAL_TO_MAIN_THREAD */
-
-#if defined (MSDOS) || defined (WINDOWSNT)
   /* We do all file input/output as binary files.  When we need to translate
      newlines, we do that manually.  */
   _fmode = O_BINARY;
-#endif /* MSDOS || WINDOWSNT */
-
-#ifdef MSDOS
-#if __DJGPP__ >= 2
-  if (!isatty (fileno (stdin)))
-    setmode (fileno (stdin), O_BINARY);
-  if (!isatty (fileno (stdout)))
-    {
-      fflush (stdout);
-      setmode (fileno (stdout), O_BINARY);
-    }
-#else  /* not __DJGPP__ >= 2 */
-  (stdin)->_flag &= ~_IOTEXT;
-  (stdout)->_flag &= ~_IOTEXT;
-  (stderr)->_flag &= ~_IOTEXT;
-#endif /* not __DJGPP__ >= 2 */
-#endif /* MSDOS */
-
-#ifdef SET_EMACS_PRIORITY
-  if (emacs_priority)
-    nice (emacs_priority);
-  setuid (getuid ());
-#endif /* SET_EMACS_PRIORITY */
 
   /* Skip initial setlocale if LC_ALL is "C", as it's not needed in that case.
      The build procedure uses this while dumping, to ensure that the
@@ -1022,158 +936,8 @@ main (int argc, char **argv)
   if (argmatch (argv, argc, "-daemon", "--daemon", 5, NULL, &skip_args)
       || argmatch (argv, argc, "-daemon", "--daemon", 5, &dname_arg, &skip_args))
     {
-#ifndef DOS_NT
-      pid_t f;
-
-      /* Start as a daemon: fork a new child process which will run the
-	 rest of the initialization code, then exit.
-
-	 Detaching a daemon requires the following steps:
-	 - fork
-	 - setsid
-	 - exit the parent
-	 - close the tty file-descriptors
-
-	 We only want to do the last 2 steps once the daemon is ready to
-	 serve requests, i.e. after loading .emacs (initialization).
-	 OTOH initialization may start subprocesses (e.g. ispell) and these
-	 should be run from the proper process (the one that will end up
-	 running as daemon) and with the proper "session id" in order for
-	 them to keep working after detaching, so fork and setsid need to be
-	 performed before initialization.
-
-	 We want to avoid exiting before the server socket is ready, so
-	 use a pipe for synchronization.  The parent waits for the child
-	 to close its end of the pipe (using `daemon-initialized')
-	 before exiting.  */
-      if (pipe (daemon_pipe) == -1)
-	{
-	  fprintf (stderr, "Cannot pipe!\n");
-	  exit (1);
-	}
-
-#ifndef NS_IMPL_COCOA
-      f = fork ();
-#else /* NS_IMPL_COCOA */
-      /* Under Cocoa we must do fork+exec as CoreFoundation lib fails in
-         forked process: http://developer.apple.com/ReleaseNotes/
-                                  CoreFoundation/CoreFoundation.html)
-         We mark being in the exec'd process by a daemon name argument of
-         form "--daemon=\nFD0,FD1\nNAME" where FD are the pipe file descriptors,
-         NAME is the original daemon name, if any. */
-      if (!dname_arg || !strchr (dname_arg, '\n'))
-	  f = fork ();  /* in orig */
-      else
-	  f = 0;  /* in exec'd */
-#endif /* NS_IMPL_COCOA */
-      if (f > 0)
-	{
-	  int retval;
-	  char buf[1];
-
-	  /* Close unused writing end of the pipe.  */
-	  close (daemon_pipe[1]);
-
-	  /* Just wait for the child to close its end of the pipe.  */
-	  do
-	    {
-	      retval = read (daemon_pipe[0], &buf, 1);
-	    }
-	  while (retval == -1 && errno == EINTR);
-
-	  if (retval < 0)
-	    {
-	      fprintf (stderr, "Error reading status from child\n");
-	      exit (1);
-	    }
-	  else if (retval == 0)
-	    {
-	      fprintf (stderr, "Error: server did not start correctly\n");
-	      exit (1);
-	    }
-
-	  close (daemon_pipe[0]);
-	  exit (0);
-	}
-      if (f < 0)
-	{
-	  fprintf (stderr, "Cannot fork!\n");
-	  exit (1);
-	}
-
-#ifdef NS_IMPL_COCOA
-      {
-        /* In orig process, forked as child, OR in exec'd. */
-        if (!dname_arg || !strchr (dname_arg, '\n'))
-          {  /* In orig, child: now exec w/special daemon name. */
-            char fdStr[80];
-
-            if (dname_arg && strlen (dname_arg) > 70)
-              {
-                fprintf (stderr, "daemon: child name too long\n");
-                exit (1);
-              }
-
-            sprintf (fdStr, "--daemon=\n%d,%d\n%s", daemon_pipe[0],
-                     daemon_pipe[1], dname_arg ? dname_arg : "");
-            argv[skip_args] = fdStr;
-
-            execv (argv[0], argv);
-            fprintf (stderr, "emacs daemon: exec failed: %d\t%d\n", errno);
-            exit (1);
-          }
-
-        /* In exec'd: parse special dname into pipe and name info. */
-        if (!dname_arg || !strchr (dname_arg, '\n')
-            || strlen (dname_arg) < 1 || strlen (dname_arg) > 70)
-          {
-            fprintf (stderr, "emacs daemon: daemon name absent or too long\n");
-            exit(1);
-          }
-        dname_arg2[0] = '\0';
-        sscanf (dname_arg, "\n%d,%d\n%s", &(daemon_pipe[0]), &(daemon_pipe[1]),
-                dname_arg2);
-        dname_arg = strlen (dname_arg2) ? dname_arg2 : NULL;
-      }
-#endif /* NS_IMPL_COCOA */
-
-      if (dname_arg)
-       	daemon_name = xstrdup (dname_arg);
-      /* Close unused reading end of the pipe.  */
-      close (daemon_pipe[0]);
-      /* Make sure that the used end of the pipe is closed on exec, so
-	 that it is not accessible to programs started from .emacs.  */
-      fcntl (daemon_pipe[1], F_SETFD, FD_CLOEXEC);
-
-#ifdef HAVE_SETSID
-      setsid();
-#endif
-#else /* DOS_NT */
       fprintf (stderr, "This platform does not support the -daemon flag.\n");
       exit (1);
-#endif /* DOS_NT */
-    }
-
-  if (! noninteractive)
-    {
-#ifdef BSD_PGRPS
-      if (initialized)
-	{
-	  inherited_pgroup = EMACS_GETPGRP (0);
-	  setpgrp (0, getpid ());
-	}
-#else
-#if defined (USG5) && defined (INTERRUPT_INPUT)
-      setpgrp ();
-#endif
-#endif
-#if defined (HAVE_GTK_AND_PTHREAD) && !defined (SYSTEM_MALLOC) 
-      {
-	extern void malloc_enable_thread P_ ((void));
-
-	malloc_enable_thread ();
-      }
-#endif
     }
 
   init_signals ();
@@ -1263,17 +1027,6 @@ main (int argc, char **argv)
       signal (SIGDANGER, memory_warning_signal);
 #endif
 
-#ifdef AIX
-/* 20 is SIGCHLD, 21 is SIGTTIN, 22 is SIGTTOU.  */
-      signal (SIGXCPU, fatal_error_signal);
-#ifndef _I386
-      signal (SIGIOINT, fatal_error_signal);
-#endif
-      signal (SIGGRANT, fatal_error_signal);
-      signal (SIGRETRACT, fatal_error_signal);
-      signal (SIGSOUND, fatal_error_signal);
-      signal (SIGMSG, fatal_error_signal);
-#endif /* AIX */
     }
 
   noninteractive1 = noninteractive;
@@ -1409,113 +1162,9 @@ main (int argc, char **argv)
   no_loadup
     = argmatch (argv, argc, "-nl", "--no-loadup", 6, NULL, &skip_args);
 
-#ifdef HAVE_NS
-  ns_alloc_autorelease_pool();
-  if (!noninteractive)
-    {
-      char *tmp;
-      display_arg = 4;
-      if (argmatch (argv, argc, "-q", "--no-init-file", 6, NULL, &skip_args))
-        {
-          ns_no_defaults = 1;
-          skip_args--;
-        }
-      if (argmatch (argv, argc, "-Q", "--quick", 5, NULL, &skip_args))
-        {
-          ns_no_defaults = 1;
-          skip_args--;
-        }
-#ifdef NS_IMPL_COCOA
-      if (skip_args < argc)
-        {
-          if (!strncmp(argv[skip_args], "-psn", 4))
-            {
-              skip_args += 1;
-              chdir (getenv ("HOME"));
-            }
-          else if (skip_args+1 < argc && !strncmp(argv[skip_args+1], "-psn", 4))
-            {
-              skip_args += 2;
-              chdir (getenv ("HOME"));
-            }
-        }
-#endif
-      /* This used for remote operation.. not fully implemented yet. */
-      if (argmatch (argv, argc, "-_NSMachLaunch", 0, 3, &tmp, &skip_args))
-          display_arg = 4;
-      else if (argmatch (argv, argc, "-MachLaunch", 0, 3, &tmp, &skip_args))
-          display_arg = 4;
-      else if (argmatch (argv, argc, "-macosx", 0, 2, NULL, &skip_args))
-          display_arg = 4;
-      else if (argmatch (argv, argc, "-NSHost", 0, 3, &tmp, &skip_args))
-          display_arg = 4;
-    }
-#endif /* HAVE_NS */
-
-#ifdef HAVE_X_WINDOWS
-  /* Stupid kludge to catch command-line display spec.  We can't
-     handle this argument entirely in window system dependent code
-     because we don't even know which window system dependent code
-     to run until we've recognized this argument.  */
-  {
-    char *displayname = 0;
-    int count_before = skip_args;
-
-    /* Skip any number of -d options, but only use the last one.  */
-    while (1)
-      {
-	int count_before_this = skip_args;
-
-	if (argmatch (argv, argc, "-d", "--display", 3, &displayname, &skip_args))
-	  display_arg = 1;
-	else if (argmatch (argv, argc, "-display", 0, 3, &displayname, &skip_args))
-	  display_arg = 1;
-	else
-	  break;
-
-	count_before = count_before_this;
-      }
-
-    /* If we have the form --display=NAME,
-       convert it into  -d name.
-       This requires inserting a new element into argv.  */
-    if (displayname != 0 && skip_args - count_before == 1)
-      {
-	char **new = (char **) xmalloc (sizeof (char *) * (argc + 2));
-	int j;
-
-	for (j = 0; j < count_before + 1; j++)
-	  new[j] = argv[j];
-	new[count_before + 1] = "-d";
-	new[count_before + 2] = displayname;
-	for (j = count_before + 2; j <argc; j++)
-	  new[j + 1] = argv[j];
-	argv = new;
-	argc++;
-      }
-    /* Change --display to -d, when its arg is separate.  */
-    else if (displayname != 0 && skip_args > count_before
-	     && argv[count_before + 1][1] == '-')
-      argv[count_before + 1] = "-d";
-
-    /* Don't actually discard this arg.  */
-    skip_args = count_before;
-  }
-#endif
-
   /* argmatch must not be used after here,
      except when bulding temacs
      because the -d argument has not been skipped in skip_args.  */
-
-#ifdef MSDOS
-  /* Call early 'cause init_environment needs it.  */
-  init_dosfns ();
-  /* Set defaults for several environment variables.  */
-  if (initialized)
-    init_environment (argc, argv, skip_args);
-  else
-    tzset ();
-#endif /* MSDOS */
 
 #ifdef WINDOWSNT
   globals_of_w32 ();
@@ -1625,18 +1274,6 @@ main (int argc, char **argv)
       syms_of_fringe ();
       syms_of_image ();
 #endif /* HAVE_WINDOW_SYSTEM */
-#ifdef HAVE_X_WINDOWS
-      syms_of_xterm ();
-      syms_of_xfns ();
-      syms_of_xmenu ();
-      syms_of_fontset ();
-#ifdef HAVE_X_SM
-      syms_of_xsmfns ();
-#endif
-#ifdef HAVE_X11
-      syms_of_xselect ();
-#endif
-#endif /* HAVE_X_WINDOWS */
 
       syms_of_menu ();
 
@@ -1647,18 +1284,6 @@ main (int argc, char **argv)
       syms_of_w32menu ();
       syms_of_fontset ();
 #endif /* HAVE_NTGUI */
-
-#ifdef MSDOS
-      syms_of_xmenu ();
-#endif	/* MSDOS */
-
-#ifdef HAVE_NS
-      syms_of_nsterm ();
-      syms_of_nsfns ();
-      syms_of_nsmenu ();
-      syms_of_nsselect ();
-      syms_of_fontset ();
-#endif /* HAVE_NS */
 
 #ifdef HAVE_DBUS
       syms_of_dbusbind ();
@@ -2156,17 +1781,6 @@ shut_down_emacs (sig, no_x, stuff)
   unlock_all_files ();
 #endif
 
-#if 0 /* This triggers a bug in XCloseDisplay and is not needed.  */
-#ifdef HAVE_X_WINDOWS
-  /* It's not safe to call intern here.  Maybe we are crashing.  */
-  if (!noninteractive && SYMBOLP (Vinitial_window_system)
-      && SCHARS (SYMBOL_NAME (Vinitial_window_system)) == 1
-      && SREF (SYMBOL_NAME (Vinitial_window_system), 0) == 'x'
-      && ! no_x)
-    Fx_close_current_connection ();
-#endif /* HAVE_X_WINDOWS */
-#endif
-
 #ifdef SIGIO
   /* There is a tendency for a SIGIO signal to arrive within exit,
      and cause a SIGHUP because the input descriptor is already closed.  */
@@ -2185,14 +1799,6 @@ shut_down_emacs (sig, no_x, stuff)
       check_glyph_memory ();
       check_message_stack ();
     }
-
-#ifdef MSDOS
-  dos_cleanup ();
-#endif
-
-#ifdef HAVE_NS
-  ns_term_shutdown (sig);
-#endif
 }
 
 

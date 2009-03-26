@@ -192,17 +192,8 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "fontset.h"
 #include "blockinput.h"
 
-#ifdef HAVE_X_WINDOWS
-#include "xterm.h"
-#endif
 #ifdef WINDOWSNT
 #include "w32term.h"
-#endif
-#ifdef HAVE_NS
-#include "nsterm.h"
-#endif
-#ifdef USE_GTK
-#include "gtkutil.h"
 #endif
 
 #include "font.h"
@@ -678,20 +669,6 @@ int current_mode_line_height, current_header_line_height;
    might not be interested in text properties that far away.  */
 
 #define TEXT_PROP_DISTANCE_LIMIT 100
-
-#if GLYPH_DEBUG
-
-/* Variables to turn off display optimizations from Lisp.  */
-
-int inhibit_try_window_id, inhibit_try_window_reusing;
-int inhibit_try_cursor_movement;
-
-/* Non-zero means print traces of redisplay if compiled with
-   GLYPH_DEBUG != 0.  */
-
-int trace_redisplay_p;
-
-#endif /* GLYPH_DEBUG */
 
 #ifdef DEBUG_TRACE_MOVE
 /* Non-zero means trace with TRACE_MOVE to stderr.  */
@@ -2496,35 +2473,7 @@ check_it (it)
 #endif /* not 0 */
 
 
-#if GLYPH_DEBUG
-
-/* Check that the window end of window W is what we expect it
-   to be---the last row in the current matrix displaying text.  */
-
-static void
-check_window_end (w)
-     struct window *w;
-{
-  if (!MINI_WINDOW_P (w)
-      && !NILP (w->window_end_valid))
-    {
-      struct glyph_row *row;
-      xassert ((row = MATRIX_ROW (w->current_matrix,
-				  XFASTINT (w->window_end_vpos)),
-		!row->enabled_p
-		|| MATRIX_ROW_DISPLAYS_TEXT_P (row)
-		|| MATRIX_ROW_VPOS (row, w->current_matrix) == 0));
-    }
-}
-
-#define CHECK_WINDOW_END(W)	check_window_end ((W))
-
-#else /* not GLYPH_DEBUG */
-
 #define CHECK_WINDOW_END(W)	(void) 0
-
-#endif /* not GLYPH_DEBUG */
-
 
 
 /***********************************************************************
@@ -9853,12 +9802,8 @@ update_tool_bar (f, save_match_data)
      struct frame *f;
      int save_match_data;
 {
-#if defined (USE_GTK) || defined (HAVE_NS) || USE_MAC_TOOLBAR
-  int do_update = FRAME_EXTERNAL_TOOL_BAR (f);
-#else
   int do_update = WINDOWP (f->tool_bar_window)
     && WINDOW_TOTAL_LINES (XWINDOW (f->tool_bar_window)) > 0;
-#endif
 
   if (do_update)
     {
@@ -10903,69 +10848,6 @@ hscroll_windows (window)
 				Redisplay
  ************************************************************************/
 
-/* Variables holding some state of redisplay if GLYPH_DEBUG is defined
-   to a non-zero value.  This is sometimes handy to have in a debugger
-   session.  */
-
-#if GLYPH_DEBUG
-
-/* First and last unchanged row for try_window_id.  */
-
-int debug_first_unchanged_at_end_vpos;
-int debug_last_unchanged_at_beg_vpos;
-
-/* Delta vpos and y.  */
-
-int debug_dvpos, debug_dy;
-
-/* Delta in characters and bytes for try_window_id.  */
-
-int debug_delta, debug_delta_bytes;
-
-/* Values of window_end_pos and window_end_vpos at the end of
-   try_window_id.  */
-
-EMACS_INT debug_end_pos, debug_end_vpos;
-
-/* Append a string to W->desired_matrix->method.  FMT is a printf
-   format string.  A1...A9 are a supplement for a variable-length
-   argument list.  If trace_redisplay_p is non-zero also printf the
-   resulting string to stderr.  */
-
-static void
-debug_method_add (w, fmt, a1, a2, a3, a4, a5, a6, a7, a8, a9)
-     struct window *w;
-     char *fmt;
-     int a1, a2, a3, a4, a5, a6, a7, a8, a9;
-{
-  char buffer[512];
-  char *method = w->desired_matrix->method;
-  int len = strlen (method);
-  int size = sizeof w->desired_matrix->method;
-  int remaining = size - len - 1;
-
-  sprintf (buffer, fmt, a1, a2, a3, a4, a5, a6, a7, a8, a9);
-  if (len && remaining)
-    {
-      method[len] = '|';
-      --remaining, ++len;
-    }
-
-  strncpy (method + len, buffer, remaining);
-
-  if (trace_redisplay_p)
-    fprintf (stderr, "%p (%s): %s\n",
-	     w,
-	     ((BUFFERP (w->buffer)
-	       && STRINGP (XBUFFER (w->buffer)->name))
-	      ? (char *) SDATA (XBUFFER (w->buffer)->name)
-	      : "no buffer"),
-	     buffer);
-}
-
-#endif /* GLYPH_DEBUG */
-
-
 /* Value is non-zero if all changes in window W, which displays
    current_buffer, are in the text between START and END.  START is a
    buffer position, END is given as a distance from Z.  Used in
@@ -11709,10 +11591,6 @@ redisplay_internal (preserve_echo_area)
 	      /* Update hint: No need to try to scroll in update_window.  */
 	      w->desired_matrix->no_scrolling_p = 1;
 
-#if GLYPH_DEBUG
-	      *w->desired_matrix->method = 0;
-	      debug_method_add (w, "optimization 1");
-#endif
 #ifdef HAVE_WINDOW_SYSTEM
 	      update_window_fringes (w, 0);
 #endif
@@ -11772,10 +11650,6 @@ redisplay_internal (preserve_echo_area)
 	      xassert (this_line_vpos == it.vpos);
 	      xassert (this_line_y == it.current_y);
 	      set_cursor_from_row (w, row, w->current_matrix, 0, 0, 0, 0);
-#if GLYPH_DEBUG
-	      *w->desired_matrix->method = 0;
-	      debug_method_add (w, "optimization 3");
-#endif
 	      goto update;
 	    }
 	  else
@@ -12661,10 +12535,6 @@ try_scrolling (window, just_this_one_p, scroll_conservatively,
   Lisp_Object aggressive;
   int scroll_limit = INT_MAX / FRAME_LINE_HEIGHT (f);
 
-#if GLYPH_DEBUG
-  debug_method_add (w, "try_scrolling");
-#endif
-
   SET_TEXT_POS_FROM_MARKER (startp, w->start);
 
   /* Compute scroll margin height in pixels.  We scroll when point is
@@ -12971,11 +12841,6 @@ try_cursor_movement (window, startp, scroll_step)
   struct frame *f = XFRAME (w->frame);
   int rc = CURSOR_MOVEMENT_CANNOT_BE_USED;
 
-#if GLYPH_DEBUG
-  if (inhibit_try_cursor_movement)
-    return rc;
-#endif
-
   /* Handle case where text has not changed, only point, and it has
      not moved off the frame.  */
   if (/* Point may be in this window.  */
@@ -13017,10 +12882,6 @@ try_cursor_movement (window, startp, scroll_step)
     {
       int this_scroll_margin, top_scroll_margin;
       struct glyph_row *row = NULL;
-
-#if GLYPH_DEBUG
-      debug_method_add (w, "cursor movement");
-#endif
 
       /* Scroll if point within this distance from the top or bottom
 	 of the window.  This is a pixel value.  */
@@ -13269,9 +13130,6 @@ redisplay_window (window, just_this_one_p)
 
   /* W must be a leaf window here.  */
   xassert (!NILP (w->buffer));
-#if GLYPH_DEBUG
-  *w->desired_matrix->method = 0;
-#endif
 
  restart:
   reconsider_clip_changes (w, buffer);
@@ -13563,9 +13421,6 @@ redisplay_window (window, just_this_one_p)
 	    }
 	}
 
-#if GLYPH_DEBUG
-      debug_method_add (w, "forced window start");
-#endif
       goto done;
     }
 
@@ -13600,9 +13455,6 @@ redisplay_window (window, just_this_one_p)
 	   && !(CHARPOS (startp) <= BEGV
 		|| FETCH_BYTE (BYTEPOS (startp) - 1) == '\n'))
     {
-#if GLYPH_DEBUG
-      debug_method_add (w, "recenter 1");
-#endif
       goto recenter;
     }
 
@@ -13611,10 +13463,6 @@ redisplay_window (window, just_this_one_p)
      not work.  It is 0 if unsuccessful for some other reason.  */
   else if ((tem = try_window_id (w)) != 0)
     {
-#if GLYPH_DEBUG
-      debug_method_add (w, "try_window_id %d", tem);
-#endif
-
       if (fonts_changed_p)
 	goto need_larger_matrices;
       if (tem > 0)
@@ -13659,10 +13507,6 @@ redisplay_window (window, just_this_one_p)
 	  SET_TEXT_POS_FROM_MARKER (startp, w->start);
 	  goto force_start;
       	}
-
-#if GLYPH_DEBUG
-      debug_method_add (w, "same window start");
-#endif
 
       /* Try to redisplay starting at same place as before.
          If point has not moved off frame, accept the results.  */
@@ -13756,10 +13600,6 @@ redisplay_window (window, just_this_one_p)
  recenter:
   if (centering_position < 0)
     centering_position = window_box_height (w) / 2;
-
-#if GLYPH_DEBUG
-  debug_method_add (w, "recenter");
-#endif
 
   /* w->vscroll = 0; */
 
@@ -13958,13 +13798,9 @@ redisplay_window (window, just_this_one_p)
 #ifdef HAVE_WINDOW_SYSTEM
       if (FRAME_WINDOW_P (f))
         {
-#if defined (USE_GTK) || defined (HAVE_NS) || USE_MAC_TOOLBAR
-          redisplay_tool_bar_p = FRAME_EXTERNAL_TOOL_BAR (f);
-#else
           redisplay_tool_bar_p = WINDOWP (f->tool_bar_window)
             && (FRAME_TOOL_BAR_LINES (f) > 0
                 || !NILP (Vauto_resize_tool_bars));
-#endif
 
           if (redisplay_tool_bar_p && redisplay_tool_bar (f))
 	    {
@@ -14146,11 +13982,6 @@ try_window_reusing_current_matrix (w)
   struct glyph_row *last_reused_text_row;
   struct glyph_row *start_row;
   int start_vpos, min_y, max_y;
-
-#if GLYPH_DEBUG
-  if (inhibit_try_window_reusing)
-    return 0;
-#endif
 
   if (/* This function doesn't handle terminal frames.  */
       !FRAME_WINDOW_P (f)
@@ -14362,9 +14193,6 @@ try_window_reusing_current_matrix (w)
       /* Update hint: don't try scrolling again in update_window.  */
       w->desired_matrix->no_scrolling_p = 1;
 
-#if GLYPH_DEBUG
-      debug_method_add (w, "try_window_reusing_current_matrix 1");
-#endif
       return 1;
     }
   else if (CHARPOS (new_start) > CHARPOS (start))
@@ -14535,9 +14363,6 @@ try_window_reusing_current_matrix (w)
       w->window_end_valid = Qnil;
       w->desired_matrix->no_scrolling_p = 1;
 
-#if GLYPH_DEBUG
-      debug_method_add (w, "try_window_reusing_current_matrix 2");
-#endif
       return 1;
     }
 
@@ -14871,21 +14696,7 @@ try_window_id (w)
   struct text_pos start;
   int first_changed_charpos, last_changed_charpos;
 
-#if GLYPH_DEBUG
-  if (inhibit_try_window_id)
-    return 0;
-#endif
-
-  /* This is handy for debugging.  */
-#if 0
-#define GIVE_UP(X)						\
-  do {								\
-    fprintf (stderr, "try_window_id give up %d\n", (X));	\
-    return 0;							\
-  } while (0)
-#else
 #define GIVE_UP(X) return 0
-#endif
 
   SET_TEXT_POS_FROM_MARKER (start, w->start);
 
@@ -15190,24 +15001,6 @@ try_window_id (w)
     }
   else if (last_unchanged_at_beg_row == NULL)
     GIVE_UP (19);
-
-
-#if GLYPH_DEBUG
-
-  /* Either there is no unchanged row at the end, or the one we have
-     now displays text.  This is a necessary condition for the window
-     end pos calculation at the end of this function.  */
-  xassert (first_unchanged_at_end_row == NULL
-	   || MATRIX_ROW_DISPLAYS_TEXT_P (first_unchanged_at_end_row));
-
-  debug_last_unchanged_at_beg_vpos
-    = (last_unchanged_at_beg_row
-       ? MATRIX_ROW_VPOS (last_unchanged_at_beg_row, current_matrix)
-       : -1);
-  debug_first_unchanged_at_end_vpos = first_unchanged_at_end_vpos;
-
-#endif /* GLYPH_DEBUG != 0 */
-
 
   /* Display new lines.  Set last_text_row to the last new line
      displayed which has text on it, i.e. might end up as being the
@@ -15575,337 +15368,6 @@ try_window_id (w)
 
 #undef GIVE_UP
 }
-
-
-
-/***********************************************************************
-			More debugging support
- ***********************************************************************/
-
-#if GLYPH_DEBUG
-
-void dump_glyph_row P_ ((struct glyph_row *, int, int));
-void dump_glyph_matrix P_ ((struct glyph_matrix *, int));
-void dump_glyph P_ ((struct glyph_row *, struct glyph *, int));
-
-
-/* Dump the contents of glyph matrix MATRIX on stderr.
-
-   GLYPHS 0 means don't show glyph contents.
-   GLYPHS 1 means show glyphs in short form
-   GLYPHS > 1 means show glyphs in long form.  */
-
-void
-dump_glyph_matrix (matrix, glyphs)
-     struct glyph_matrix *matrix;
-     int glyphs;
-{
-  int i;
-  for (i = 0; i < matrix->nrows; ++i)
-    dump_glyph_row (MATRIX_ROW (matrix, i), i, glyphs);
-}
-
-
-/* Dump contents of glyph GLYPH to stderr.  ROW and AREA are
-   the glyph row and area where the glyph comes from.  */
-
-void
-dump_glyph (row, glyph, area)
-     struct glyph_row *row;
-     struct glyph *glyph;
-     int area;
-{
-  if (glyph->type == CHAR_GLYPH)
-    {
-      fprintf (stderr,
-	       "  %5d %4c %6d %c %3d 0x%05x %c %4d %1.1d%1.1d\n",
-	       glyph - row->glyphs[TEXT_AREA],
-	       'C',
-	       glyph->charpos,
-	       (BUFFERP (glyph->object)
-		? 'B'
-		: (STRINGP (glyph->object)
-		   ? 'S'
-		   : '-')),
-	       glyph->pixel_width,
-	       glyph->u.ch,
-	       (glyph->u.ch < 0x80 && glyph->u.ch >= ' '
-		? glyph->u.ch
-		: '.'),
-	       glyph->face_id,
-	       glyph->left_box_line_p,
-	       glyph->right_box_line_p);
-    }
-  else if (glyph->type == STRETCH_GLYPH)
-    {
-      fprintf (stderr,
-	       "  %5d %4c %6d %c %3d 0x%05x %c %4d %1.1d%1.1d\n",
-	       glyph - row->glyphs[TEXT_AREA],
-	       'S',
-	       glyph->charpos,
-	       (BUFFERP (glyph->object)
-		? 'B'
-		: (STRINGP (glyph->object)
-		   ? 'S'
-		   : '-')),
-	       glyph->pixel_width,
-	       0,
-	       '.',
-	       glyph->face_id,
-	       glyph->left_box_line_p,
-	       glyph->right_box_line_p);
-    }
-  else if (glyph->type == IMAGE_GLYPH)
-    {
-      fprintf (stderr,
-	       "  %5d %4c %6d %c %3d 0x%05x %c %4d %1.1d%1.1d\n",
-	       glyph - row->glyphs[TEXT_AREA],
-	       'I',
-	       glyph->charpos,
-	       (BUFFERP (glyph->object)
-		? 'B'
-		: (STRINGP (glyph->object)
-		   ? 'S'
-		   : '-')),
-	       glyph->pixel_width,
-	       glyph->u.img_id,
-	       '.',
-	       glyph->face_id,
-	       glyph->left_box_line_p,
-	       glyph->right_box_line_p);
-    }
-  else if (glyph->type == COMPOSITE_GLYPH)
-    {
-      fprintf (stderr,
-	       "  %5d %4c %6d %c %3d 0x%05x",
-	       glyph - row->glyphs[TEXT_AREA],
-	       '+',
-	       glyph->charpos,
-	       (BUFFERP (glyph->object)
-		? 'B'
-		: (STRINGP (glyph->object)
-		   ? 'S'
-		   : '-')),
-	       glyph->pixel_width,
-	       glyph->u.cmp.id);
-      if (glyph->u.cmp.automatic)
-	fprintf (stderr,
-		 "[%d-%d]",
-		 glyph->u.cmp.from, glyph->u.cmp.to);
-      fprintf (stderr, " . %4d %1.1d%1.1d\n"
-	       glyph->face_id,
-	       glyph->left_box_line_p,
-	       glyph->right_box_line_p);
-    }
-}
-
-
-/* Dump the contents of glyph row at VPOS in MATRIX to stderr.
-   GLYPHS 0 means don't show glyph contents.
-   GLYPHS 1 means show glyphs in short form
-   GLYPHS > 1 means show glyphs in long form.  */
-
-void
-dump_glyph_row (row, vpos, glyphs)
-     struct glyph_row *row;
-     int vpos, glyphs;
-{
-  if (glyphs != 1)
-    {
-      fprintf (stderr, "Row Start   End Used oE><\\CTZFesm     X    Y    W    H    V    A    P\n");
-      fprintf (stderr, "======================================================================\n");
-
-      fprintf (stderr, "%3d %5d %5d %4d %1.1d%1.1d%1.1d%1.1d\
-%1.1d%1.1d%1.1d%1.1d%1.1d%1.1d%1.1d%1.1d  %4d %4d %4d %4d %4d %4d %4d\n",
-	       vpos,
-	       MATRIX_ROW_START_CHARPOS (row),
-	       MATRIX_ROW_END_CHARPOS (row),
-	       row->used[TEXT_AREA],
-	       row->contains_overlapping_glyphs_p,
-	       row->enabled_p,
-	       row->truncated_on_left_p,
-	       row->truncated_on_right_p,
-	       row->continued_p,
-	       MATRIX_ROW_CONTINUATION_LINE_P (row),
-	       row->displays_text_p,
-	       row->ends_at_zv_p,
-	       row->fill_line_p,
-	       row->ends_in_middle_of_char_p,
-	       row->starts_in_middle_of_char_p,
-	       row->mouse_face_p,
-	       row->x,
-	       row->y,
-	       row->pixel_width,
-	       row->height,
-	       row->visible_height,
-	       row->ascent,
-	       row->phys_ascent);
-      fprintf (stderr, "%9d %5d\t%5d\n", row->start.overlay_string_index,
-	       row->end.overlay_string_index,
-	       row->continuation_lines_width);
-      fprintf (stderr, "%9d %5d\n",
-	       CHARPOS (row->start.string_pos),
-	       CHARPOS (row->end.string_pos));
-      fprintf (stderr, "%9d %5d\n", row->start.dpvec_index,
-	       row->end.dpvec_index);
-    }
-
-  if (glyphs > 1)
-    {
-      int area;
-
-      for (area = LEFT_MARGIN_AREA; area < LAST_AREA; ++area)
-	{
-	  struct glyph *glyph = row->glyphs[area];
-	  struct glyph *glyph_end = glyph + row->used[area];
-
-	  /* Glyph for a line end in text.  */
-	  if (area == TEXT_AREA && glyph == glyph_end && glyph->charpos > 0)
-	    ++glyph_end;
-
-	  if (glyph < glyph_end)
-	    fprintf (stderr, "  Glyph    Type Pos   O W    Code C Face LR\n");
-
-	  for (; glyph < glyph_end; ++glyph)
-	    dump_glyph (row, glyph, area);
-	}
-    }
-  else if (glyphs == 1)
-    {
-      int area;
-
-      for (area = LEFT_MARGIN_AREA; area < LAST_AREA; ++area)
-	{
-	  char *s = (char *) alloca (row->used[area] + 1);
-	  int i;
-
-	  for (i = 0; i < row->used[area]; ++i)
-	    {
-	      struct glyph *glyph = row->glyphs[area] + i;
-	      if (glyph->type == CHAR_GLYPH
-		  && glyph->u.ch < 0x80
-		  && glyph->u.ch >= ' ')
-		s[i] = glyph->u.ch;
-	      else
-		s[i] = '.';
-	    }
-
-	  s[i] = '\0';
-	  fprintf (stderr, "%3d: (%d) '%s'\n", vpos, row->enabled_p, s);
-	}
-    }
-}
-
-
-DEFUN ("dump-glyph-matrix", Fdump_glyph_matrix,
-       Sdump_glyph_matrix, 0, 1, "p",
-       doc: /* Dump the current matrix of the selected window to stderr.
-Shows contents of glyph row structures.  With non-nil
-parameter GLYPHS, dump glyphs as well.  If GLYPHS is 1 show
-glyphs in short form, otherwise show glyphs in long form.  */)
-     (glyphs)
-     Lisp_Object glyphs;
-{
-  struct window *w = XWINDOW (selected_window);
-  struct buffer *buffer = XBUFFER (w->buffer);
-
-  fprintf (stderr, "PT = %d, BEGV = %d. ZV = %d\n",
-	   BUF_PT (buffer), BUF_BEGV (buffer), BUF_ZV (buffer));
-  fprintf (stderr, "Cursor x = %d, y = %d, hpos = %d, vpos = %d\n",
-	   w->cursor.x, w->cursor.y, w->cursor.hpos, w->cursor.vpos);
-  fprintf (stderr, "=============================================\n");
-  dump_glyph_matrix (w->current_matrix,
-		     NILP (glyphs) ? 0 : XINT (glyphs));
-  return Qnil;
-}
-
-
-DEFUN ("dump-frame-glyph-matrix", Fdump_frame_glyph_matrix,
-       Sdump_frame_glyph_matrix, 0, 0, "", doc: /* */)
-     ()
-{
-  struct frame *f = XFRAME (selected_frame);
-  dump_glyph_matrix (f->current_matrix, 1);
-  return Qnil;
-}
-
-
-DEFUN ("dump-glyph-row", Fdump_glyph_row, Sdump_glyph_row, 1, 2, "",
-       doc: /* Dump glyph row ROW to stderr.
-GLYPH 0 means don't dump glyphs.
-GLYPH 1 means dump glyphs in short form.
-GLYPH > 1 or omitted means dump glyphs in long form.  */)
-     (row, glyphs)
-     Lisp_Object row, glyphs;
-{
-  struct glyph_matrix *matrix;
-  int vpos;
-
-  CHECK_NUMBER (row);
-  matrix = XWINDOW (selected_window)->current_matrix;
-  vpos = XINT (row);
-  if (vpos >= 0 && vpos < matrix->nrows)
-    dump_glyph_row (MATRIX_ROW (matrix, vpos),
-		    vpos,
-		    INTEGERP (glyphs) ? XINT (glyphs) : 2);
-  return Qnil;
-}
-
-
-DEFUN ("dump-tool-bar-row", Fdump_tool_bar_row, Sdump_tool_bar_row, 1, 2, "",
-       doc: /* Dump glyph row ROW of the tool-bar of the current frame to stderr.
-GLYPH 0 means don't dump glyphs.
-GLYPH 1 means dump glyphs in short form.
-GLYPH > 1 or omitted means dump glyphs in long form.  */)
-     (row, glyphs)
-     Lisp_Object row, glyphs;
-{
-  struct frame *sf = SELECTED_FRAME ();
-  struct glyph_matrix *m = XWINDOW (sf->tool_bar_window)->current_matrix;
-  int vpos;
-
-  CHECK_NUMBER (row);
-  vpos = XINT (row);
-  if (vpos >= 0 && vpos < m->nrows)
-    dump_glyph_row (MATRIX_ROW (m, vpos), vpos,
-		    INTEGERP (glyphs) ? XINT (glyphs) : 2);
-  return Qnil;
-}
-
-
-DEFUN ("trace-redisplay", Ftrace_redisplay, Strace_redisplay, 0, 1, "P",
-       doc: /* Toggle tracing of redisplay.
-With ARG, turn tracing on if and only if ARG is positive.  */)
-     (arg)
-     Lisp_Object arg;
-{
-  if (NILP (arg))
-    trace_redisplay_p = !trace_redisplay_p;
-  else
-    {
-      arg = Fprefix_numeric_value (arg);
-      trace_redisplay_p = XINT (arg) > 0;
-    }
-
-  return Qnil;
-}
-
-
-DEFUN ("trace-to-stderr", Ftrace_to_stderr, Strace_to_stderr, 1, MANY, "",
-       doc: /* Like `format', but print result to stderr.
-usage: (trace-to-stderr STRING &rest OBJECTS)  */)
-     (nargs, args)
-     int nargs;
-     Lisp_Object *args;
-{
-  Lisp_Object s = Fformat (nargs, args);
-  fprintf (stderr, "%s", SDATA (s));
-  return Qnil;
-}
-
-#endif /* GLYPH_DEBUG */
-
-
 
 /***********************************************************************
 		     Building Desired Matrix Rows
@@ -17114,15 +16576,6 @@ display_menu_bar (w)
   if (FRAME_W32_P (f))
     return;
 #endif
-#if defined (USE_X_TOOLKIT) || defined (USE_GTK)
-  if (FRAME_X_P (f))
-    return;
-#endif
-
-#ifdef HAVE_NS
-  if (FRAME_NS_P (f))
-    return;
-#endif /* HAVE_NS */
 
 #ifdef USE_X_TOOLKIT
   xassert (!FRAME_WINDOW_P (f));
@@ -19395,28 +18848,6 @@ calc_pixel_width_or_height (res, it, prop, font, width_p, align_to)
  ***********************************************************************/
 
 #ifdef HAVE_WINDOW_SYSTEM
-
-#if GLYPH_DEBUG
-
-void
-dump_glyph_string (s)
-     struct glyph_string *s;
-{
-  fprintf (stderr, "glyph string\n");
-  fprintf (stderr, "  x, y, w, h = %d, %d, %d, %d\n",
-	   s->x, s->y, s->width, s->height);
-  fprintf (stderr, "  ybase = %d\n", s->ybase);
-  fprintf (stderr, "  hl = %d\n", s->hl);
-  fprintf (stderr, "  left overhang = %d, right = %d\n",
-	   s->left_overhang, s->right_overhang);
-  fprintf (stderr, "  nchars = %d\n", s->nchars);
-  fprintf (stderr, "  extends to end of line = %d\n",
-	   s->extends_to_end_of_line_p);
-  fprintf (stderr, "  font height = %d\n", FONT_HEIGHT (s->font));
-  fprintf (stderr, "  bg width = %d\n", s->background_width);
-}
-
-#endif /* GLYPH_DEBUG */
 
 /* Initialize glyph string S.  CHAR2B is a suitably allocated vector
    of XChar2b structures for S; it can't be allocated in
@@ -23642,12 +23073,6 @@ note_mouse_highlight (f, x, y)
   Lisp_Object pointer = Qnil;  /* Takes precedence over cursor!  */
   struct buffer *b;
 
-  /* When a menu is active, don't highlight because this looks odd.  */
-#if defined (USE_X_TOOLKIT) || defined (USE_GTK) || defined (HAVE_NS)
-  if (popup_activated ())
-    return;
-#endif
-
   if (NILP (Vmouse_highlight)
       || !f->glyphs_initialized_p)
     return;
@@ -24641,16 +24066,6 @@ expose_frame (f, x, y, w, h)
     mouse_face_overwritten_p
       |= expose_window (XWINDOW (f->tool_bar_window), &r);
 
-#ifdef HAVE_X_WINDOWS
-#ifndef MSDOS
-#ifndef USE_X_TOOLKIT
-  if (WINDOWP (f->menu_bar_window))
-    mouse_face_overwritten_p
-      |= expose_window (XWINDOW (f->menu_bar_window), &r);
-#endif /* not USE_X_TOOLKIT */
-#endif
-#endif
-
   /* Some window managers support a focus-follows-mouse style with
      delayed raising of frames.  Imagine a partially obscured frame,
      and moving the mouse into partially obscured mouse-face on that
@@ -24758,14 +24173,6 @@ syms_of_xdisp ()
   message_dolog_marker3 = Fmake_marker ();
   staticpro (&message_dolog_marker3);
 
-#if GLYPH_DEBUG
-  defsubr (&Sdump_frame_glyph_matrix);
-  defsubr (&Sdump_glyph_matrix);
-  defsubr (&Sdump_glyph_row);
-  defsubr (&Sdump_tool_bar_row);
-  defsubr (&Strace_redisplay);
-  defsubr (&Strace_to_stderr);
-#endif
 #ifdef HAVE_WINDOW_SYSTEM
   defsubr (&Stool_bar_lines_needed);
   defsubr (&Slookup_image_map);
@@ -25017,10 +24424,6 @@ of the top or bottom of the window.  */);
     doc: /* Pixels per inch value for non-window system displays.
 Value is a number or a cons (WIDTH-DPI . HEIGHT-DPI).  */);
   Vdisplay_pixels_per_inch = make_float (72.0);
-
-#if GLYPH_DEBUG
-  DEFVAR_INT ("debug-end-pos", &debug_end_pos, doc: /* Don't ask.  */);
-#endif
 
   DEFVAR_LISP ("truncate-partial-width-windows",
 	       &Vtruncate_partial_width_windows,
@@ -25307,20 +24710,6 @@ To add a prefix to continuation lines, use the `wrap-prefix' variable.  */);
   DEFVAR_BOOL ("inhibit-free-realized-faces", &inhibit_free_realized_faces,
     doc: /* Non-nil means don't free realized faces.  Internal use only.  */);
   inhibit_free_realized_faces = 0;
-
-#if GLYPH_DEBUG
-  DEFVAR_BOOL ("inhibit-try-window-id", &inhibit_try_window_id,
-	       doc: /* Inhibit try_window_id display optimization.  */);
-  inhibit_try_window_id = 0;
-
-  DEFVAR_BOOL ("inhibit-try-window-reusing", &inhibit_try_window_reusing,
-	       doc: /* Inhibit try_window_reusing display optimization.  */);
-  inhibit_try_window_reusing = 0;
-
-  DEFVAR_BOOL ("inhibit-try-cursor-movement", &inhibit_try_cursor_movement,
-	       doc: /* Inhibit try_cursor_movement display optimization.  */);
-  inhibit_try_cursor_movement = 0;
-#endif /* GLYPH_DEBUG */
 
   DEFVAR_INT ("overline-margin", &overline_margin,
 	       doc: /* *Space between overline and text, in pixels.

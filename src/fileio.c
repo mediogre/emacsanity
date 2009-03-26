@@ -75,25 +75,12 @@ extern int errno;
 #include <fcntl.h>
 #endif /* not WINDOWSNT */
 
-#ifdef MSDOS
-#include "msdos.h"
-#include <sys/param.h>
-#if __DJGPP__ >= 2
-#include <fcntl.h>
-#include <string.h>
-#endif
-#endif
-
 #ifdef DOS_NT
 #define CORRECT_DIR_SEPS(s) \
   do { if ('/' == DIRECTORY_SEP) dostounix_filename (s); \
        else unixtodos_filename (s); \
   } while (0)
-/* On Windows, drive letters must be alphabetic - on DOS, the Netware
-   redirector allows the six letters between 'Z' and 'a' as well. */
-#ifdef MSDOS
-#define IS_DRIVE(x) ((x) >= 'A' && (x) <= 'z')
-#endif
+
 #ifdef WINDOWSNT
 #define IS_DRIVE(x) isalpha (x)
 #endif
@@ -983,9 +970,6 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
      allocating a new string if name is already fully expanded.  */
   if (
       IS_DIRECTORY_SEP (nm[0])
-#ifdef MSDOS
-      && drive && !is_escaped
-#endif
 #ifdef WINDOWSNT
       && (drive || IS_DIRECTORY_SEP (nm[1])) && !is_escaped
 #endif
@@ -1946,7 +1930,6 @@ uid and gid of FILE to NEWNAME.  */)
   else if (stat (SDATA (encoded_newname), &out_st) < 0)
     out_st.st_mode = 0;
 
-#ifdef WINDOWSNT
   if (!CopyFile (SDATA (encoded_file),
 		 SDATA (encoded_newname),
 		 FALSE))
@@ -1974,111 +1957,6 @@ uid and gid of FILE to NEWNAME.  */)
       /* Restore original attributes.  */
       SetFileAttributes (filename, attributes);
     }
-#else /* not WINDOWSNT */
-  immediate_quit = 1;
-  ifd = emacs_open (SDATA (encoded_file), O_RDONLY, 0);
-  immediate_quit = 0;
-
-  if (ifd < 0)
-    report_file_error ("Opening input file", Fcons (file, Qnil));
-
-  record_unwind_protect (close_file_unwind, make_number (ifd));
-
-  /* We can only copy regular files and symbolic links.  Other files are not
-     copyable by us. */
-  input_file_statable_p = (fstat (ifd, &st) >= 0);
-
-#if !defined (MSDOS) || __DJGPP__ > 1
-  if (out_st.st_mode != 0
-      && st.st_dev == out_st.st_dev && st.st_ino == out_st.st_ino)
-    {
-      errno = 0;
-      report_file_error ("Input and output files are the same",
-			 Fcons (file, Fcons (newname, Qnil)));
-    }
-#endif
-
-#if defined (S_ISREG) && defined (S_ISLNK)
-  if (input_file_statable_p)
-    {
-      if (!(S_ISREG (st.st_mode)) && !(S_ISLNK (st.st_mode)))
-	{
-#if defined (EISDIR)
-	  /* Get a better looking error message. */
-	  errno = EISDIR;
-#endif /* EISDIR */
-	  report_file_error ("Non-regular file", Fcons (file, Qnil));
-	}
-    }
-#endif /* S_ISREG && S_ISLNK */
-
-#ifdef MSDOS
-  /* System's default file type was set to binary by _fmode in emacs.c.  */
-  ofd = emacs_open (SDATA (encoded_newname),
-		    O_WRONLY | O_TRUNC | O_CREAT
-		    | (NILP (ok_if_already_exists) ? O_EXCL : 0),
-		    S_IREAD | S_IWRITE);
-#else  /* not MSDOS */
-  ofd = emacs_open (SDATA (encoded_newname),
-		    O_WRONLY | O_TRUNC | O_CREAT
-		    | (NILP (ok_if_already_exists) ? O_EXCL : 0),
-		    0666);
-#endif /* not MSDOS */
-  if (ofd < 0)
-    report_file_error ("Opening output file", Fcons (newname, Qnil));
-
-  record_unwind_protect (close_file_unwind, make_number (ofd));
-
-  immediate_quit = 1;
-  QUIT;
-  while ((n = emacs_read (ifd, buf, sizeof buf)) > 0)
-    if (emacs_write (ofd, buf, n) != n)
-      report_file_error ("I/O error", Fcons (newname, Qnil));
-  immediate_quit = 0;
-
-#ifndef MSDOS
-  /* Preserve the original file modes, and if requested, also its
-     owner and group.  */
-  if (input_file_statable_p)
-    {
-      if (! NILP (preserve_uid_gid))
-	fchown (ofd, st.st_uid, st.st_gid);
-      fchmod (ofd, st.st_mode & 07777);
-    }
-#endif	/* not MSDOS */
-
-  /* Closing the output clobbers the file times on some systems.  */
-  if (emacs_close (ofd) < 0)
-    report_file_error ("I/O error", Fcons (newname, Qnil));
-
-  if (input_file_statable_p)
-    {
-      if (!NILP (keep_time))
-	{
-	  EMACS_TIME atime, mtime;
-	  EMACS_SET_SECS_USECS (atime, st.st_atime, 0);
-	  EMACS_SET_SECS_USECS (mtime, st.st_mtime, 0);
-	  if (set_file_times (SDATA (encoded_newname),
-			      atime, mtime))
-	    xsignal2 (Qfile_date_error,
-		      build_string ("Cannot set file date"), newname);
-	}
-    }
-
-  emacs_close (ifd);
-
-#if defined (__DJGPP__) && __DJGPP__ > 1
-  if (input_file_statable_p)
-    {
-      /* In DJGPP v2.0 and later, fstat usually returns true file mode bits,
-         and if it can't, it tells so.  Otherwise, under MSDOS we usually
-         get only the READ bit, which will make the copied file read-only,
-         so it's better not to chmod at all.  */
-      if ((_djstat_flags & _STFAIL_WRITEBIT) == 0)
-	chmod (SDATA (encoded_newname), st.st_mode & 07777);
-    }
-#endif /* DJGPP version 2 or newer */
-#endif /* not WINDOWSNT */
 
   /* Discard the unwind protects.  */
   specpdl_ptr = specpdl + count;
@@ -2435,32 +2313,13 @@ static int
 check_executable (filename)
      char *filename;
 {
-#ifdef DOS_NT
   int len = strlen (filename);
   char *suffix;
   struct stat st;
   if (stat (filename, &st) < 0)
     return 0;
-#if defined (WINDOWSNT) || (defined (MSDOS) && __DJGPP__ > 1)
+
   return ((st.st_mode & S_IEXEC) != 0);
-#else
-  return (S_ISREG (st.st_mode)
-	  && len >= 5
-	  && (xstrcasecmp ((suffix = filename + len-4), ".com") == 0
-	      || xstrcasecmp (suffix, ".exe") == 0
-	      || xstrcasecmp (suffix, ".bat") == 0)
-	  || (st.st_mode & S_IFMT) == S_IFDIR);
-#endif /* not WINDOWSNT */
-#else /* not DOS_NT */
-#ifdef HAVE_EUIDACCESS
-  return (euidaccess (filename, 1) >= 0);
-#else
-  /* Access isn't quite right because it uses the real uid
-     and we really want to test with the effective uid.
-     But Unix doesn't give us a right way to do it.  */
-  return (access (filename, 1) >= 0);
-#endif
-#endif /* not DOS_NT */
 }
 
 /* Return nonzero if file FILENAME exists and can be written.  */
@@ -2469,23 +2328,12 @@ static int
 check_writable (filename)
      char *filename;
 {
-#ifdef MSDOS
-  struct stat st;
-  if (stat (filename, &st) < 0)
-    return 0;
-  return (st.st_mode & S_IWRITE || (st.st_mode & S_IFMT) == S_IFDIR);
-#else /* not MSDOS */
-#ifdef HAVE_EUIDACCESS
-  return (euidaccess (filename, 2) >= 0);
-#else
   /* Access isn't quite right because it uses the real uid
      and we really want to test with the effective uid.
      But Unix doesn't give us a right way to do it.
      Opening with O_WRONLY could work for an ordinary file,
      but would lose for directories.  */
   return (access (filename, 2) >= 0);
-#endif
-#endif /* not MSDOS */
 }
 
 DEFUN ("file-exists-p", Ffile_exists_p, Sfile_exists_p, 1, 1, 0,
@@ -2612,10 +2460,6 @@ DEFUN ("file-writable-p", Ffile_writable_p, Sfile_writable_p, 1, 1, 0,
 	    ? Qt : Qnil);
 
   dir = Ffile_name_directory (absname);
-#ifdef MSDOS
-  if (!NILP (dir))
-    dir = Fdirectory_file_name (dir);
-#endif /* MSDOS */
 
   dir = ENCODE_FILE (dir);
 #ifdef WINDOWSNT
@@ -2849,10 +2693,6 @@ Return nil, if file does not exist or is not accessible.  */)
 
   if (stat (SDATA (absname), &st) < 0)
     return Qnil;
-#if defined (MSDOS) && __DJGPP__ < 2
-  if (check_executable (SDATA (absname)))
-    st.st_mode |= S_IEXEC;
-#endif /* MSDOS && __DJGPP__ < 2 */
 
   return make_number (st.st_mode & 07777);
 }

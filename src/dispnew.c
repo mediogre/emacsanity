@@ -138,9 +138,6 @@ static void adjust_glyph_matrix P_ ((struct window *, struct glyph_matrix *,
 				     int, int, struct dim));
 static void change_frame_size_1 P_ ((struct frame *, int, int, int, int, int));
 static void swap_glyph_pointers P_ ((struct glyph_row *, struct glyph_row *));
-#if GLYPH_DEBUG
-static int glyph_row_slice_p P_ ((struct glyph_row *, struct glyph_row *));
-#endif
 static void fill_up_frame_row_with_spaces P_ ((struct glyph_row *, int));
 static void build_frame_matrix_from_window_tree P_ ((struct glyph_matrix *,
 						     struct window *));
@@ -166,10 +163,7 @@ static void make_current P_ ((struct glyph_matrix *, struct glyph_matrix *,
 			      int));
 static void mirror_make_current P_ ((struct window *, int));
 void check_window_matrix_pointers P_ ((struct window *));
-#if GLYPH_DEBUG
-static void check_matrix_pointers P_ ((struct glyph_matrix *,
-				       struct glyph_matrix *));
-#endif
+
 static void mirror_line_dance P_ ((struct window *, int, int, int *, char *));
 static int update_window_tree P_ ((struct window *, int));
 static int update_window P_ ((struct window *, int));
@@ -331,118 +325,8 @@ int fonts_changed_p;
 /* Convert vpos and hpos from frame to window and vice versa.
    This may only be used for terminal frames.  */
 
-#if GLYPH_DEBUG
-
-static int window_to_frame_vpos P_ ((struct window *, int));
-static int window_to_frame_hpos P_ ((struct window *, int));
-#define WINDOW_TO_FRAME_VPOS(W, VPOS) window_to_frame_vpos ((W), (VPOS))
-#define WINDOW_TO_FRAME_HPOS(W, HPOS) window_to_frame_hpos ((W), (HPOS))
-
-/* One element of the ring buffer containing redisplay history
-   information.  */
-
-struct redisplay_history
-{
-  char trace[512 + 100];
-};
-
-/* The size of the history buffer.  */
-
-#define REDISPLAY_HISTORY_SIZE	30
-
-/* The redisplay history buffer.  */
-
-static struct redisplay_history redisplay_history[REDISPLAY_HISTORY_SIZE];
-
-/* Next free entry in redisplay_history.  */
-
-static int history_idx;
-
-/* A tick that's incremented each time something is added to the
-   history.  */
-
-static unsigned history_tick;
-
-static void add_frame_display_history P_ ((struct frame *, int));
-static void add_window_display_history P_ ((struct window *, char *, int));
-
-/* Add to the redisplay history how window W has been displayed.
-   MSG is a trace containing the information how W's glyph matrix
-   has been constructed.  PAUSED_P non-zero means that the update
-   has been interrupted for pending input.  */
-
-static void
-add_window_display_history (w, msg, paused_p)
-     struct window *w;
-     char *msg;
-     int paused_p;
-{
-  char *buf;
-
-  if (history_idx >= REDISPLAY_HISTORY_SIZE)
-    history_idx = 0;
-  buf = redisplay_history[history_idx].trace;
-  ++history_idx;
-
-  sprintf (buf, "%d: window %p (`%s')%s\n",
-	   history_tick++,
-	   w,
-	   ((BUFFERP (w->buffer)
-	     && STRINGP (XBUFFER (w->buffer)->name))
-	    ? (char *) SDATA (XBUFFER (w->buffer)->name)
-	    : "???"),
-	   paused_p ? " ***paused***" : "");
-  strcat (buf, msg);
-}
-
-
-/* Add to the redisplay history that frame F has been displayed.
-   PAUSED_P non-zero means that the update has been interrupted for
-   pending input.  */
-
-static void
-add_frame_display_history (f, paused_p)
-     struct frame *f;
-     int paused_p;
-{
-  char *buf;
-
-  if (history_idx >= REDISPLAY_HISTORY_SIZE)
-    history_idx = 0;
-  buf = redisplay_history[history_idx].trace;
-  ++history_idx;
-
-  sprintf (buf, "%d: update frame %p%s",
-	   history_tick++,
-	   f, paused_p ? " ***paused***" : "");
-}
-
-
-DEFUN ("dump-redisplay-history", Fdump_redisplay_history,
-       Sdump_redisplay_history, 0, 0, "",
-       doc: /* Dump redisplay history to stderr.  */)
-     ()
-{
-  int i;
-
-  for (i = history_idx - 1; i != history_idx; --i)
-    {
-      if (i < 0)
-	i = REDISPLAY_HISTORY_SIZE - 1;
-      fprintf (stderr, "%s\n", redisplay_history[i].trace);
-    }
-
-  return Qnil;
-}
-
-
-#else /* GLYPH_DEBUG == 0 */
-
 #define WINDOW_TO_FRAME_VPOS(W, VPOS) ((VPOS) + WINDOW_TOP_EDGE_LINE (W))
 #define WINDOW_TO_FRAME_HPOS(W, HPOS) ((HPOS) + WINDOW_LEFT_EDGE_COL (W))
-
-#endif /* GLYPH_DEBUG == 0 */
-
 
 /* Like bcopy except never gets confused by overlap.  Let this be the
    first function defined in this file, or change emacs.c where the
@@ -1328,54 +1212,6 @@ assign_row (to, from)
   copy_row_except_pointers (to, from);
 }
 
-
-/* Test whether the glyph memory of the glyph row WINDOW_ROW, which is
-   a row in a window matrix, is a slice of the glyph memory of the
-   glyph row FRAME_ROW which is a row in a frame glyph matrix.  Value
-   is non-zero if the glyph memory of WINDOW_ROW is part of the glyph
-   memory of FRAME_ROW.  */
-
-#if GLYPH_DEBUG
-
-static int
-glyph_row_slice_p (window_row, frame_row)
-     struct glyph_row *window_row, *frame_row;
-{
-  struct glyph *window_glyph_start = window_row->glyphs[0];
-  struct glyph *frame_glyph_start = frame_row->glyphs[0];
-  struct glyph *frame_glyph_end = frame_row->glyphs[LAST_AREA];
-
-  return (frame_glyph_start <= window_glyph_start
-	  && window_glyph_start < frame_glyph_end);
-}
-
-#endif /* GLYPH_DEBUG */
-
-#if 0
-
-/* Find the row in the window glyph matrix WINDOW_MATRIX being a slice
-   of ROW in the frame matrix FRAME_MATRIX.  Value is null if no row
-   in WINDOW_MATRIX is found satisfying the condition.  */
-
-static struct glyph_row *
-find_glyph_row_slice (window_matrix, frame_matrix, row)
-     struct glyph_matrix *window_matrix, *frame_matrix;
-     int row;
-{
-  int i;
-
-  xassert (row >= 0 && row < frame_matrix->nrows);
-
-  for (i = 0; i < window_matrix->nrows; ++i)
-    if (glyph_row_slice_p (window_matrix->rows + i,
-			   frame_matrix->rows + row))
-      break;
-
-  return i < window_matrix->nrows ? window_matrix->rows + i : 0;
-}
-
-#endif /* 0 */
-
 /* Prepare ROW for display.  Desired rows are cleared lazily,
    i.e. they are only marked as to be cleared by setting their
    enabled_p flag to zero.  When a row is to be displayed, a prior
@@ -1650,135 +1486,6 @@ realloc_glyph_pool (pool, matrix_dim)
 
   return changed_p;
 }
-
-
-
-/***********************************************************************
-			      Debug Code
- ***********************************************************************/
-
-#if GLYPH_DEBUG
-
-
-/* Flush standard output.  This is sometimes useful to call from the debugger.
-   XXX Maybe this should be changed to flush the current terminal instead of
-   stdout.
-*/
-
-void
-flush_stdout ()
-{
-  fflush (stdout);
-}
-
-
-/* Check that no glyph pointers have been lost in MATRIX.  If a
-   pointer has been lost, e.g. by using a structure assignment between
-   rows, at least one pointer must occur more than once in the rows of
-   MATRIX.  */
-
-void
-check_matrix_pointer_lossage (matrix)
-     struct glyph_matrix *matrix;
-{
-  int i, j;
-
-  for (i = 0; i < matrix->nrows; ++i)
-    for (j = 0; j < matrix->nrows; ++j)
-      xassert (i == j
-	       || (matrix->rows[i].glyphs[TEXT_AREA]
-		   != matrix->rows[j].glyphs[TEXT_AREA]));
-}
-
-
-/* Get a pointer to glyph row ROW in MATRIX, with bounds checks.  */
-
-struct glyph_row *
-matrix_row (matrix, row)
-     struct glyph_matrix *matrix;
-     int row;
-{
-  xassert (matrix && matrix->rows);
-  xassert (row >= 0 && row < matrix->nrows);
-
-  /* That's really too slow for normal testing because this function
-     is called almost everywhere.  Although---it's still astonishingly
-     fast, so it is valuable to have for debugging purposes.  */
-#if 0
-  check_matrix_pointer_lossage (matrix);
-#endif
-
-  return matrix->rows + row;
-}
-
-
-#if 0 /* This function makes invalid assumptions when text is
-	 partially invisible.  But it might come handy for debugging
-	 nevertheless.  */
-
-/* Check invariants that must hold for an up to date current matrix of
-   window W.  */
-
-static void
-check_matrix_invariants (w)
-     struct window *w;
-{
-  struct glyph_matrix *matrix = w->current_matrix;
-  int yb = window_text_bottom_y (w);
-  struct glyph_row *row = matrix->rows;
-  struct glyph_row *last_text_row = NULL;
-  struct buffer *saved = current_buffer;
-  struct buffer *buffer = XBUFFER (w->buffer);
-  int c;
-
-  /* This can sometimes happen for a fresh window.  */
-  if (matrix->nrows < 2)
-    return;
-
-  set_buffer_temp (buffer);
-
-  /* Note: last row is always reserved for the mode line.  */
-  while (MATRIX_ROW_DISPLAYS_TEXT_P (row)
-	 && MATRIX_ROW_BOTTOM_Y (row) < yb)
-    {
-      struct glyph_row *next = row + 1;
-
-      if (MATRIX_ROW_DISPLAYS_TEXT_P (row))
-	last_text_row = row;
-
-      /* Check that character and byte positions are in sync.  */
-      xassert (MATRIX_ROW_START_BYTEPOS (row)
-	       == CHAR_TO_BYTE (MATRIX_ROW_START_CHARPOS (row)));
-
-      /* CHAR_TO_BYTE aborts when invoked for a position > Z.  We can
-	 have such a position temporarily in case of a minibuffer
-	 displaying something like `[Sole completion]' at its end.  */
-      if (MATRIX_ROW_END_CHARPOS (row) < BUF_ZV (current_buffer))
-	xassert (MATRIX_ROW_END_BYTEPOS (row)
-		 == CHAR_TO_BYTE (MATRIX_ROW_END_CHARPOS (row)));
-
-      /* Check that end position of `row' is equal to start position
-	 of next row.  */
-      if (next->enabled_p && MATRIX_ROW_DISPLAYS_TEXT_P (next))
-	{
-	  xassert (MATRIX_ROW_END_CHARPOS (row)
-		   == MATRIX_ROW_START_CHARPOS (next));
-	  xassert (MATRIX_ROW_END_BYTEPOS (row)
-		   == MATRIX_ROW_START_BYTEPOS (next));
-	}
-      row = next;
-    }
-
-  xassert (w->current_matrix->nrows == w->desired_matrix->nrows);
-  xassert (w->desired_matrix->rows != NULL);
-  set_buffer_temp (saved);
-}
-
-#endif /* 0  */
-
-#endif /* GLYPH_DEBUG != 0 */
-
-
 
 /**********************************************************************
 		 Allocating/ Adjusting Glyph Matrices
@@ -2407,34 +2114,6 @@ adjust_frame_glyphs_for_window_redisplay (f)
   /* Allocate/reallocate window matrices.  */
   allocate_matrices_for_window_redisplay (XWINDOW (FRAME_ROOT_WINDOW (f)));
 
-#ifdef HAVE_X_WINDOWS
-  /* Allocate/ reallocate matrices of the dummy window used to display
-     the menu bar under X when no X toolkit support is available.  */
-#if ! defined (USE_X_TOOLKIT) && ! defined (USE_GTK)
-  {
-    /* Allocate a dummy window if not already done.  */
-    if (NILP (f->menu_bar_window))
-      {
-	f->menu_bar_window = make_window ();
-	w = XWINDOW (f->menu_bar_window);
-	XSETFRAME (w->frame, f);
-	w->pseudo_window_p = 1;
-      }
-    else
-      w = XWINDOW (f->menu_bar_window);
-
-    /* Set window dimensions to frame dimensions and allocate or
-       adjust glyph matrices of W.  */
-    XSETFASTINT (w->top_line, 0);
-    XSETFASTINT (w->left_col, 0);
-    XSETFASTINT (w->total_lines, FRAME_MENU_BAR_LINES (f));
-    XSETFASTINT (w->total_cols, FRAME_TOTAL_COLS (f));
-    allocate_matrices_for_window_redisplay (w);
-  }
-#endif /* not USE_X_TOOLKIT && not USE_GTK */
-#endif /* HAVE_X_WINDOWS */
-
-#ifndef USE_GTK
   /* Allocate/ reallocate matrices of the tool bar window.  If we
      don't have a tool bar window yet, make one.  */
   if (NILP (f->tool_bar_window))
@@ -2452,7 +2131,6 @@ adjust_frame_glyphs_for_window_redisplay (f)
   XSETFASTINT (w->total_lines, FRAME_TOOL_BAR_LINES (f));
   XSETFASTINT (w->total_cols, FRAME_TOTAL_COLS (f));
   allocate_matrices_for_window_redisplay (w);
-#endif
 }
 
 
@@ -2822,18 +2500,6 @@ build_frame_matrix_from_leaf_window (frame_matrix, w)
               struct glyph *border = window_row->glyphs[LAST_AREA] - 1;
 	      SET_CHAR_GLYPH_FROM_GLYPH (*border, right_border_glyph);
 	    }
-
-#if GLYPH_DEBUG
-	  /* Window row window_y must be a slice of frame row
-	     frame_y.  */
-	  xassert (glyph_row_slice_p (window_row, frame_row));
-
-	  /* If rows are in sync, we don't have to copy glyphs because
-	     frame and window share glyphs.  */
-
-	  strcpy (w->current_matrix->method, w->desired_matrix->method);
-	  add_window_display_history (w, w->current_matrix->method, 0);
-#endif
 	}
 
       /* Set number of used glyphs in the frame matrix.  Since we fill
@@ -3254,118 +2920,12 @@ mirror_line_dance (w, unchanged_at_top, nlines, copy_from, retained_p)
 	     pointers are in sync with the frame matrix.  */
 	  if (sync_p)
 	    sync_window_with_frame_matrix_rows (w);
-
-	  /* Check that no pointers are lost.  */
-	  CHECK_MATRIX (m);
 	}
 
       /* Next window on same level.  */
       w = NILP (w->next) ? 0 : XWINDOW (w->next);
     }
 }
-
-
-#if GLYPH_DEBUG
-
-/* Check that window and frame matrices agree about their
-   understanding where glyphs of the rows are to find.  For each
-   window in the window tree rooted at W, check that rows in the
-   matrices of leaf window agree with their frame matrices about
-   glyph pointers.  */
-
-void
-check_window_matrix_pointers (w)
-     struct window *w;
-{
-  while (w)
-    {
-      if (!NILP (w->hchild))
-	check_window_matrix_pointers (XWINDOW (w->hchild));
-      else if (!NILP (w->vchild))
-	check_window_matrix_pointers (XWINDOW (w->vchild));
-      else
-	{
-	  struct frame *f = XFRAME (w->frame);
-	  check_matrix_pointers (w->desired_matrix, f->desired_matrix);
-	  check_matrix_pointers (w->current_matrix, f->current_matrix);
-	}
-
-      w = NILP (w->next) ? 0 : XWINDOW (w->next);
-    }
-}
-
-
-/* Check that window rows are slices of frame rows.  WINDOW_MATRIX is
-   a window and FRAME_MATRIX is the corresponding frame matrix.  For
-   each row in WINDOW_MATRIX check that it's a slice of the
-   corresponding frame row.  If it isn't, abort.  */
-
-static void
-check_matrix_pointers (window_matrix, frame_matrix)
-     struct glyph_matrix *window_matrix, *frame_matrix;
-{
-  /* Row number in WINDOW_MATRIX.  */
-  int i = 0;
-
-  /* Row number corresponding to I in FRAME_MATRIX.  */
-  int j = window_matrix->matrix_y;
-
-  /* For all rows check that the row in the window matrix is a
-     slice of the row in the frame matrix.  If it isn't we didn't
-     mirror an operation on the frame matrix correctly.  */
-  while (i < window_matrix->nrows)
-    {
-      if (!glyph_row_slice_p (window_matrix->rows + i,
-			      frame_matrix->rows + j))
-        abort ();
-      ++i, ++j;
-    }
-}
-
-#endif /* GLYPH_DEBUG != 0 */
-
-
-
-/**********************************************************************
-		      VPOS and HPOS translations
- **********************************************************************/
-
-#if GLYPH_DEBUG
-
-/* Translate vertical position VPOS which is relative to window W to a
-   vertical position relative to W's frame.  */
-
-static int
-window_to_frame_vpos (w, vpos)
-     struct window *w;
-     int vpos;
-{
-  struct frame *f = XFRAME (w->frame);
-
-  xassert (!FRAME_WINDOW_P (f));
-  xassert (vpos >= 0 && vpos <= w->desired_matrix->nrows);
-  vpos += WINDOW_TOP_EDGE_LINE (w);
-  xassert (vpos >= 0 && vpos <= FRAME_LINES (f));
-  return vpos;
-}
-
-
-/* Translate horizontal position HPOS which is relative to window W to
-   a horizontal position relative to W's frame.  */
-
-static int
-window_to_frame_hpos (w, hpos)
-     struct window *w;
-     int hpos;
-{
-  xassert (!FRAME_WINDOW_P (XFRAME (w->frame)));
-  hpos += WINDOW_LEFT_EDGE_COL (w);
-  return hpos;
-}
-
-#endif /* GLYPH_DEBUG */
-
-
 
 /**********************************************************************
 			    Redrawing Frames
@@ -3388,10 +2948,7 @@ DEFUN ("redraw-frame", Fredraw_frame, Sredraw_frame, 1, 1, 0,
     return Qnil;
 
   update_begin (f);
-#ifdef MSDOS
-  if (FRAME_MSDOS_P (f))
-    FRAME_TERMINAL (f)->set_terminal_modes_hook (FRAME_TERMINAL (f));
-#endif
+
   clear_frame (f);
   clear_current_matrices (f);
   update_end (f);
@@ -3961,12 +3518,6 @@ update_frame (f, force_p, inhibit_hairy_id_p)
 	  if (FRAME_TERMCAP_P (f))
 	    fflush (FRAME_TTY (f)->output);
         }
-
-      /* Check window matrices for lost pointers.  */
-#if GLYPH_DEBUG
-      check_window_matrix_pointers (root_window);
-      add_frame_display_history (f, paused_p);
-#endif
     }
 
  do_pause:
@@ -4167,32 +3718,6 @@ redraw_overlapping_rows (w, yb)
 
 #endif /* HAVE_WINDOW_SYSTEM */
 
-
-#ifdef GLYPH_DEBUG
-
-/* Check that no row in the current matrix of window W is enabled
-   which is below what's displayed in the window.  */
-
-void
-check_current_matrix_flags (w)
-     struct window *w;
-{
-  int last_seen_p = 0;
-  int i, yb = window_text_bottom_y (w);
-
-  for (i = 0; i < w->current_matrix->nrows - 1; ++i)
-    {
-      struct glyph_row *row = MATRIX_ROW (w->current_matrix, i);
-      if (!last_seen_p && MATRIX_ROW_BOTTOM_Y (row) >= yb)
-	last_seen_p = 1;
-      else if (last_seen_p && row->enabled_p)
-	abort ();
-    }
-}
-
-#endif /* GLYPH_DEBUG */
-
-
 /* Update display of window W.  FORCE_P non-zero means that we should
    not stop when detecting pending input.  */
 
@@ -4209,10 +3734,6 @@ update_window (w, force_p)
   extern int input_pending;
   extern Lisp_Object do_mouse_tracking;
   struct redisplay_interface *rif = FRAME_RIF (XFRAME (WINDOW_FRAME (w)));
-#if GLYPH_DEBUG
-  /* Check that W's frame doesn't have glyph matrices.  */
-  xassert (FRAME_WINDOW_P (XFRAME (WINDOW_FRAME (w))));
-#endif
 
   /* Check pending input the first time so that we can quickly return.  */
 #if !PERIODIC_PREEMPTION_CHECKING
@@ -4351,17 +3872,7 @@ update_window (w, force_p)
 
 	  /* Make cursor visible at cursor position of W.  */
 	  set_window_cursor_after_update (w);
-
-#if 0 /* Check that current matrix invariants are satisfied.  This is
-	 for debugging only.  See the comment of check_matrix_invariants.  */
-	  IF_DEBUG (check_matrix_invariants (w));
-#endif
 	}
-
-#if GLYPH_DEBUG
-      /* Remember the redisplay method used to display the matrix.  */
-      strcpy (w->current_matrix->method, w->desired_matrix->method);
-#endif
 
 #ifdef HAVE_WINDOW_SYSTEM
       update_window_fringes (w, 0);
@@ -4375,11 +3886,6 @@ update_window (w, force_p)
     }
   else
     paused_p = 1;
-
-#if GLYPH_DEBUG
-  /* check_current_matrix_flags (w); */
-  add_window_display_history (w, w->current_matrix->method, paused_p);
-#endif
 
   clear_glyph_matrix (desired_matrix);
 
@@ -6345,13 +5851,6 @@ change_frame_size_1 (f, newheight, newwidth, pretend, delay, safe)
 
   BLOCK_INPUT;
 
-#ifdef MSDOS
-  /* We only can set screen dimensions to certain values supported
-     by our video hardware.  Try to find the smallest size greater
-     or equal to the requested dimensions.  */
-  dos_set_window_size (&newheight, &newwidth);
-#endif
-
   if (newheight != FRAME_LINES (f))
     {
       if (FRAME_HAS_MINIBUF_P (f) && !FRAME_MINIBUF_ONLY_P (f))
@@ -7093,10 +6592,6 @@ syms_of_display ()
   defsubr (&Sinternal_show_cursor);
   defsubr (&Sinternal_show_cursor_p);
   defsubr (&Slast_nonminibuf_frame);
-
-#if GLYPH_DEBUG
-  defsubr (&Sdump_redisplay_history);
-#endif
 
   frame_and_buffer_state = Fmake_vector (make_number (20), Qlambda);
   staticpro (&frame_and_buffer_state);

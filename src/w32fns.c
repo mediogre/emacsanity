@@ -285,11 +285,6 @@ static unsigned menu_free_timer = 0;
 
 extern Lisp_Object Vwindow_system_version;
 
-#ifdef GLYPH_DEBUG
-int image_cache_refcount, dpyinfo_refcount;
-#endif
-
-
 /* From w32term.c. */
 extern int w32_num_mouse_buttons;
 extern Lisp_Object Vw32_recognize_altgr;
@@ -4157,17 +4152,7 @@ unwind_create_frame (frame)
   /* If frame is ``official'', nothing to do.  */
   if (!CONSP (Vframe_list) || !EQ (XCAR (Vframe_list), frame))
     {
-#ifdef GLYPH_DEBUG
-      struct w32_display_info *dpyinfo = FRAME_W32_DISPLAY_INFO (f);
-#endif
-
       x_free_frame_resources (f);
-
-#if GLYPH_DEBUG
-      /* Check that reference counts are indeed correct.  */
-      xassert (dpyinfo->reference_count == dpyinfo_refcount);
-      xassert (dpyinfo->image_cache->refcount == image_cache_refcount);
-#endif
       return Qt;
     }
 
@@ -4324,10 +4309,6 @@ This function is an internal primitive--use `make-frame' instead.  */)
 
   /* With FRAME_X_DISPLAY_INFO set up, this unwind-protect is safe.  */
   record_unwind_protect (unwind_create_frame, frame);
-#if GLYPH_DEBUG
-  image_cache_refcount = FRAME_IMAGE_CACHE (f)->refcount;
-  dpyinfo_refcount = dpyinfo->reference_count;
-#endif /* GLYPH_DEBUG */
 
   /* Specify the parent under which to make this window.  */
 
@@ -5428,10 +5409,6 @@ x_create_tip_frame (dpyinfo, parms, text)
   FRAME_FONTSET (f)  = -1;
   f->icon_name = Qnil;
 
-#if GLYPH_DEBUG
-  image_cache_refcount = FRAME_IMAGE_CACHE (f)->refcount;
-  dpyinfo_refcount = dpyinfo->reference_count;
-#endif /* GLYPH_DEBUG */
   FRAME_KBOARD (f) = kb;
   f->output_data.w32->parent_desc = FRAME_W32_DISPLAY_INFO (f)->root_window;
   f->output_data.w32->explicit_parent = 0;

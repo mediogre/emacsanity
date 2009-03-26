@@ -55,56 +55,6 @@ static POINTER data_space_start;
 
 /* Number of bytes of writable memory we can expect to be able to get.  */
 static unsigned long lim_data;
-
-
-#ifdef NO_LIM_DATA
-static void
-get_lim_data ()
-{
-  lim_data = -1;
-}
-#else /* not NO_LIM_DATA */
-
-#if defined (HAVE_GETRLIMIT) && defined (RLIMIT_AS)
-static void
-get_lim_data ()
-{
-  struct rlimit rlimit;
-
-  getrlimit (RLIMIT_AS, &rlimit);
-  if (rlimit.rlim_cur == RLIM_INFINITY)
-    lim_data = -1;
-  else
-    lim_data = rlimit.rlim_cur;
-}
-
-#else /* not HAVE_GETRLIMIT */
-
-#ifdef USG
-
-static void
-get_lim_data ()
-{
-  extern long ulimit ();
-
-  lim_data = -1;
-
-  /* Use the ulimit call, if we seem to have it.  */
-#if !defined (ULIMIT_BREAK_VALUE) || defined (GNU_LINUX)
-  lim_data = ulimit (3, 0);
-#endif
-
-  /* If that didn't work, just use the macro's value.  */
-#ifdef ULIMIT_BREAK_VALUE
-  if (lim_data == -1)
-    lim_data = ULIMIT_BREAK_VALUE;
-#endif
-
-  lim_data -= (long) data_space_start;
-}
-
-#else /* not USG */
-#ifdef WINDOWSNT
 
 static void
 get_lim_data ()
@@ -112,75 +62,6 @@ get_lim_data ()
   extern unsigned long reserved_heap_size;
   lim_data = reserved_heap_size;
 }
-
-#else
-#if !defined (BSD4_2) && !defined (__osf__)
-
-#ifdef MSDOS
-void
-get_lim_data ()
-{
-  _go32_dpmi_meminfo info;
-  unsigned long lim1, lim2;
-
-  _go32_dpmi_get_free_memory_information (&info);
-  /* DPMI server of Windows NT and its descendants reports in
-     info.available_memory a much lower amount that is really
-     available, which causes bogus "past 95% of memory limit"
-     warnings.  Try to overcome that via circumstantial evidence.  */
-  lim1 = info.available_memory;
-  lim2 = info.available_physical_pages;
-  /* DPMI Spec: "Fields that are unavailable will hold -1."  */
-  if ((long)lim1 == -1L)
-    lim1 = 0;
-  if ((long)lim2 == -1L)
-    lim2 = 0;
-  else
-    lim2 *= 4096;
-  /* Surely, the available memory is at least what we have physically
-     available, right?  */
-  if (lim1 >= lim2)
-    lim_data = lim1;
-  else
-    lim_data = lim2;
-  /* Don't believe they will give us more that 0.5 GB.   */
-  if (lim_data > 512U * 1024U * 1024U)
-    lim_data = 512U * 1024U * 1024U;
-}
-
-unsigned long
-ret_lim_data ()
-{
-  get_lim_data ();
-  return lim_data;
-}
-#else /* not MSDOS */
-static void
-get_lim_data ()
-{
-  lim_data = vlimit (LIM_DATA, -1);
-}
-#endif /* not MSDOS */
-
-#else /* BSD4_2 */
-
-static void
-get_lim_data ()
-{
-  struct rlimit XXrlimit;
-
-  getrlimit (RLIMIT_DATA, &XXrlimit);
-#ifdef RLIM_INFINITY
-  lim_data = XXrlimit.rlim_cur & RLIM_INFINITY; /* soft limit */
-#else
-  lim_data = XXrlimit.rlim_cur;	/* soft limit */
-#endif
-}
-#endif /* BSD4_2 */
-#endif /* not WINDOWSNT */
-#endif /* not USG */
-#endif /* not HAVE_GETRLIMIT */
-#endif /* not NO_LIM_DATA */
 
 /* Verify amount of memory available, complaining if we're near the end. */
 

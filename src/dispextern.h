@@ -23,15 +23,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #ifndef DISPEXTERN_H_INCLUDED
 #define DISPEXTERN_H_INCLUDED
 
-#ifdef HAVE_X_WINDOWS
-
-#include <X11/Xlib.h>
-#ifdef USE_X_TOOLKIT
-#include <X11/Intrinsic.h>
-#endif /* USE_X_TOOLKIT */
-
-#else /* !HAVE_X_WINDOWS */
-
 /* X-related stuff used by non-X gui code. */
 
 typedef struct {
@@ -41,33 +32,10 @@ typedef struct {
   char pad;
 } XColor;
 
-#endif /* HAVE_X_WINDOWS */
-
-#ifdef MSDOS
-#include "msdos.h"
-#endif
-
-#ifdef HAVE_X_WINDOWS
-typedef struct x_display_info Display_Info;
-typedef XImage * XImagePtr;
-typedef XImagePtr XImagePtr_or_DC;
-#define NativeRectangle XRectangle
-#endif
-
-#ifdef HAVE_NTGUI
 #include "w32gui.h"
 typedef struct w32_display_info Display_Info;
 typedef XImage *XImagePtr;
 typedef HDC XImagePtr_or_DC;
-#endif
-
-#ifdef HAVE_NS
-#include "nsgui.h"
-/* following typedef needed to accomodate the MSDOS port, believe it or not */
-typedef struct ns_display_info Display_Info;
-typedef Pixmap XImagePtr;
-typedef XImagePtr XImagePtr_or_DC;
-#endif
 
 #ifndef NativeRectangle
 #define NativeRectangle int
@@ -106,18 +74,6 @@ enum window_part
 #define FRINGE_ID_BITS  16
 
 
-
-/***********************************************************************
-			      Debugging
- ***********************************************************************/
-
-/* If GLYPH_DEBUG is non-zero, additional checks are activated.  Turn
-   it off by defining the macro GLYPH_DEBUG to zero.  */
-
-#ifndef GLYPH_DEBUG
-#define GLYPH_DEBUG 0
-#endif
-
 /* If XASSERTS is non-zero, additional consistency checks are activated.
    Turn it off by defining the macro XASSERTS to zero.  */
 
@@ -125,13 +81,7 @@ enum window_part
 #define XASSERTS 0
 #endif
 
-/* Macros to include code only if GLYPH_DEBUG != 0.  */
-
-#if GLYPH_DEBUG
-#define IF_DEBUG(X)	X
-#else
 #define IF_DEBUG(X)	(void) 0
-#endif
 
 #if XASSERTS
 #define xassert(X)	do {if (!(X)) abort ();} while (0)
@@ -139,28 +89,7 @@ enum window_part
 #define xassert(X)	(void) 0
 #endif
 
-/* Macro for displaying traces of redisplay.  If Emacs was compiled
-   with GLYPH_DEBUG != 0, the variable trace_redisplay_p can be set to
-   a non-zero value in debugging sessions to activate traces.  */
-
-#if GLYPH_DEBUG
-
-extern int trace_redisplay_p;
-#include <stdio.h>
-
-#define TRACE(X)				\
-     if (trace_redisplay_p)			\
-       fprintf X;				\
-     else					\
-       (void) 0
-
-#else /* GLYPH_DEBUG == 0 */
-
 #define TRACE(X)	(void) 0
-
-#endif /* GLYPH_DEBUG == 0 */
-
-
 
 /***********************************************************************
 			    Text positions
@@ -613,11 +542,6 @@ struct glyph_matrix
      line.  */
   unsigned header_line_p : 1;
 
-#ifdef GLYPH_DEBUG
-  /* A string identifying the method used to display the matrix.  */
-  char method[512];
-#endif
-
   /* The buffer this matrix displays.  Set in
      mark_window_display_accurate_1.  */
   struct buffer *buffer;
@@ -626,19 +550,6 @@ struct glyph_matrix
      mark_window_display_accurate_1.  */
   int begv, zv;
 };
-
-
-/* Check that glyph pointers stored in glyph rows of MATRIX are okay.
-   This aborts if any pointer is found twice.  */
-
-#if GLYPH_DEBUG
-void check_matrix_pointer_lossage P_ ((struct glyph_matrix *));
-#define CHECK_MATRIX(MATRIX) check_matrix_pointer_lossage ((MATRIX))
-#else
-#define CHECK_MATRIX(MATRIX) (void) 0
-#endif
-
-
 
 /***********************************************************************
 			     Glyph Rows
@@ -886,13 +797,7 @@ struct glyph_row
 /* Get a pointer to row number ROW in matrix MATRIX.  If GLYPH_DEBUG
    is defined to a non-zero value, the function matrix_row checks that
    we don't try to access rows that are out of bounds.  */
-
-#if GLYPH_DEBUG
-struct glyph_row *matrix_row P_ ((struct glyph_matrix *, int));
-#define MATRIX_ROW(MATRIX, ROW)   matrix_row ((MATRIX), (ROW))
-#else
 #define MATRIX_ROW(MATRIX, ROW)	  ((MATRIX)->rows + (ROW))
-#endif
 
 /* Return a pointer to the row reserved for the mode line in MATRIX.
    Row MATRIX->nrows - 1 is always reserved for the mode line.  */
@@ -2775,10 +2680,6 @@ extern int calc_pixel_width_or_height P_ ((double *, struct it *, Lisp_Object,
 					   struct font *, int, int *));
 
 #ifdef HAVE_WINDOW_SYSTEM
-
-#if GLYPH_DEBUG
-extern void dump_glyph_string P_ ((struct glyph_string *));
-#endif
 
 extern void x_get_glyph_overhangs P_ ((struct glyph *, struct frame *,
 				       int *, int *));

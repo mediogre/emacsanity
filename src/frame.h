@@ -240,11 +240,6 @@ struct frame
      auto-resize-tool-bar is set to grow-only.  */
   unsigned minimize_tool_bar_window_p : 1;
 
-#if defined (USE_GTK) || defined (HAVE_NS)
-  /* Nonzero means using a tool bar that comes from the toolkit.  */
-  int external_tool_bar;
-#endif
-
   /* Margin at the top of the frame.  Used to display the tool-bar.  */
   int tool_bar_lines;
 
@@ -356,8 +351,7 @@ struct frame
   /* Number of lines of menu bar.  */
   int menu_bar_lines;
 
-#if defined (USE_X_TOOLKIT) || defined (HAVE_NTGUI) \
-    || defined (HAVE_NS) || defined (USE_GTK)
+#if defined (USE_X_TOOLKIT) || defined (HAVE_NTGUI) 
   /* Nonzero means using a menu bar that comes from the X toolkit.  */
   unsigned int external_menu_bar : 1;
 #endif
@@ -571,11 +565,7 @@ typedef struct frame *FRAME_PTR;
 
 /* Nonzero if this frame should display a tool bar
    in a way that does not use any text lines.  */
-#if defined (USE_GTK) || defined (HAVE_NS)
-#define FRAME_EXTERNAL_TOOL_BAR(f) (f)->external_tool_bar
-#else
 #define FRAME_EXTERNAL_TOOL_BAR(f) 0
-#endif
 
 /* Number of lines of frame F used for the tool-bar.  */
 
@@ -589,8 +579,7 @@ typedef struct frame *FRAME_PTR;
 
 /* Nonzero if this frame should display a menu bar
    in a way that does not use any text lines.  */
-#if defined (USE_X_TOOLKIT) || defined (HAVE_NTGUI) \
-     || defined (HAVE_NS) || defined (USE_GTK)
+#if defined (USE_X_TOOLKIT) || defined (HAVE_NTGUI)
 #define FRAME_EXTERNAL_MENU_BAR(f) (f)->external_menu_bar
 #else
 #define FRAME_EXTERNAL_MENU_BAR(f) 0

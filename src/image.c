@@ -43,25 +43,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "termhooks.h"
 #include "font.h"
 
-#ifdef HAVE_X_WINDOWS
-#include "xterm.h"
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#define COLOR_TABLE_SUPPORT 1
-
-typedef struct x_bitmap_record Bitmap_Record;
-#define GET_PIXEL(ximg, x, y) XGetPixel(ximg, x, y)
-#define NO_PIXMAP None
-
-#define RGB_PIXEL_COLOR unsigned long
-
-#define PIX_MASK_RETAIN	0
-#define PIX_MASK_DRAW	1
-#endif /* HAVE_X_WINDOWS */
-
-
-#ifdef HAVE_NTGUI
 #include "w32term.h"
 
 /* W32_TODO : Color tables on W32.  */
@@ -84,33 +65,6 @@ typedef struct w32_bitmap_record Bitmap_Record;
    without modifying lots of files).  */
 extern void x_query_colors (struct frame *f, XColor *colors, int ncolors);
 extern void x_query_color (struct frame *f, XColor *color);
-#endif /* HAVE_NTGUI */
-
-#ifdef HAVE_NS
-#include "nsterm.h"
-#include <sys/types.h>
-#include <sys/stat.h>
-
-#undef COLOR_TABLE_SUPPORT
-
-typedef struct ns_bitmap_record Bitmap_Record;
-
-#define GET_PIXEL(ximg, x, y) XGetPixel(ximg, x, y)
-#define NO_PIXMAP 0
-
-#define RGB_PIXEL_COLOR unsigned long
-#define ZPixmap 0
-
-#define PIX_MASK_RETAIN	0
-#define PIX_MASK_DRAW	1
-
-#define FRAME_X_VISUAL FRAME_NS_DISPLAY_INFO(f)->visual
-#define x_defined_color(f, name, color_def, alloc) \
-  ns_defined_color (f, name, color_def, alloc, 0)
-#define FRAME_X_SCREEN(f) 0
-#define DefaultDepthOfScreen(screen) x_display_list->n_planes
-#endif /* HAVE_NS */
-
 
 /* Search path for bitmap files.  */
 
@@ -123,11 +77,6 @@ static void x_edge_detection P_ ((struct frame *, struct image *, Lisp_Object,
 
 static void init_color_table P_ ((void));
 static unsigned long lookup_rgb_color P_ ((struct frame *f, int r, int g, int b));
-#ifdef COLOR_TABLE_SUPPORT
-static void free_color_table P_ ((void));
-static unsigned long *colors_in_color_table P_ ((int *n));
-static unsigned long lookup_pixel_color P_ ((struct frame *f, unsigned long p));
-#endif
 
 /* Code to deal with bitmaps.  Bitmaps are referenced by their bitmap
    id, which is just an int that this section returns.  Bitmaps are
@@ -139,276 +88,6 @@ static unsigned long lookup_pixel_color P_ ((struct frame *f, unsigned long p));
    If you use x_create_bitmap_from_data, then you must keep track of
    the bitmaps yourself.  That is, creating a bitmap from the same
    data more than once will not be caught.  */
-
-#ifdef MAC_OS
-
-static XImagePtr
-XGetImage (display, pixmap, x, y, width, height, plane_mask, format)
-     Display *display;		/* not used */
-     Pixmap pixmap;
-     int x, y;			/* not used */
-     unsigned int width, height; /* not used */
-     unsigned long plane_mask; 	/* not used */
-     int format;		/* not used */
-{
-#if !USE_MAC_IMAGE_IO
-#if GLYPH_DEBUG
-  xassert (x == 0 && y == 0);
-  {
-    Rect ri, rp;
-    SetRect (&ri, 0, 0, width, height);
-    xassert (EqualRect (&ri, GetPixBounds (GetGWorldPixMap (pixmap), &rp)));
-  }
-  xassert (! (pixelsLocked & GetPixelsState (GetGWorldPixMap (pixmap))));
-#endif
-
-  LockPixels (GetGWorldPixMap (pixmap));
-#endif
-
-  return pixmap;
-}
-
-static void
-XPutPixel (ximage, x, y, pixel)
-     XImagePtr ximage;
-     int x, y;
-     unsigned long pixel;
-{
-#if USE_MAC_IMAGE_IO
-  if (ximage->bits_per_pixel == 32)
-    ((unsigned int *)(ximage->data + y * ximage->bytes_per_line))[x] = pixel;
-  else
-    ((unsigned char *)(ximage->data + y * ximage->bytes_per_line))[x] = pixel;
-#else
-  PixMapHandle pixmap = GetGWorldPixMap (ximage);
-  short depth = GetPixDepth (pixmap);
-
-#if defined (WORDS_BIG_ENDIAN) || !USE_CG_DRAWING
-  if (depth == 32)
-    {
-      char *base_addr = GetPixBaseAddr (pixmap);
-      short row_bytes = GetPixRowBytes (pixmap);
-
-      ((unsigned long *) (base_addr + y * row_bytes))[x] = 0xff000000 | pixel;
-    }
-  else
-#endif
-  if (depth == 1)
-    {
-      char *base_addr = GetPixBaseAddr (pixmap);
-      short row_bytes = GetPixRowBytes (pixmap);
-
-      if (pixel == PIX_MASK_DRAW)
-	base_addr[y * row_bytes + x / 8] |= (1 << 7) >> (x & 7);
-      else
-	base_addr[y * row_bytes + x / 8] &= ~((1 << 7) >> (x & 7));
-    }
-  else
-    {
-      CGrafPtr old_port;
-      GDHandle old_gdh;
-      RGBColor color;
-
-      GetGWorld (&old_port, &old_gdh);
-      SetGWorld (ximage, NULL);
-
-      color.red = RED16_FROM_ULONG (pixel);
-      color.green = GREEN16_FROM_ULONG (pixel);
-      color.blue = BLUE16_FROM_ULONG (pixel);
-
-      SetCPixel (x, y, &color);
-
-      SetGWorld (old_port, old_gdh);
-    }
-#endif
-}
-
-static unsigned long
-XGetPixel (ximage, x, y)
-     XImagePtr ximage;
-     int x, y;
-{
-#if USE_MAC_IMAGE_IO
-  if (ximage->bits_per_pixel == 32)
-    return ((unsigned int *)(ximage->data + y * ximage->bytes_per_line))[x];
-  else
-    return ((unsigned char *)(ximage->data + y * ximage->bytes_per_line))[x];
-#else
-  PixMapHandle pixmap = GetGWorldPixMap (ximage);
-  short depth = GetPixDepth (pixmap);
-
-#if defined (WORDS_BIG_ENDIAN) || !USE_CG_DRAWING
-  if (depth == 32)
-    {
-      char *base_addr = GetPixBaseAddr (pixmap);
-      short row_bytes = GetPixRowBytes (pixmap);
-
-      return ((unsigned long *) (base_addr + y * row_bytes))[x] & 0x00ffffff;
-    }
-  else
-#endif
-  if (depth == 1)
-    {
-      char *base_addr = GetPixBaseAddr (pixmap);
-      short row_bytes = GetPixRowBytes (pixmap);
-
-      if (base_addr[y * row_bytes + x / 8] & (1 << (~x & 7)))
-	return PIX_MASK_DRAW;
-      else
-	return PIX_MASK_RETAIN;
-    }
-  else
-    {
-      CGrafPtr old_port;
-      GDHandle old_gdh;
-      RGBColor color;
-
-      GetGWorld (&old_port, &old_gdh);
-      SetGWorld (ximage, NULL);
-
-      GetCPixel (x, y, &color);
-
-      SetGWorld (old_port, old_gdh);
-      return RGB_TO_ULONG (color.red >> 8, color.green >> 8, color.blue >> 8);
-    }
-#endif
-}
-
-static void
-XDestroyImage (ximg)
-     XImagePtr ximg;
-{
-#if !USE_MAC_IMAGE_IO
-  UnlockPixels (GetGWorldPixMap (ximg));
-#endif
-}
-
-#if USE_CG_DRAWING
-#if USE_MAC_IMAGE_IO
-void
-mac_data_provider_release_data (info, data, size)
-     void *info;
-     const void *data;
-     size_t size;
-{
-  xfree ((void *)data);
-}
-#endif
-
-static CGImageRef
-mac_create_cg_image_from_image (f, img)
-     struct frame *f;
-     struct image *img;
-{
-#if USE_MAC_IMAGE_IO
-  XImagePtr ximg = img->pixmap;
-  CGDataProviderRef provider;
-  CGImageRef result;
-
-  if (img->mask)
-    {
-      int x, y;
-      unsigned long color, alpha;
-
-      for (y = 0; y < ximg->height; y++)
-	for (x = 0; x < ximg->width; x++)
-	  {
-	    color = XGetPixel (ximg, x, y);
-	    alpha = XGetPixel (img->mask, x, y);
-	    XPutPixel (ximg, x, y,
-		       ARGB_TO_ULONG (alpha,
-				      RED_FROM_ULONG (color)
-				      * alpha / PIX_MASK_DRAW,
-				      GREEN_FROM_ULONG (color)
-				      * alpha / PIX_MASK_DRAW,
-				      BLUE_FROM_ULONG (color)
-				      * alpha / PIX_MASK_DRAW));
-	  }
-      xfree (img->mask->data);
-      img->mask->data = NULL;
-    }
-  BLOCK_INPUT;
-  provider = CGDataProviderCreateWithData (NULL, ximg->data,
-					   ximg->bytes_per_line * ximg->height,
-					   mac_data_provider_release_data);
-  ximg->data = NULL;
-  result = CGImageCreate (ximg->width, ximg->height, 8, 32,
-			  ximg->bytes_per_line, mac_cg_color_space_rgb,
-			  ((img->mask ? kCGImageAlphaPremultipliedFirst
-			    : kCGImageAlphaNoneSkipFirst)
-			   | kCGBitmapByteOrder32Host),
-			  provider, NULL, 0, kCGRenderingIntentDefault);
-  CGDataProviderRelease (provider);
-  UNBLOCK_INPUT;
-
-  return result;
-#else
-  Pixmap mask;
-  CGImageRef result = NULL;
-
-  BLOCK_INPUT;
-  if (img->mask)
-    mask = img->mask;
-  else
-    {
-      mask = XCreatePixmap (FRAME_X_DISPLAY (f), FRAME_X_WINDOW (f),
-			    img->width, img->height, 1);
-      if (mask)
-	{
-	  CGrafPtr old_port;
-	  GDHandle old_gdh;
-	  Rect r;
-
-	  GetGWorld (&old_port, &old_gdh);
-	  SetGWorld (mask, NULL);
-	  BackColor (blackColor); /* Don't mask.  */
-	  SetRect (&r, 0, 0, img->width, img->height);
-	  EraseRect (&r);
-	  SetGWorld (old_port, old_gdh);
-	}
-    }
-  if (mask)
-    {
-      CreateCGImageFromPixMaps (GetGWorldPixMap (img->pixmap),
-				GetGWorldPixMap (mask), &result);
-      if (mask != img->mask)
-	XFreePixmap (FRAME_X_DISPLAY (f), mask);
-    }
-  UNBLOCK_INPUT;
-
-  return result;
-#endif
-}
-#endif /* USE_CG_DRAWING */
-#endif /* MAC_OS */
-
-#ifdef HAVE_NS
-XImagePtr
-XGetImage (Display *display, Pixmap pixmap, int x, int y,
-           unsigned int width, unsigned int height,
-           unsigned long plane_mask, int format)
-{
-  /* TODO: not sure what this function is supposed to do.. */
-  ns_retain_object(pixmap);
-  return pixmap;
-}
-
-/* use with imgs created by ns_image_for_XPM */
-unsigned long
-XGetPixel (XImagePtr ximage, int x, int y)
-{
-  return ns_get_pixel(ximage, x, y);
-}
-
-/* use with imgs created by ns_image_for_XPM; alpha set to 1;
-   pixel is assumed to be in form RGB */
-void
-XPutPixel (XImagePtr ximage, int x, int y, unsigned long pixel)
-{
-  ns_put_pixel(ximage, x, y, pixel);
-}
-#endif /* HAVE_NS */
-
 
 /* Functions to access the contents of a bitmap, given an id.  */
 
@@ -428,7 +107,6 @@ x_bitmap_width (f, id)
   return FRAME_X_DISPLAY_INFO (f)->bitmaps[id - 1].width;
 }
 
-#if defined (HAVE_X_WINDOWS) || defined (HAVE_NTGUI)
 int
 x_bitmap_pixmap (f, id)
      FRAME_PTR f;
@@ -436,17 +114,6 @@ x_bitmap_pixmap (f, id)
 {
   return (int) FRAME_X_DISPLAY_INFO (f)->bitmaps[id - 1].pixmap;
 }
-#endif
-
-#ifdef HAVE_X_WINDOWS
-int
-x_bitmap_mask (f, id)
-     FRAME_PTR f;
-     int id;
-{
-  return FRAME_X_DISPLAY_INFO (f)->bitmaps[id - 1].mask;
-}
-#endif
 
 /* Allocate a new bitmap record.  Returns index of new record.  */
 
@@ -4439,253 +4106,6 @@ xpm_load (f, img)
 /***********************************************************************
 			     Color table
  ***********************************************************************/
-
-#ifdef COLOR_TABLE_SUPPORT
-
-/* An entry in the color table mapping an RGB color to a pixel color.  */
-
-struct ct_color
-{
-  int r, g, b;
-  unsigned long pixel;
-
-  /* Next in color table collision list.  */
-  struct ct_color *next;
-};
-
-/* The bucket vector size to use.  Must be prime.  */
-
-#define CT_SIZE 101
-
-/* Value is a hash of the RGB color given by R, G, and B.  */
-
-#define CT_HASH_RGB(R, G, B) (((R) << 16) ^ ((G) << 8) ^ (B))
-
-/* The color hash table.  */
-
-struct ct_color **ct_table;
-
-/* Number of entries in the color table.  */
-
-int ct_colors_allocated;
-
-/* Initialize the color table.  */
-
-static void
-init_color_table ()
-{
-  int size = CT_SIZE * sizeof (*ct_table);
-  ct_table = (struct ct_color **) xmalloc (size);
-  bzero (ct_table, size);
-  ct_colors_allocated = 0;
-}
-
-
-/* Free memory associated with the color table.  */
-
-static void
-free_color_table ()
-{
-  int i;
-  struct ct_color *p, *next;
-
-  for (i = 0; i < CT_SIZE; ++i)
-    for (p = ct_table[i]; p; p = next)
-      {
-	next = p->next;
-	xfree (p);
-      }
-
-  xfree (ct_table);
-  ct_table = NULL;
-}
-
-
-/* Value is a pixel color for RGB color R, G, B on frame F.  If an
-   entry for that color already is in the color table, return the
-   pixel color of that entry.  Otherwise, allocate a new color for R,
-   G, B, and make an entry in the color table.  */
-
-static unsigned long
-lookup_rgb_color (f, r, g, b)
-     struct frame *f;
-     int r, g, b;
-{
-  unsigned hash = CT_HASH_RGB (r, g, b);
-  int i = hash % CT_SIZE;
-  struct ct_color *p;
-  Display_Info *dpyinfo;
-
-  /* Handle TrueColor visuals specially, which improves performance by
-     two orders of magnitude.  Freeing colors on TrueColor visuals is
-     a nop, and pixel colors specify RGB values directly.  See also
-     the Xlib spec, chapter 3.1.  */
-  dpyinfo = FRAME_X_DISPLAY_INFO (f);
-  if (dpyinfo->red_bits > 0)
-    {
-      unsigned long pr, pg, pb;
-
-      /* Apply gamma-correction like normal color allocation does.  */
-      if (f->gamma)
-	{
-	  XColor color;
-	  color.red = r, color.green = g, color.blue = b;
-	  gamma_correct (f, &color);
-	  r = color.red, g = color.green, b = color.blue;
-	}
-
-      /* Scale down RGB values to the visual's bits per RGB, and shift
-	 them to the right position in the pixel color.  Note that the
-	 original RGB values are 16-bit values, as usual in X.  */
-      pr = (r >> (16 - dpyinfo->red_bits))   << dpyinfo->red_offset;
-      pg = (g >> (16 - dpyinfo->green_bits)) << dpyinfo->green_offset;
-      pb = (b >> (16 - dpyinfo->blue_bits))  << dpyinfo->blue_offset;
-
-      /* Assemble the pixel color.  */
-      return pr | pg | pb;
-    }
-
-  for (p = ct_table[i]; p; p = p->next)
-    if (p->r == r && p->g == g && p->b == b)
-      break;
-
-  if (p == NULL)
-    {
-
-#ifdef HAVE_X_WINDOWS
-      XColor color;
-      Colormap cmap;
-      int rc;
-
-      color.red = r;
-      color.green = g;
-      color.blue = b;
-
-      cmap = FRAME_X_COLORMAP (f);
-      rc = x_alloc_nearest_color (f, cmap, &color);
-      if (rc)
-	{
-	  ++ct_colors_allocated;
-	  p = (struct ct_color *) xmalloc (sizeof *p);
-	  p->r = r;
-	  p->g = g;
-	  p->b = b;
-	  p->pixel = color.pixel;
-	  p->next = ct_table[i];
-	  ct_table[i] = p;
-	}
-      else
-	return FRAME_FOREGROUND_PIXEL (f);
-
-#else
-      COLORREF color;
-#ifdef HAVE_NTGUI
-      color = PALETTERGB (r, g, b);
-#else
-      color = RGB_TO_ULONG (r, g, b);
-#endif /* HAVE_NTGUI */
-      ++ct_colors_allocated;
-      p = (struct ct_color *) xmalloc (sizeof *p);
-      p->r = r;
-      p->g = g;
-      p->b = b;
-      p->pixel = color;
-      p->next = ct_table[i];
-      ct_table[i] = p;
-#endif /* HAVE_X_WINDOWS */
-
-    }
-
-  return p->pixel;
-}
-
-
-/* Look up pixel color PIXEL which is used on frame F in the color
-   table.  If not already present, allocate it.  Value is PIXEL.  */
-
-static unsigned long
-lookup_pixel_color (f, pixel)
-     struct frame *f;
-     unsigned long pixel;
-{
-  int i = pixel % CT_SIZE;
-  struct ct_color *p;
-
-  for (p = ct_table[i]; p; p = p->next)
-    if (p->pixel == pixel)
-      break;
-
-  if (p == NULL)
-    {
-      XColor color;
-      Colormap cmap;
-      int rc;
-
-#ifdef HAVE_X_WINDOWS
-      cmap = FRAME_X_COLORMAP (f);
-      color.pixel = pixel;
-      x_query_color (f, &color);
-      rc = x_alloc_nearest_color (f, cmap, &color);
-#else
-      BLOCK_INPUT;
-      cmap = DefaultColormapOfScreen (FRAME_X_SCREEN (f));
-      color.pixel = pixel;
-      XQueryColor (NULL, cmap, &color);
-      rc = x_alloc_nearest_color (f, cmap, &color);
-      UNBLOCK_INPUT;
-#endif /* HAVE_X_WINDOWS */
-
-      if (rc)
-	{
-	  ++ct_colors_allocated;
-
-	  p = (struct ct_color *) xmalloc (sizeof *p);
-	  p->r = color.red;
-	  p->g = color.green;
-	  p->b = color.blue;
-	  p->pixel = pixel;
-	  p->next = ct_table[i];
-	  ct_table[i] = p;
-	}
-      else
-	return FRAME_FOREGROUND_PIXEL (f);
-    }
-  return p->pixel;
-}
-
-
-/* Value is a vector of all pixel colors contained in the color table,
-   allocated via xmalloc.  Set *N to the number of colors.  */
-
-static unsigned long *
-colors_in_color_table (n)
-     int *n;
-{
-  int i, j;
-  struct ct_color *p;
-  unsigned long *colors;
-
-  if (ct_colors_allocated == 0)
-    {
-      *n = 0;
-      colors = NULL;
-    }
-  else
-    {
-      colors = (unsigned long *) xmalloc (ct_colors_allocated
-					  * sizeof *colors);
-      *n = ct_colors_allocated;
-
-      for (i = j = 0; i < CT_SIZE; ++i)
-	for (p = ct_table[i]; p; p = p->next)
-	  colors[j++] = p->pixel;
-    }
-
-  return colors;
-}
-
-#else /* COLOR_TABLE_SUPPORT */
-
 static unsigned long
 lookup_rgb_color (f, r, g, b)
      struct frame *f;
@@ -4693,13 +4113,7 @@ lookup_rgb_color (f, r, g, b)
 {
   unsigned long pixel;
 
-#ifdef HAVE_NTGUI
   pixel = PALETTERGB (r >> 8, g >> 8, b >> 8);
-#endif /* HAVE_NTGUI */
-
-#ifdef HAVE_NS
-  pixel = RGB_TO_ULONG (r >> 8, g >> 8, b >> 8);
-#endif /* HAVE_NS */
   return pixel;
 }
 
@@ -4707,8 +4121,6 @@ static void
 init_color_table ()
 {
 }
-#endif /* COLOR_TABLE_SUPPORT */
-
 
 /***********************************************************************
 			      Algorithms
@@ -4902,10 +4314,6 @@ x_from_xcolors (f, img, colors)
   x_put_x_image (f, oimg, pixmap, img->width, img->height);
   x_destroy_x_image (oimg);
   img->pixmap = pixmap;
-#ifdef COLOR_TABLE_SUPPORT
-  img->colors = colors_in_color_table (&img->ncolors);
-  free_color_table ();
-#endif /* COLOR_TABLE_SUPPORT */
 }
 
 
@@ -5671,13 +5079,6 @@ pbm_load (f, img)
 	    XPutPixel (ximg, x, y, lookup_rgb_color (f, r, g, b));
 	  }
     }
-
-#ifdef COLOR_TABLE_SUPPORT
-  /* Store in IMG->colors the colors allocated for the image, and
-     free the color table.  */
-  img->colors = colors_in_color_table (&img->ncolors);
-  free_color_table ();
-#endif /* COLOR_TABLE_SUPPORT */
 
   img->width = width;
   img->height = height;
@@ -8475,38 +7876,6 @@ x_kill_gs_process (pixmap, f)
 
 #endif /* HAVE_GHOSTSCRIPT */
 
-
-/***********************************************************************
-				Tests
- ***********************************************************************/
-
-#if GLYPH_DEBUG
-
-DEFUN ("imagep", Fimagep, Simagep, 1, 1, 0,
-       doc: /* Value is non-nil if SPEC is a valid image specification.  */)
-  (spec)
-     Lisp_Object spec;
-{
-  return valid_image_p (spec) ? Qt : Qnil;
-}
-
-
-DEFUN ("lookup-image", Flookup_image, Slookup_image, 1, 1, 0, "")
-  (spec)
-     Lisp_Object spec;
-{
-  int id = -1;
-
-  if (valid_image_p (spec))
-    id = lookup_image (SELECTED_FRAME (), spec);
-
-  debug_print (spec);
-  return make_number (id);
-}
-
-#endif /* GLYPH_DEBUG != 0 */
-
-
 /***********************************************************************
 			    Initialization
  ***********************************************************************/
@@ -8734,11 +8103,6 @@ non-numeric, there is no explicit limit on the size of images.  */);
   defsubr (&Simage_size);
   defsubr (&Simage_mask_p);
   defsubr (&Simage_extension_data);
-
-#if GLYPH_DEBUG
-  defsubr (&Simagep);
-  defsubr (&Slookup_image);
-#endif
 
   DEFVAR_BOOL ("cross-disabled-images", &cross_disabled_images,
     doc: /* Non-nil means always draw a cross over disabled images.

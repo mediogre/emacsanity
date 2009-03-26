@@ -55,14 +55,6 @@ extern int errno;
 #define _P_NOWAIT 1	/* from process.h */
 #endif
 
-#ifdef MSDOS	/* Demacs 1.1.1 91/10/16 HIRANO Satoshi */
-#define INCLUDED_FCNTL
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/param.h>
-#include <errno.h>
-#endif /* MSDOS */
-
 #ifndef O_RDONLY
 #define O_RDONLY 0
 #endif
@@ -85,10 +77,6 @@ extern int errno;
 #include "blockinput.h"
 #include "frame.h"
 #include "termhooks.h"
-
-#ifdef MSDOS
-#include "msdos.h"
-#endif
 
 #ifndef USE_CRT_DLL
 extern char **environ;
@@ -156,14 +144,6 @@ Lisp_Object
 call_process_cleanup (fdpid)
      Lisp_Object fdpid;
 {
-#if defined (MSDOS)
-  /* for MSDOS fdpid is really (fd . tempfile)  */
-  register Lisp_Object file;
-  file = Fcdr (fdpid);
-  emacs_close (XFASTINT (Fcar (fdpid)));
-  if (strcmp (SDATA (file), NULL_DEVICE) != 0)
-    unlink (SDATA (file));
-#else /* not MSDOS */
   register int pid = XFASTINT (Fcdr (fdpid));
 
   if (call_process_exited)
@@ -186,7 +166,7 @@ call_process_cleanup (fdpid)
     }
   synch_process_alive = 0;
   emacs_close (XFASTINT (Fcar (fdpid)));
-#endif /* not MSDOS */
+
   return Qnil;
 }
 
@@ -235,10 +215,7 @@ usage: (call-process PROGRAM &optional INFILE BUFFER DISPLAY &rest ARGS)  */)
   /* File to use for stderr in the child.
      t means use same as standard output.  */
   Lisp_Object error_file;
-#ifdef MSDOS	/* Demacs 1.1.1 91/10/16 HIRANO Satoshi */
-  char *outf, *tempfile;
-  int outfilefd;
-#endif
+
   struct coding_system process_coding; /* coding-system of process output */
   struct coding_system argument_coding;	/* coding-system of arguments */
   /* Set to the return value of Ffind_operation_coding_system.  */
@@ -442,43 +419,16 @@ usage: (call-process PROGRAM &optional INFILE BUFFER DISPLAY &rest ARGS)  */)
     new_argv[1] = 0;
   new_argv[0] = SDATA (path);
 
-#ifdef MSDOS /* MW, July 1993 */
-  if ((outf = egetenv ("TMPDIR")))
-    strcpy (tempfile = alloca (strlen (outf) + 20), outf);
-  else
-    {
-      tempfile = alloca (20);
-      *tempfile = '\0';
-    }
-  dostounix_filename (tempfile);
-  if (*tempfile == '\0' || tempfile[strlen (tempfile) - 1] != '/')
-    strcat (tempfile, "/");
-  strcat (tempfile, "detmp.XXX");
-  mktemp (tempfile);
-
-  outfilefd = creat (tempfile, S_IREAD | S_IWRITE);
-  if (outfilefd < 0)
-    {
-      emacs_close (filefd);
-      report_file_error ("Opening process output file",
-			 Fcons (build_string (tempfile), Qnil));
-    }
-  fd[0] = filefd;
-  fd[1] = outfilefd;
-#endif /* MSDOS */
-
   if (INTEGERP (buffer))
     fd[1] = emacs_open (NULL_DEVICE, O_WRONLY, 0), fd[0] = -1;
   else
     {
-#ifndef MSDOS
       errno = 0;
       if (pipe (fd) == -1)
 	{
 	  emacs_close (filefd);
 	  report_file_error ("Creating process pipe", Qnil);
 	}
-#endif
     }
 
   {
@@ -522,9 +472,7 @@ usage: (call-process PROGRAM &optional INFILE BUFFER DISPLAY &rest ARGS)  */)
 	  emacs_close (fd[0]);
 	if (fd1 >= 0)
 	  emacs_close (fd1);
-#ifdef MSDOS
-	unlink (tempfile);
-#endif
+
 	if (NILP (error_file))
 	  error_file = build_string (NULL_DEVICE);
 	else if (STRINGP (error_file))
@@ -532,68 +480,13 @@ usage: (call-process PROGRAM &optional INFILE BUFFER DISPLAY &rest ARGS)  */)
 	report_file_error ("Cannot redirect stderr", Fcons (error_file, Qnil));
       }
 
-#ifdef MSDOS /* MW, July 1993 */
-    /* Note that on MSDOS `child_setup' actually returns the child process
-       exit status, not its PID, so we assign it to `synch_process_retcode'
-       below.  */
-    pid = child_setup (filefd, outfilefd, fd_error, (char **) new_argv,
-		       0, current_dir);
-
-    /* Record that the synchronous process exited and note its
-       termination status.  */
-    synch_process_alive = 0;
-    synch_process_retcode = pid;
-    if (synch_process_retcode < 0)  /* means it couldn't be exec'ed */
-      {
-	synchronize_system_messages_locale ();
-	synch_process_death = strerror (errno);
-      }
-
-    emacs_close (outfilefd);
-    if (fd_error != outfilefd)
-      emacs_close (fd_error);
-    fd1 = -1; /* No harm in closing that one!  */
-    /* Since CRLF is converted to LF within `decode_coding', we can
-       always open a file with binary mode.  */
-    fd[0] = emacs_open (tempfile, O_RDONLY | O_BINARY, 0);
-    if (fd[0] < 0)
-      {
-	unlink (tempfile);
-	emacs_close (filefd);
-	report_file_error ("Cannot re-open temporary file", Qnil);
-      }
-#else /* not MSDOS */
-#ifdef WINDOWSNT
     pid = child_setup (filefd, fd1, fd_error, (char **) new_argv,
 		       0, current_dir);
-#else  /* not WINDOWSNT */
-    BLOCK_INPUT;
-
-    pid = vfork ();
-
-    if (pid == 0)
-      {
-	if (fd[0] >= 0)
-	  emacs_close (fd[0]);
-#ifdef HAVE_SETSID
-        setsid ();
-#endif
-#if defined (USG) && !defined (BSD_PGRPS)
-        setpgrp ();
-#else
-        setpgrp (pid, pid);
-#endif /* USG */
-	child_setup (filefd, fd1, fd_error, (char **) new_argv,
-		     0, current_dir);
-      }
-
-    UNBLOCK_INPUT;
-#endif /* not WINDOWSNT */
 
     /* The MSDOS case did this already.  */
     if (fd_error >= 0)
       emacs_close (fd_error);
-#endif /* not MSDOS */
+
 
     environ = save_environ;
 
@@ -627,15 +520,8 @@ usage: (call-process PROGRAM &optional INFILE BUFFER DISPLAY &rest ARGS)  */)
   /* Enable sending signal if user quits below.  */
   call_process_exited = 0;
 
-#if defined(MSDOS)
-  /* MSDOS needs different cleanup information.  */
-  record_unwind_protect (call_process_cleanup,
-			 Fcons (make_number (fd[0]), build_string (tempfile)));
-#else
   record_unwind_protect (call_process_cleanup,
 			 Fcons (make_number (fd[0]), make_number (pid)));
-#endif /* not MSDOS */
-
 
   if (BUFFERP (buffer))
     Fset_buffer (buffer);
@@ -1067,15 +953,6 @@ child_setup (in, out, err, new_argv, set_pgrp, current_dir)
 
   int pid = getpid ();
 
-#ifdef SET_EMACS_PRIORITY
-  {
-    extern EMACS_INT emacs_priority;
-
-    if (emacs_priority < 0)
-      nice (- emacs_priority);
-  }
-#endif
-
 #ifdef subprocesses
   /* Close Emacs's descriptors that this process should not have.  */
   close_process_descs ();
@@ -1097,14 +974,9 @@ child_setup (in, out, err, new_argv, set_pgrp, current_dir)
     register int i;
 
     i = SBYTES (current_dir);
-#ifdef MSDOS
-    /* MSDOS must have all environment variables malloc'ed, because
-       low-level libc functions that launch subsidiary processes rely
-       on that.  */
-    pwd_var = (char *) xmalloc (i + 6);
-#else
+
     pwd_var = (char *) alloca (i + 6);
-#endif
+
     temp = pwd_var + 4;
     bcopy ("PWD=", pwd_var, 4);
     bcopy (SDATA (current_dir), temp, i);
@@ -1208,48 +1080,8 @@ child_setup (in, out, err, new_argv, set_pgrp, current_dir)
       }
   }
 
-  
-#ifdef WINDOWSNT
   prepare_standard_handles (in, out, err, handles);
   set_process_dir (SDATA (current_dir));
-#else  /* not WINDOWSNT */
-  /* Make sure that in, out, and err are not actually already in
-     descriptors zero, one, or two; this could happen if Emacs is
-     started with its standard in, out, or error closed, as might
-     happen under X.  */
-  {
-    int oin = in, oout = out;
-
-    /* We have to avoid relocating the same descriptor twice!  */
-
-    in = relocate_fd (in, 3);
-
-    if (out == oin)
-      out = in;
-    else
-      out = relocate_fd (out, 3);
-
-    if (err == oin)
-      err = in;
-    else if (err == oout)
-      err = out;
-    else
-      err = relocate_fd (err, 3);
-  }
-
-#ifndef MSDOS
-  emacs_close (0);
-  emacs_close (1);
-  emacs_close (2);
-
-  dup2 (in, 0);
-  dup2 (out, 1);
-  dup2 (err, 2);
-  emacs_close (in);
-  emacs_close (out);
-  emacs_close (err);
-#endif /* not MSDOS */
-#endif /* not WINDOWSNT */
 
 #if defined(USG) && !defined(BSD_PGRPS)
 #ifndef SETPGRP_RELEASES_CTTY
@@ -1261,15 +1093,6 @@ child_setup (in, out, err, new_argv, set_pgrp, current_dir)
   /* setpgrp_of_tty is incorrect here; it uses input_fd.  */
   EMACS_SET_TTY_PGRP (0, &pid);
 
-#ifdef MSDOS
-  pid = run_msdos_command (new_argv, pwd_var + 4, in, out, err, env);
-  xfree (pwd_var);
-  if (pid == -1)
-    /* An error occurred while trying to run the subprocess.  */
-    report_file_error ("Spawning child process", Qnil);
-  return pid;
-#else  /* not MSDOS */
-#ifdef WINDOWSNT
   /* Spawn the child.  (See ntproc.c:Spawnve).  */
   cpid = spawnve (_P_NOWAIT, new_argv[0], new_argv, env);
   reset_standard_handles (in, out, err, handles);
@@ -1277,19 +1100,6 @@ child_setup (in, out, err, new_argv, set_pgrp, current_dir)
     /* An error occurred while trying to spawn the process.  */
     report_file_error ("Spawning child process", Qnil);
   return cpid;
-#else /* not WINDOWSNT */
-  /* execvp does not accept an environment arg so the only way
-     to pass this environment is to set environ.  Our caller
-     is responsible for restoring the ambient value of environ.  */
-  environ = env;
-  execvp (new_argv[0], new_argv);
-
-  emacs_write (1, "Can't exec program: ", 20);
-  emacs_write (1, new_argv[0], strlen (new_argv[0]));
-  emacs_write (1, "\n", 1);
-  _exit (1);
-#endif /* not WINDOWSNT */
-#endif /* not MSDOS */
 }
 
 /* Move the file descriptor FD so that its number is not less than MINFD.
@@ -1479,17 +1289,6 @@ init_callproc ()
       Lisp_Object tem;
       tem = Fexpand_file_name (build_string ("lib-src"),
 			       Vinstallation_directory);
-#ifndef DOS_NT
-	  /* MSDOS uses wrapped binaries, so don't do this.  */
-      if (NILP (Fmember (tem, Vexec_path)))
-	{
-	  Vexec_path = decode_env_path ("EMACSPATH", PATH_EXEC);
-	  Vexec_path = Fcons (tem, Vexec_path);
-	  Vexec_path = nconc2 (decode_env_path ("PATH", ""), Vexec_path);
-	}
-
-      Vexec_directory = Ffile_name_as_directory (tem);
-#endif /* not DOS_NT */
 
       /* Maybe use ../etc as well as ../lib-src.  */
       if (data_dir == 0)

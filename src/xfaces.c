@@ -212,18 +212,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "frame.h"
 #include "termhooks.h"
 
-#ifdef HAVE_X_WINDOWS
-#include "xterm.h"
-#ifdef USE_MOTIF
-#include <Xm/Xm.h>
-#include <Xm/XmStrDefs.h>
-#endif /* USE_MOTIF */
-#endif /* HAVE_X_WINDOWS */
-
-#ifdef MSDOS
-#include "dosfns.h"
-#endif
-
 #ifdef WINDOWSNT
 #include "w32term.h"
 #include "fontset.h"
@@ -236,16 +224,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #define check_x check_w32
 #define GCGraphicsExposures 0
 #endif /* WINDOWSNT */
-
-#ifdef HAVE_NS
-#include "nsterm.h"
-#undef FRAME_X_DISPLAY_INFO
-#define FRAME_X_DISPLAY_INFO FRAME_NS_DISPLAY_INFO
-#define x_display_info ns_display_info
-#define FRAME_X_FONT_TABLE FRAME_NS_FONT_TABLE
-#define check_x check_ns
-#define GCGraphicsExposures 0
-#endif /* HAVE_NS */
 
 #include "buffer.h"
 #include "dispextern.h"
@@ -489,14 +467,6 @@ int tty_suppress_bold_inverse_default_colors_p;
    Finternal_set_lisp_face_attribute.  */
 
 static Lisp_Object Vparam_value_alist;
-
-/* The total number of colors currently allocated.  */
-
-#if GLYPH_DEBUG
-static int ncolors_allocated;
-static int npixmaps_allocated;
-static int ngcs;
-#endif
 
 /* Non-zero means the definition of the `menu' face for new frames has
    been changed.  */
@@ -1091,9 +1061,6 @@ load_pixmap (f, name, w_ptr, h_ptr)
     }
   else
     {
-#if GLYPH_DEBUG
-      ++npixmaps_allocated;
-#endif
       if (w_ptr)
 	*w_ptr = x_bitmap_width (f, bitmap_id);
 
@@ -1290,12 +1257,6 @@ tty_color_name (f, idx)
       if (!NILP (coldesc))
 	return XCAR (coldesc);
     }
-#ifdef MSDOS
-  /* We can have an MSDOG frame under -nw for a short window of
-     opportunity before internal_terminal_init is called.  DTRT.  */
-  if (FRAME_MSDOS_P (f) && !inhibit_window_system)
-    return msdos_stdcolor_name (idx);
-#endif
 
   if (idx == FACE_TTY_DEFAULT_FG_COLOR)
     return build_string (unspecified_fg);
@@ -1477,10 +1438,6 @@ load_color (f, face, name, target_index)
 	  abort ();
 	}
     }
-#if GLYPH_DEBUG
-  else
-    ++ncolors_allocated;
-#endif
 
   return color.pixel;
 }
@@ -1948,102 +1905,8 @@ the WIDTH times as wide as FACE on FRAME.  */)
       && XVECTOR (LFACE)->size == LFACE_VECTOR_SIZE	\
       && EQ (AREF (LFACE, 0), Qface))
 
-
-#if GLYPH_DEBUG
-
-/* Check consistency of Lisp face attribute vector ATTRS.  */
-
-static void
-check_lface_attrs (attrs)
-     Lisp_Object *attrs;
-{
-  xassert (UNSPECIFIEDP (attrs[LFACE_FAMILY_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_FAMILY_INDEX])
-	   || STRINGP (attrs[LFACE_FAMILY_INDEX]));
-  xassert (UNSPECIFIEDP (attrs[LFACE_FOUNDRY_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_FOUNDRY_INDEX])
-	   || STRINGP (attrs[LFACE_FOUNDRY_INDEX]));
-  xassert (UNSPECIFIEDP (attrs[LFACE_SWIDTH_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_SWIDTH_INDEX])
-	   || SYMBOLP (attrs[LFACE_SWIDTH_INDEX]));
-  xassert (UNSPECIFIEDP (attrs[LFACE_HEIGHT_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_HEIGHT_INDEX])
-	   || INTEGERP (attrs[LFACE_HEIGHT_INDEX])
-	   || FLOATP (attrs[LFACE_HEIGHT_INDEX])
-	   || FUNCTIONP (attrs[LFACE_HEIGHT_INDEX]));
-  xassert (UNSPECIFIEDP (attrs[LFACE_WEIGHT_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_WEIGHT_INDEX])
-	   || SYMBOLP (attrs[LFACE_WEIGHT_INDEX]));
-  xassert (UNSPECIFIEDP (attrs[LFACE_SLANT_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_SLANT_INDEX])
-	   || SYMBOLP (attrs[LFACE_SLANT_INDEX]));
-  xassert (UNSPECIFIEDP (attrs[LFACE_UNDERLINE_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_UNDERLINE_INDEX])
-	   || SYMBOLP (attrs[LFACE_UNDERLINE_INDEX])
-	   || STRINGP (attrs[LFACE_UNDERLINE_INDEX]));
-  xassert (UNSPECIFIEDP (attrs[LFACE_OVERLINE_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_OVERLINE_INDEX])
-	   || SYMBOLP (attrs[LFACE_OVERLINE_INDEX])
-	   || STRINGP (attrs[LFACE_OVERLINE_INDEX]));
-  xassert (UNSPECIFIEDP (attrs[LFACE_STRIKE_THROUGH_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_STRIKE_THROUGH_INDEX])
-	   || SYMBOLP (attrs[LFACE_STRIKE_THROUGH_INDEX])
-	   || STRINGP (attrs[LFACE_STRIKE_THROUGH_INDEX]));
-  xassert (UNSPECIFIEDP (attrs[LFACE_BOX_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_BOX_INDEX])
-	   || SYMBOLP (attrs[LFACE_BOX_INDEX])
-	   || STRINGP (attrs[LFACE_BOX_INDEX])
-	   || INTEGERP (attrs[LFACE_BOX_INDEX])
-	   || CONSP (attrs[LFACE_BOX_INDEX]));
-  xassert (UNSPECIFIEDP (attrs[LFACE_INVERSE_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_INVERSE_INDEX])
-	   || SYMBOLP (attrs[LFACE_INVERSE_INDEX]));
-  xassert (UNSPECIFIEDP (attrs[LFACE_FOREGROUND_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_FOREGROUND_INDEX])
-	   || STRINGP (attrs[LFACE_FOREGROUND_INDEX]));
-  xassert (UNSPECIFIEDP (attrs[LFACE_BACKGROUND_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_BACKGROUND_INDEX])
-	   || STRINGP (attrs[LFACE_BACKGROUND_INDEX]));
-  xassert (UNSPECIFIEDP (attrs[LFACE_INHERIT_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_INHERIT_INDEX])
-	   || NILP (attrs[LFACE_INHERIT_INDEX])
-	   || SYMBOLP (attrs[LFACE_INHERIT_INDEX])
-	   || CONSP (attrs[LFACE_INHERIT_INDEX]));
-#ifdef HAVE_WINDOW_SYSTEM
-  xassert (UNSPECIFIEDP (attrs[LFACE_STIPPLE_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_STIPPLE_INDEX])
-	   || SYMBOLP (attrs[LFACE_STIPPLE_INDEX])
-	   || !NILP (Fbitmap_spec_p (attrs[LFACE_STIPPLE_INDEX])));
-  xassert (UNSPECIFIEDP (attrs[LFACE_FONT_INDEX])
-	   || IGNORE_DEFFACE_P (attrs[LFACE_FONT_INDEX])
-	   || FONTP (attrs[LFACE_FONT_INDEX]));
-  xassert (UNSPECIFIEDP (attrs[LFACE_FONTSET_INDEX])
-	   || STRINGP (attrs[LFACE_FONTSET_INDEX]));
-#endif
-}
-
-
-/* Check consistency of attributes of Lisp face LFACE (a Lisp vector).  */
-
-static void
-check_lface (lface)
-     Lisp_Object lface;
-{
-  if (!NILP (lface))
-    {
-      xassert (LFACEP (lface));
-      check_lface_attrs (XVECTOR (lface)->contents);
-    }
-}
-
-#else /* GLYPH_DEBUG == 0 */
-
 #define check_lface_attrs(attrs)	(void) 0
 #define check_lface(lface)		(void) 0
-
-#endif /* GLYPH_DEBUG == 0 */
-
-
 
 /* Face-merge cycle checking.  */
 
@@ -4615,21 +4478,6 @@ cache_face (c, face, hash)
       c->used++;
     }
 
-#if GLYPH_DEBUG
-  /* Check that FACE got a unique id.  */
-  {
-    int j, n;
-    struct face *face;
-
-    for (j = n = 0; j < FACE_CACHE_BUCKETS_SIZE; ++j)
-      for (face = c->buckets[j]; face; face = face->next)
-	if (face->id == i)
-	  ++n;
-
-    xassert (n == 1);
-  }
-#endif /* GLYPH_DEBUG */
-
   c->faces_by_id[i] = face;
 }
 
@@ -4695,10 +4543,6 @@ lookup_face (f, attr)
   /* If not found, realize a new face.  */
   if (face == NULL)
     face = realize_face (cache, attr, -1);
-
-#if GLYPH_DEBUG
-  xassert (face == FACE_FROM_ID (f, face->id));
-#endif /* GLYPH_DEBUG */
 
   return face->id;
 }
@@ -6061,33 +5905,6 @@ map_tty_color (f, face, idx, defaulted)
   if (pixel == default_pixel && STRINGP (color))
     {
       pixel = load_color (f, face, color, idx);
-
-#ifdef MSDOS
-      /* If the foreground of the default face is the default color,
-	 use the foreground color defined by the frame.  */
-      if (FRAME_MSDOS_P (f))
-	{
-	  if (pixel == default_pixel
-	      || pixel == FACE_TTY_DEFAULT_COLOR)
-	    {
-	      if (foreground_p)
-		pixel = FRAME_FOREGROUND_PIXEL (f);
-	      else
-		pixel = FRAME_BACKGROUND_PIXEL (f);
-	      face->lface[idx] = tty_color_name (f, pixel);
-	      *defaulted = 1;
-	    }
-	  else if (pixel == default_other_pixel)
-	    {
-	      if (foreground_p)
-		pixel = FRAME_BACKGROUND_PIXEL (f);
-	      else
-		pixel = FRAME_FOREGROUND_PIXEL (f);
-	      face->lface[idx] = tty_color_name (f, pixel);
-	      *defaulted = 1;
-	    }
-        }
-#endif /* MSDOS */
     }
 
   if (foreground_p)
@@ -6116,9 +5933,6 @@ realize_tty_face (cache, attrs)
 
   /* Allocate a new realized face.  */
   face = make_realized_face (attrs);
-#if 0
-  face->font_name = FRAME_MSDOS_P (cache->f) ? "ms-dos" : "tty";
-#endif
 
   /* Map face attributes to TTY appearances.  We map slant to
      dimmed text because we want italic text to appear differently
@@ -6621,92 +6435,6 @@ where R,G,B are numbers between 0 and 255 and name is an arbitrary string.  */)
   return cmap;
 }
 #endif
-
-
-/***********************************************************************
-				Tests
- ***********************************************************************/
-
-#if GLYPH_DEBUG
-
-/* Print the contents of the realized face FACE to stderr.  */
-
-static void
-dump_realized_face (face)
-     struct face *face;
-{
-  fprintf (stderr, "ID: %d\n", face->id);
-#ifdef HAVE_X_WINDOWS
-  fprintf (stderr, "gc: %ld\n", (long) face->gc);
-#endif
-  fprintf (stderr, "foreground: 0x%lx (%s)\n",
-	   face->foreground,
-	   SDATA (face->lface[LFACE_FOREGROUND_INDEX]));
-  fprintf (stderr, "background: 0x%lx (%s)\n",
-	   face->background,
-	   SDATA (face->lface[LFACE_BACKGROUND_INDEX]));
-  if (face->font)
-    fprintf (stderr, "font_name: %s (%s)\n",
-	     SDATA (face->font->props[FONT_NAME_INDEX]),
-	     SDATA (face->lface[LFACE_FAMILY_INDEX]));
-#ifdef HAVE_X_WINDOWS
-  fprintf (stderr, "font = %p\n", face->font);
-#endif
-  fprintf (stderr, "fontset: %d\n", face->fontset);
-  fprintf (stderr, "underline: %d (%s)\n",
-	   face->underline_p,
-	   SDATA (Fsymbol_name (face->lface[LFACE_UNDERLINE_INDEX])));
-  fprintf (stderr, "hash: %d\n", face->hash);
-}
-
-
-DEFUN ("dump-face", Fdump_face, Sdump_face, 0, 1, 0, doc: /* */)
-     (n)
-     Lisp_Object n;
-{
-  if (NILP (n))
-    {
-      int i;
-
-      fprintf (stderr, "font selection order: ");
-      for (i = 0; i < DIM (font_sort_order); ++i)
-	fprintf (stderr, "%d ", font_sort_order[i]);
-      fprintf (stderr, "\n");
-
-      fprintf (stderr, "alternative fonts: ");
-      debug_print (Vface_alternative_font_family_alist);
-      fprintf (stderr, "\n");
-
-      for (i = 0; i < FRAME_FACE_CACHE (SELECTED_FRAME ())->used; ++i)
-	Fdump_face (make_number (i));
-    }
-  else
-    {
-      struct face *face;
-      CHECK_NUMBER (n);
-      face = FACE_FROM_ID (SELECTED_FRAME (), XINT (n));
-      if (face == NULL)
-	error ("Not a valid face");
-      dump_realized_face (face);
-    }
-
-  return Qnil;
-}
-
-
-DEFUN ("show-face-resources", Fshow_face_resources, Sshow_face_resources,
-       0, 0, 0, doc: /* */)
-     ()
-{
-  fprintf (stderr, "number of colors = %d\n", ncolors_allocated);
-  fprintf (stderr, "number of pixmaps = %d\n", npixmaps_allocated);
-  fprintf (stderr, "number of GCs = %d\n", ngcs);
-  return Qnil;
-}
-
-#endif /* GLYPH_DEBUG != 0 */
-
-
 
 /***********************************************************************
 			    Initialization
@@ -6897,10 +6625,6 @@ syms_of_xfaces ()
   defsubr (&Sinternal_set_alternative_font_family_alist);
   defsubr (&Sinternal_set_alternative_font_registry_alist);
   defsubr (&Sface_attributes_as_vector);
-#if GLYPH_DEBUG
-  defsubr (&Sdump_face);
-  defsubr (&Sshow_face_resources);
-#endif /* GLYPH_DEBUG */
   defsubr (&Sclear_face_cache);
   defsubr (&Stty_suppress_bold_inverse_default_colors);
 

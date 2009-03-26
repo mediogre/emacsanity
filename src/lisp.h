@@ -3321,26 +3321,6 @@ extern void syms_of_xfaces P_ ((void));
 extern int getloadavg P_ ((double *, int));
 #endif
 
-#ifdef HAVE_X_WINDOWS
-/* Defined in xfns.c */
-extern void syms_of_xfns P_ ((void));
-
-/* Defined in xsmfns.c */
-extern void syms_of_xsmfns P_ ((void));
-
-/* Defined in xselect.c */
-EXFUN (Fx_send_client_event, 6);
-extern void syms_of_xselect P_ ((void));
-
-/* Defined in xterm.c */
-extern void syms_of_xterm P_ ((void));
-#endif /* HAVE_X_WINDOWS */
-
-#ifdef MSDOS
-/* Defined in msdos.c */
-EXFUN (Fmsdos_downcase_filename, 1);
-#endif
-
 #ifdef HAVE_MENUS
 /* Defined in (x|w32)fns.c, nsfns.m...  */
 extern int have_menus_p P_ ((void));

@@ -436,16 +436,7 @@ static char *gobble_line ();
 static int compare_contin ();
 static int name_match ();
 
-#ifdef MSDOS /* MW, May 1993 */
-static int
-valid_filename_p (fn)
-     char *fn;
-{
-  return *fn == '/' || fn[1] == ':';
-}
-#else
 #define valid_filename_p(fn) (*(fn) == '/')
-#endif
 
 /* Find the termcap entry data for terminal type NAME
    and store it in the block that BP points to.
@@ -498,12 +489,6 @@ tgetent (bp, name)
   termcap_name = getenv ("TERMCAP");
   if (termcap_name && *termcap_name == '\0')
     termcap_name = NULL;
-#if defined (MSDOS) && !defined (TEST)
-  if (termcap_name && (*termcap_name == '\\'
-		       || *termcap_name == '/'
-		       || termcap_name[1] == ':'))
-    dostounix_filename(termcap_name);
-#endif
 
   filep = termcap_name && valid_filename_p (termcap_name);
 
@@ -536,11 +521,8 @@ tgetent (bp, name)
 
   /* Here we know we must search a file and termcap_name has its name.  */
 
-#ifdef MSDOS
-  fd = open (termcap_name, O_RDONLY|O_TEXT, 0);
-#else
   fd = open (termcap_name, O_RDONLY, 0);
-#endif
+
   if (fd < 0)
     return -1;
 

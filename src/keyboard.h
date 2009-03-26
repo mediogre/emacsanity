@@ -306,19 +306,7 @@ extern Lisp_Object unuse_menu_items P_ ((Lisp_Object dummy));
    isn't defined.  The use of HAVE_MULTILINGUAL_MENU could probably be
    confined to an extended version of this with sections of code below
    using it unconditionally.  */
-#ifndef HAVE_NTGUI
-#if defined (USE_GTK) || defined (HAVE_NS)
-# define ENCODE_MENU_STRING(str) ENCODE_UTF_8 (str)
-#elif defined HAVE_X_I18N
-#define ENCODE_MENU_STRING(str) ENCODE_SYSTEM (str)
-#else
-#define ENCODE_MENU_STRING(str) string_make_unibyte (str)
-#endif /* USE_GTK  */
-#else /* HAVE_NTGUI */
 #define ENCODE_MENU_STRING(str) (str)
-#endif
-
-#if defined (HAVE_NS) || defined (HAVE_NTGUI)
 
 typedef void * XtPointer;
 typedef unsigned char Boolean;
@@ -368,8 +356,6 @@ typedef struct _widget_value
 
 extern widget_value *xmalloc_widget_value P_ ((void));
 extern widget_value *digest_single_submenu P_ ((int, int, int));
-#endif /* HAVE_NS || HAVE_NTGUI */
-
 
 /* Macros for dealing with lispy events.  */
 

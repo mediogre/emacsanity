@@ -10890,7 +10890,7 @@ character.");
     for (i = 0; i < coding_category_max; i++)
       Fset (AREF (Vcoding_category_table, i), Qno_conversion);
   }
-#if defined (MSDOS) || defined (WINDOWSNT)
+#if defined (WINDOWSNT)
   system_eol_type = Qdos;
 #else
   system_eol_type = Qunix;

@@ -40,13 +40,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "coding.h"
 #include "blockinput.h"
 
-#ifdef MSDOS
-#if __DJGPP__ < 2
-#include <unistd.h>	/* to get X_OK */
-#endif
-#include "msdos.h"
-#endif
-
 #ifdef HAVE_UNISTD_H
 #include <unistd.h>
 #endif

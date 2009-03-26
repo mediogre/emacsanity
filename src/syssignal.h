@@ -19,108 +19,10 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 
 extern void init_signals P_ ((void));
 
-#if defined (HAVE_GTK_AND_PTHREAD) || defined (HAVE_NS)
-#include <pthread.h>
-/* If defined, asynchronous signals delivered to a non-main thread are
-   forwarded to the main thread.  */
-#define FORWARD_SIGNAL_TO_MAIN_THREAD
-#endif
-
-#ifdef FORWARD_SIGNAL_TO_MAIN_THREAD
-extern pthread_t main_thread;
-#endif
-
-#ifdef POSIX_SIGNALS
-
-/* Don't #include <signal.h>.  That header should always be #included
-   before "config.h", because some configuration files (like s/hpux.h)
-   indicate that SIGIO doesn't work by #undef-ing SIGIO.  If this file
-   #includes <signal.h>, then that will re-#define SIGIO and confuse
-   things.  */
-/* XXX This is not correct anymore, there is a BROKEN_SIGIO macro. */
-
-#define SIGMASKTYPE sigset_t
-
-#define SIGEMPTYMASK (empty_mask)
-#define SIGFULLMASK (full_mask)
-extern sigset_t empty_mask, full_mask;
-
-/* POSIX pretty much destroys any possibility of writing sigmask as a
-   macro in standard C.  We always define our own version because the
-   predefined macro in Glibc 2.1 is only provided for compatility for old
-   programs that use int as signal mask type.  */
-#undef sigmask
-#ifdef __GNUC__
-#define sigmask(SIG) 				\
-  ({						\
-    sigset_t _mask;				\
-    sigemptyset (&_mask);			\
-    sigaddset (&_mask, SIG);			\
-    _mask;					\
-  })
-#else /* ! defined (__GNUC__) */
-extern sigset_t sys_sigmask ();
-#define sigmask(SIG) (sys_sigmask (SIG))
-#endif /* ! defined (__GNUC__) */
-
-#undef sigpause
-#define sigpause(MASK)    sigsuspend (&(MASK))
-
-#define sigblock(SIG)    sys_sigblock (SIG)
-#define sigunblock(SIG)  sys_sigunblock (SIG)
-#ifndef sigsetmask
-#define sigsetmask(SIG)  sys_sigsetmask (SIG)
-#endif
-#define sighold(SIG)     ONLY_USED_IN_BSD_4_1
-#define sigrelse(SIG)    ONLY_USED_IN_BSD_4_1
-#undef signal
-#define signal(SIG,ACT)      sys_signal(SIG,ACT)
-
-/* Whether this is what all systems want or not, this is what
-   appears to be assumed in the source, for example data.c:arith_error.  */
-typedef RETSIGTYPE (*signal_handler_t) (/*int*/);
-
-signal_handler_t sys_signal P_ ((int signal_number, signal_handler_t action));
-sigset_t sys_sigblock   P_ ((sigset_t new_mask));
-sigset_t sys_sigunblock P_ ((sigset_t new_mask));
-sigset_t sys_sigsetmask P_ ((sigset_t new_mask));
-
-#define sys_sigdel(MASK,SIG) sigdelset (&MASK,SIG)
-
-#else /* ! defined (POSIX_SIGNALS) */
-#ifdef USG5_4
-
-extern SIGMASKTYPE sigprocmask_set;
-
-#ifndef sigblock
-#define sigblock(sig)					\
-     (sigprocmask_set = SIGEMPTYMASK | (sig),		\
-      sigprocmask (SIG_BLOCK, &sigprocmask_set, NULL))
-#endif
-
-#ifndef sigunblock
-#define sigunblock(sig)						\
-     (sigprocmask_set = SIGFULLMASK & ~(sig),			\
-      sigprocmask (SIG_SETMASK, &sigprocmask_set, NULL))
-#endif
-
-#else
-#ifdef USG
-
-#ifndef sigunblock
-#define sigunblock(sig)
-#endif
-
-#else
-
 #ifndef sigunblock
 #define sigunblock(SIG) \
 { SIGMASKTYPE omask = sigblock (SIGEMPTYMASK); sigsetmask (omask & ~SIG); }
 #endif
-
-#endif /* ! defined (USG) */
-#endif /* ! defined (USG5_4) */
-#endif /* ! defined (POSIX_SIGNALS) */
 
 #ifndef SIGMASKTYPE
 #define SIGMASKTYPE int
@@ -178,17 +80,7 @@ extern SIGMASKTYPE sigprocmask_set;
 # define NSIG NSIG_MINIMUM
 #endif
 
-/* On bsd, [man says] kill does not accept a negative number to kill a pgrp.
-   Must do that using the killpg call.  */
-#ifdef BSD_SYSTEM
-#define EMACS_KILLPG(gid, signo) (killpg ( (gid), (signo)))
-#else
-#ifdef WINDOWSNT
 #define EMACS_KILLPG(gid, signo) (kill (gid, signo))
-#else
-#define EMACS_KILLPG(gid, signo) (kill   (-(gid), (signo)))
-#endif
-#endif
 
 /* Define SIGCHLD as an alias for SIGCLD.  There are many conditionals
    testing SIGCHLD.  */
@@ -203,27 +95,7 @@ extern SIGMASKTYPE sigprocmask_set;
 char *strsignal ();
 #endif
 
-#ifdef FORWARD_SIGNAL_TO_MAIN_THREAD
-#define SIGNAL_THREAD_CHECK(signo)                                      \
-  do {                                                                  \
-    if (!pthread_equal (pthread_self (), main_thread))			\
-      {                                                                 \
-        /* POSIX says any thread can receive the signal.  On GNU/Linux  \
-           that is not true, but for other systems (FreeBSD at least)   \
-           it is.  So direct the signal to the correct thread and block \
-           it from this thread.  */                                     \
-        sigset_t new_mask;                                              \
-                                                                        \
-        sigemptyset (&new_mask);                                        \
-        sigaddset (&new_mask, signo);                                   \
-        pthread_sigmask (SIG_BLOCK, &new_mask, 0);                      \
-        pthread_kill (main_thread, signo);                              \
-        return;                                                         \
-      }                                                                 \
-   } while (0)
-
-#else /* not FORWARD_SIGNAL_TO_MAIN_THREAD */
 #define SIGNAL_THREAD_CHECK(signo)
-#endif /* not FORWARD_SIGNAL_TO_MAIN_THREAD */
+
 /* arch-tag: 4580e86a-340d-4574-9e11-a742b6e1a152
    (do not change this comment) */

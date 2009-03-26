@@ -44,15 +44,7 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <setjmp.h>
 #include <errno.h>
 
-#ifdef HAVE_GTK_AND_PTHREAD
-#include <pthread.h>
-#endif
-#ifdef MSDOS
-#include "msdos.h"
-#include <time.h>
-#else /* not MSDOS */
 #include <sys/ioctl.h>
-#endif /* not MSDOS */
 
 #include "syssignal.h"
 
@@ -65,18 +57,9 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <fcntl.h>
 #endif
 
-/* This is to get the definitions of the XK_ symbols.  */
-#ifdef HAVE_X_WINDOWS
-#include "xterm.h"
-#endif
-
 #ifdef HAVE_NTGUI
 #include "w32term.h"
 #endif /* HAVE_NTGUI */
-
-#ifdef HAVE_NS
-#include "nsterm.h"
-#endif
 
 #ifndef USE_CRT_DLL
 extern int errno;
@@ -7161,122 +7144,7 @@ tty_read_avail_input (struct terminal *terminal,
 
   /* XXX I think the following code should be moved to separate hook
      functions in system-dependent files. */
-#ifdef WINDOWSNT
   return 0;
-#else /* not WINDOWSNT */
-  if (! tty->term_initted)      /* In case we get called during bootstrap. */
-    return 0;
-
-  if (! tty->input)
-    return 0;                   /* The terminal is suspended. */
-
-#ifdef MSDOS
-  n_to_read = dos_keysns ();
-  if (n_to_read == 0)
-    return 0;
-
-  cbuf[0] = dos_keyread ();
-  nread = 1;
-
-#else /* not MSDOS */
-#ifdef HAVE_GPM
-  if (gpm_tty == tty)
-  {
-      Gpm_Event event;
-      struct input_event hold_quit;
-      int gpm;
-
-      EVENT_INIT (hold_quit);
-      hold_quit.kind = NO_EVENT;
-
-      while (gpm = Gpm_GetEvent (&event), gpm == 1) {
-	  nread += handle_one_term_event (tty, &event, &hold_quit);
-      }
-      if (gpm < 0)
-	/* Presumably the GPM daemon has closed the connection.  */
-	close_gpm ();
-      if (hold_quit.kind != NO_EVENT)
-	  kbd_buffer_store_event (&hold_quit);
-      if (nread)
-	  return nread;
-  }
-#endif /* HAVE_GPM */
-
-/* Determine how many characters we should *try* to read.  */
-#ifdef FIONREAD
-  /* Find out how much input is available.  */
-  if (ioctl (fileno (tty->input), FIONREAD, &n_to_read) < 0)
-    {
-      if (! noninteractive)
-        return -2;          /* Close this terminal. */
-      else
-        n_to_read = 0;
-    }
-  if (n_to_read == 0)
-    return 0;
-  if (n_to_read > sizeof cbuf)
-    n_to_read = sizeof cbuf;
-#else /* no FIONREAD */
-#if defined (USG) || defined(CYGWIN)
-  /* Read some input if available, but don't wait.  */
-  n_to_read = sizeof cbuf;
-  fcntl (fileno (tty->input), F_SETFL, O_NDELAY);
-#else
-  you lose;
-#endif
-#endif
-
-  /* Now read; for one reason or another, this will not block.
-     NREAD is set to the number of chars read.  */
-  do
-    {
-      nread = emacs_read (fileno (tty->input), cbuf, n_to_read);
-      /* POSIX infers that processes which are not in the session leader's
-         process group won't get SIGHUP's at logout time.  BSDI adheres to
-         this part standard and returns -1 from read (0) with errno==EIO
-         when the control tty is taken away.
-         Jeffrey Honig <jch@bsdi.com> says this is generally safe. */
-      if (nread == -1 && errno == EIO)
-        return -2;          /* Close this terminal. */
-#if defined (AIX) && defined (_BSD)
-      /* The kernel sometimes fails to deliver SIGHUP for ptys.
-         This looks incorrect, but it isn't, because _BSD causes
-         O_NDELAY to be defined in fcntl.h as O_NONBLOCK,
-         and that causes a value other than 0 when there is no input.  */
-      if (nread == 0)
-        return -2;          /* Close this terminal. */
-#endif
-    }
-  while (
-         /* We used to retry the read if it was interrupted.
-            But this does the wrong thing when O_NDELAY causes
-            an EAGAIN error.  Does anybody know of a situation
-            where a retry is actually needed?  */
-#if 0
-         nread < 0 && (errno == EAGAIN
-#ifdef EFAULT
-                       || errno == EFAULT
-#endif
-#ifdef EBADSLT
-                       || errno == EBADSLT
-#endif
-                       )
-#else
-         0
-#endif
-         );
-
-#ifndef FIONREAD
-#if defined (USG) || defined (CYGWIN)
-  fcntl (fileno (tty->input), F_SETFL, 0);
-#endif /* USG or CYGWIN */
-#endif /* no FIONREAD */
-
-  if (nread <= 0)
-    return nread;
-
-#endif /* not MSDOS */
-#endif /* not WINDOWSNT */
 
   for (i = 0; i < nread; i++)
     {
@@ -11099,11 +10967,7 @@ handle_interrupt ()
       printf ("No support for stopping a process on this operating system;\n");
       printf ("you can continue or abort.\n");
 #endif /* not SIGTSTP */
-#ifdef MSDOS
-      /* We must remain inside the screen area when the internal terminal
-	 is used.  Note that [Enter] is not echoed by dos.  */
-      cursor_to (SELECTED_FRAME (), 0, 0);
-#endif
+
       /* It doesn't work to autosave while GC is in progress;
 	 the code used for auto-saving doesn't cope with the mark bit.  */
       if (!gc_in_progress)
@@ -11113,11 +10977,8 @@ handle_interrupt ()
 	  if (((c = getchar ()) & ~040) == 'Y')
 	    {
 	      Fdo_auto_save (Qt, Qnil);
-#ifdef MSDOS
-	      printf ("\r\nAuto-save done");
-#else /* not MSDOS */
+
 	      printf ("Auto-save done\n");
-#endif /* not MSDOS */
 	    }
 	  while (c != '\n') c = getchar ();
 	}
@@ -11125,28 +10986,20 @@ handle_interrupt ()
 	{
 	  /* During GC, it must be safe to reenable quitting again.  */
 	  Vinhibit_quit = Qnil;
-#ifdef MSDOS
-	  printf ("\r\n");
-#endif /* not MSDOS */
+
 	  printf ("Garbage collection in progress; cannot auto-save now\r\n");
 	  printf ("but will instead do a real quit after garbage collection ends\r\n");
 	  fflush (stdout);
 	}
 
-#ifdef MSDOS
-      printf ("\r\nAbort?  (y or n) ");
-#else /* not MSDOS */
       printf ("Abort (and dump core)? (y or n) ");
-#endif /* not MSDOS */
       fflush (stdout);
       if (((c = getchar ()) & ~040) == 'Y')
 	abort ();
       while (c != '\n') c = getchar ();
-#ifdef MSDOS
-      printf ("\r\nContinuing...\r\n");
-#else /* not MSDOS */
+
       printf ("Continuing...\n");
-#endif /* not MSDOS */
+
       fflush (stdout);
       init_all_sys_modes ();
       sigfree ();

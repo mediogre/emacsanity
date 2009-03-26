@@ -34,10 +34,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <signal.h>
 
-#ifdef HAVE_GTK_AND_PTHREAD
-#include <pthread.h>
-#endif
-
 /* This file is part of the core Lisp implementation, and thus must
    deal with the real data structures.  If the Lisp implementation is
    replaced, this file likely will not be used.  */
@@ -89,50 +85,8 @@ extern POINTER_TYPE *sbrk ();
 extern __malloc_size_t _bytes_used;
 extern __malloc_size_t __malloc_extra_blocks;
 
-#if ! defined (SYSTEM_MALLOC) && defined (HAVE_GTK_AND_PTHREAD)
-
-/* When GTK uses the file chooser dialog, different backends can be loaded
-   dynamically.  One such a backend is the Gnome VFS backend that gets loaded
-   if you run Gnome.  That backend creates several threads and also allocates
-   memory with malloc.
-
-   If Emacs sets malloc hooks (! SYSTEM_MALLOC) and the emacs_blocked_*
-   functions below are called from malloc, there is a chance that one
-   of these threads preempts the Emacs main thread and the hook variables
-   end up in an inconsistent state.  So we have a mutex to prevent that (note
-   that the backend handles concurrent access to malloc within its own threads
-   but Emacs code running in the main thread is not included in that control).
-
-   When UNBLOCK_INPUT is called, reinvoke_input_signal may be called.  If this
-   happens in one of the backend threads we will have two threads that tries
-   to run Emacs code at once, and the code is not prepared for that.
-   To prevent that, we only call BLOCK/UNBLOCK from the main thread.  */
-
-static pthread_mutex_t alloc_mutex;
-
-#define BLOCK_INPUT_ALLOC                               \
-  do                                                    \
-    {                                                   \
-      if (pthread_equal (pthread_self (), main_thread)) \
-        BLOCK_INPUT;					\
-      pthread_mutex_lock (&alloc_mutex);                \
-    }                                                   \
-  while (0)
-#define UNBLOCK_INPUT_ALLOC                             \
-  do                                                    \
-    {                                                   \
-      pthread_mutex_unlock (&alloc_mutex);              \
-      if (pthread_equal (pthread_self (), main_thread)) \
-        UNBLOCK_INPUT;					\
-    }                                                   \
-  while (0)
-
-#else /* SYSTEM_MALLOC || not HAVE_GTK_AND_PTHREAD */
-
 #define BLOCK_INPUT_ALLOC BLOCK_INPUT
 #define UNBLOCK_INPUT_ALLOC UNBLOCK_INPUT
-
-#endif /* SYSTEM_MALLOC || not HAVE_GTK_AND_PTHREAD */
 
 /* Value of _bytes_used, when spare_memory was freed.  */
 
@@ -1303,34 +1257,11 @@ emacs_blocked_realloc (ptr, size, ptr2)
   return value;
 }
 
-
-#ifdef HAVE_GTK_AND_PTHREAD
-/* Called from Fdump_emacs so that when the dumped Emacs starts, it has a
-   normal malloc.  Some thread implementations need this as they call
-   malloc before main.  The pthread_self call in BLOCK_INPUT_ALLOC then
-   calls malloc because it is the first call, and we have an endless loop.  */
-
-void
-reset_malloc_hooks ()
-{
-  __free_hook = old_free_hook;
-  __malloc_hook = old_malloc_hook;
-  __realloc_hook = old_realloc_hook;
-}
-#endif /* HAVE_GTK_AND_PTHREAD */
-
-
 /* Called from main to set up malloc to use our hooks.  */
 
 void
 uninterrupt_malloc ()
 {
-#ifdef HAVE_GTK_AND_PTHREAD
-  /* Some systems such as Solaris 2.6 doesn't have a recursive mutex,
-     and the bundled gmalloc.c doesn't require it.  */
-  pthread_mutex_init (&alloc_mutex, NULL);
-#endif /* HAVE_GTK_AND_PTHREAD */
-
   if (__free_hook != emacs_blocked_free)
     old_free_hook = __free_hook;
   __free_hook = emacs_blocked_free;
@@ -5010,13 +4941,6 @@ returns nil, because real GC can't be done.  */)
   mark_terminals ();
   mark_kboards ();
   mark_ttys ();
-
-#ifdef USE_GTK
-  {
-    extern void xg_mark_data ();
-    xg_mark_data ();
-  }
-#endif
 
 #if (GC_MARK_STACK == GC_MAKE_GCPROS_NOOPS \
      || GC_MARK_STACK == GC_MARK_STACK_CHECK_GCPROS)

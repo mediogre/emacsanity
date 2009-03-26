@@ -326,10 +326,6 @@ do_scrolling (frame, current_matrix, matrix, window_size, unchanged_at_top)
 	  xassert (j >= 0 && j < window_size);
 	  copy_from[i] = j;
 	  retained_p[j] = 1;
-
-#if GLYPH_DEBUG
-	  CHECK_BOUNDS;
-#endif
 	}
     }
 
@@ -378,9 +374,6 @@ do_scrolling (frame, current_matrix, matrix, window_size, unchanged_at_top)
   /* Perform the row swizzling.  */
   mirrored_line_dance (current_matrix, unchanged_at_top, window_size,
 		       copy_from, retained_p);
-
-  /* Some sanity checks if GLYPH_DEBUG != 0.  */
-  CHECK_MATRIX (current_matrix);
 
   if (terminal_window_p)
     set_terminal_window (frame, 0);
@@ -692,9 +685,6 @@ do_direct_scrolling (frame, current_matrix, cost_matrix,
   char *retained_p = (char *) alloca (window_size * sizeof (char));
 
   bzero (retained_p, window_size * sizeof (char));
-
-  /* Perform some sanity checks when GLYPH_DEBUG is on.  */
-  CHECK_MATRIX (current_matrix);
 
   /* We are working on the line range UNCHANGED_AT_TOP ...
      UNCHANGED_AT_TOP + WINDOW_SIZE (not including) in CURRENT_MATRIX.
