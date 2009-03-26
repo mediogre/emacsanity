@@ -58,21 +58,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "systty.h"
 #include "intervals.h"
 
-/* For now, don't try to include termcap.h.  On some systems,
-   configure finds a non-standard termcap.h that the main build
-   won't find.  */
-
-#if defined HAVE_TERMCAP_H && 0
-#include <termcap.h>
-#else
-extern void tputs P_ ((const char *, int, int (*)(int)));
-extern int tgetent P_ ((char *, const char *));
-extern int tgetflag P_ ((char *id));
-extern int tgetnum P_ ((char *id));
-#endif
-
-#include "cm.h"
-
 #ifndef O_RDWR
 #define O_RDWR 2
 #endif
@@ -80,36 +65,6 @@ extern int tgetnum P_ ((char *id));
 #ifndef O_NOCTTY
 #define O_NOCTTY 0
 #endif
-
-/* The name of the default console device.  */
-#ifdef WINDOWSNT
-#define DEV_TTY  "CONOUT$"
-#else
-#define DEV_TTY  "/dev/tty"
-#endif
-
-static void tty_set_scroll_region P_ ((struct frame *f, int start, int stop));
-static void turn_off_face P_ ((struct frame *, int face_id));
-
-#define OUTPUT(tty, a)                                          \
-  emacs_tputs ((tty), a,                                        \
-               (int) (FRAME_LINES (XFRAME (selected_frame))     \
-                      - curY (tty)),                            \
-               cmputc)
-
-#define OUTPUT1(tty, a) emacs_tputs ((tty), a, 1, cmputc)
-#define OUTPUTL(tty, a, lines) emacs_tputs ((tty), a, lines, cmputc)
-
-#define OUTPUT_IF(tty, a)                                               \
-  do {                                                                  \
-    if (a)                                                              \
-      emacs_tputs ((tty), a,                                            \
-                   (int) (FRAME_LINES (XFRAME (selected_frame))         \
-                          - curY (tty) ),                               \
-                   cmputc);                                             \
-  } while (0)
-
-#define OUTPUT1_IF(tty, a) do { if (a) emacs_tputs ((tty), a, 1, cmputc); } while (0)
 
 /* If true, use "vs", otherwise use "ve" to make the cursor visible.  */
 

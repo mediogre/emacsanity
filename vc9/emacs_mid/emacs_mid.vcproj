@@ -205,10 +205,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\cm.c"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\cmds.c"
 				>
 			</File>
@@ -508,10 +504,6 @@
 			</File>
 			<File
 				RelativePath="..\..\src\charset.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\cm.h"
 				>
 			</File>
 			<File

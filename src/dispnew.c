@@ -32,7 +32,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "termopts.h"
 /* cm.h must come after dispextern.h on Windows.  */
 #include "dispextern.h"
-#include "cm.h"
 #include "buffer.h"
 #include "character.h"
 #include "keyboard.h"
