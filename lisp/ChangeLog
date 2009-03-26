@@ -1,3 +1,49 @@
+2009-03-26  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* arc-mode.el (archive-ar-summarize): Don't burp on special GNU
+	extension entries for lookup tables or extended file name tables.
+	Distinguish the internal and external name, so lookup is easier.
+	(archive-ar-extract): Take advantage of more precise name.
+	Preserve point.
+
+2009-03-25  Chong Yidong  <cyd@stupidchicken.com>
+
+	* play/bubbles.el (bubbles): Doc fix (Bug#2776).
+
+2009-03-25  Juanma Barranquero  <lekktu@gmail.com>
+
+	* composite.el (auto-compose-chars): Fix typo in docstring.
+
+2009-03-24  Michael Albinus  <michael.albinus@gmx.de>
+
+	* net/ange-ftp.el (ange-ftp-skip-msgs): Add 534.
+
+2009-03-24  Glenn Morris  <rgm@gnu.org>
+
+	* wid-edit.el (widget-specify-field): Don't add a second overlay for a
+	field with just a newline character.
+	(widget-field-value-get): Don't reduce fields with just a space
+	character to null.
+	(character): Accept newline.  (Bug#2689)
+
+2009-03-24  Kenichi Handa  <handa@m17n.org>
+
+	* international/fontset.el (font-encoding-alist): Add an entry for
+	muletibetan-0.  (Bug#2722)
+
+2009-03-23  Dan Nicolaescu  <dann@ics.uci.edu>
+
+	* vc-bzr.el (vc-bzr-working-revision): Add support for lightweight
+	checkouts.  (Bug#2157)
+	(vc-bzr-after-dir-status): Ignore a warning for bzr status.
+	(vc-bzr-dir-extra-headers): Add headers for lightweight checkouts.
+
+2009-03-22  Richard M Stallman  <rms@gnu.org>
+
+	* mail/rmail.el (rmail-expunge): Update summary buffer even if DONT-SHOW.
+	(rmail-expunge): Without DONT-SHOW, show the message even after
+	updating summary.
+
 2009-03-21  Jari Aalto  <jari.aalto@cante.net>
 
 	* time.el (display-time-default-load-average): Doc fix.
@@ -18,8 +64,8 @@
 
 2009-03-21  Eli Zaretskii  <eliz@gnu.org>
 
-	* eshell/em-ls.el (eshell-ls-dir): Call
-	eshell-directory-files-and-attributes with additional argument
+	* eshell/em-ls.el (eshell-ls-dir):
+	Call eshell-directory-files-and-attributes with additional argument
 	'integer or 'string, according to numeric-uid-gid.
 	(eshell-ls-file): Don't convert UID and GID to strings, as
 	eshell-ls-dir already did.  Enlarge max user-name string length to
@@ -28,8 +74,8 @@
 
 	* eshell/esh-util.el (directory-files-and-attributes): Accept and
 	ignore additional optional argument id-format.
-	(eshell-directory-files-and-attributes): Call
-	directory-files-and-attributes with additional argument id-format.
+	(eshell-directory-files-and-attributes):
+	Call directory-files-and-attributes with additional argument id-format.
 
 	* eshell/em-ls.el (eshell-ls-file): Enlarge default size-width to 8.
 	(eshell-ls-dir): Under -l, call eshell-ls-printable-size with last

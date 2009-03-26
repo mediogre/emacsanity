@@ -149,7 +149,7 @@ macos.texi     -- contents need to be evaluated and see what is still
 maintaining.texi  -- cyd
 major.texi        -- cyd
 mark.texi         -- cyd
-mini.texi
+mini.texi         -- cyd
 misc.texi
 msdog.texi
 msdog-xtra.texi
@@ -175,7 +175,7 @@ anti.texi
 back.texi
 backups.texi
 buffers.texi
-commands.texi
+commands.texi     -- cyd
 compile.texi      -- cyd
 control.texi      -- cyd
 customize.texi    -- cyd
@@ -201,7 +201,7 @@ locals.texi
 macros.texi       -- cyd
 maps.texi
 markers.texi
-minibuf.texi
+minibuf.texi      -- cyd
 modes.texi
 nonascii.texi
 numbers.texi      -- cyd

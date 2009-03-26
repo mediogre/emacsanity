@@ -1,3 +1,32 @@
+2009-03-25  Chong Yidong  <cyd@stupidchicken.com>
+
+	* commands.texi (Focus Events): Most X window managers don't use
+	focus-follows-mouse nowadays.
+
+2009-03-24  Chong Yidong  <cyd@stupidchicken.com>
+
+	* commands.texi (Defining Commands): Clarify introduction.
+	(Using Interactive): Not that interactive can be put in a symbol
+	property.
+	(Interactive Call): Note that a symbol with a non-nil
+	interactive-form property satisfies commandp.
+
+2009-03-23  Juanma Barranquero  <lekktu@gmail.com>
+
+	* minibuf.texi (Intro to Minibuffers): Fix typos.
+
+2009-03-23  Chong Yidong  <cyd@stupidchicken.com>
+
+	* minibuf.texi (Intro to Minibuffers): Remove long-obsolete info
+	about minibuffers in old Emacs versions.  Copyedits.  Emphasize
+	that enable-recursive-minibuffers defaults to nil.
+	(Text from Minibuffer): Simplify introduction.
+
+2009-03-22  Alan Mackenzie  <acm@muc.de>
+
+	* commands.texi (Using Interactive): Clarify string argument to
+	`interactive' - even promptless elements need \n separators.
+
 2009-03-18  Chong Yidong  <cyd@stupidchicken.com>
 
 	* minibuf.texi (Completion Styles): New node.
@@ -252,8 +281,7 @@
 	* files.texi (Reading from Files): Document that null bytes force
 	no-conversion when visiting files.
 
-	* processes.texi (Serial Ports): Improve wording, suggested by
-	RMS.
+	* processes.texi (Serial Ports): Improve wording, suggested by RMS.
 
 	* nonascii.texi (Lisp and Coding Systems): Document
 	inhibit-null-byte-detection and inhibit-iso-escape-detection.

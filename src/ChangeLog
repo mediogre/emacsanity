@@ -1,3 +1,33 @@
+2009-03-24  Chong Yidong  <cyd@stupidchicken.com>
+
+	* editfns.c (Ffloat_time): Doc fix (Bug#2768).
+
+	* data.c (Qinteractive_form): New variable.
+	(Finteractive_form): Use it.
+
+	* eval.c (Fcommandp): Use Qinteractive_form.
+
+2009-03-24  Jason Rumney  <jasonr@gnu.org>
+
+	* fileio.c (Fsubstitute_in_file_name): Always work on a copy.
+	Calculate total size precisely.  Decode environment variables
+	before substituting.  (Bug#38)
+
+2009-03-24  Kenichi Handa  <handa@m17n.org>
+
+	* font.c (find_font_encoding): Return Qnil for unsupported
+	encoding (Bug#2722).
+
+2009-03-23  Jan Djärv  <jan.h.d@swipnet.se>
+
+	* gtkutil.c (xg_display_open): Assign a value to gdpy_def, check
+	that gdpy is set.
+
+2009-03-22  Alan Mackenzie  <acm@muc.de>
+
+	* callint.c (Finteractive): Clarify the doc string - even
+	promptless elements need \n separators.
+
 2009-03-22  Jason Rumney  <jasonr@gnu.org>
 
 	* w32term.c (syms_of_w32term): Doc fix for

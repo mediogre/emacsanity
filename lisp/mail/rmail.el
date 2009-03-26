@@ -3267,17 +3267,24 @@ See also user-option `rmail-confirm-expunge'."
     (let ((was-deleted (rmail-message-deleted-p rmail-current-message))
 	  (was-swapped (rmail-buffers-swapped-p)))
       (rmail-only-expunge t)
-      (unless dont-show
+      (if dont-show
+	  ;; Do update the summary buffer, if any.
+	  (let ((total rmail-total-messages))
+	    (when (rmail-summary-exists)
+	      (with-current-buffer rmail-summary-buffer
+		(let ((rmail-total-messages total))
+		  (rmail-update-summary)))))
+	;; Update the summary and show it.
 	(if (rmail-summary-exists)
-	    (rmail-select-summary (rmail-update-summary))
-	  ;; If we expunged the current message, a new one is current now,
-	  ;; so show it.  If we weren't showing a message, show it. 
-	  (if (or was-deleted (not was-swapped))
-	      (rmail-show-message-1 rmail-current-message)
-	    ;; Show the same message that was being shown before.
-	    (rmail-display-labels)
-	    (rmail-swap-buffers)
-	    (setq rmail-buffer-swapped t)))))))
+	    (rmail-select-summary (rmail-update-summary)))
+	;; If we expunged the current message, a new one is current now,
+	;; so show it.  If we weren't showing a message, show it. 
+	(if (or was-deleted (not was-swapped))
+	    (rmail-show-message-1 rmail-current-message)
+	  ;; Show the same message that was being shown before.
+	  (rmail-display-labels)
+	  (rmail-swap-buffers)
+	  (setq rmail-buffer-swapped t))))))
 
 ;;;; *** Rmail Mailing Commands ***
 
