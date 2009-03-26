@@ -2952,8 +2952,7 @@ DEFUN ("redraw-frame", Fredraw_frame, Sredraw_frame, 1, 1, 0,
   clear_frame (f);
   clear_current_matrices (f);
   update_end (f);
-  if (FRAME_TERMCAP_P (f))
-    fflush (FRAME_TTY (f)->output);
+
   windows_or_buffers_changed++;
   /* Mark all windows as inaccurate, so that every window will have
      its redisplay done.  */
@@ -3296,8 +3295,6 @@ direct_output_for_insert (g)
     FRAME_RIF (f)->update_window_end_hook (w, 1, 0);
   update_end (f);
   updated_row = NULL;
-  if (FRAME_TERMCAP_P (f))
-    fflush (FRAME_TTY (f)->output);
 
   TRACE ((stderr, "direct output for insert\n"));
   mark_window_display_accurate (it.window, 1);
@@ -3388,8 +3385,6 @@ direct_output_forward_char (n)
       cursor_to (f, y, x);
     }
 
-  if (FRAME_TERMCAP_P (f))
-    fflush (FRAME_TTY (f)->output);
   redisplay_performed_directly_p = 1;
   return 1;
 }
@@ -3510,14 +3505,6 @@ update_frame (f, force_p, inhibit_hairy_id_p)
       update_begin (f);
       paused_p = update_frame_1 (f, force_p, inhibit_hairy_id_p);
       update_end (f);
-
-      if (FRAME_TERMCAP_P (f) || FRAME_MSDOS_P (f))
-        {
-          if (FRAME_TTY (f)->termscript)
-            fflush (FRAME_TTY (f)->termscript);
-	  if (FRAME_TERMCAP_P (f))
-	    fflush (FRAME_TTY (f)->output);
-        }
     }
 
  do_pause:
@@ -4813,37 +4800,6 @@ update_frame_1 (f, force_p, inhibit_id_p)
     {
       if (MATRIX_ROW_ENABLED_P (desired_matrix, i))
 	{
-	  if (FRAME_TERMCAP_P (f))
-	    {
-	      /* Flush out every so many lines.
-		 Also flush out if likely to have more than 1k buffered
-		 otherwise.   I'm told that some telnet connections get
-		 really screwed by more than 1k output at once.  */
-	      FILE *display_output = FRAME_TTY (f)->output;
-	      if (display_output)
-		{
-		  int outq = PENDING_OUTPUT_COUNT (display_output);
-		  if (outq > 900
-		      || (outq > 20 && ((i - 1) % preempt_count == 0)))
-		    {
-		      fflush (display_output);
-		      if (preempt_count == 1)
-			{
-#ifdef EMACS_OUTQSIZE
-			  if (EMACS_OUTQSIZE (0, &outq) < 0)
-			    /* Probably not a tty.  Ignore the error and reset
-			       the outq count.  */
-			    outq = PENDING_OUTPUT_COUNT (FRAME_TTY (f->output));
-#endif
-			  outq *= 10;
-			  if (baud_rate <= outq && baud_rate > 0)
-			    sleep (outq / baud_rate);
-			}
-		    }
-		}
-	    }
-
-#if PERIODIC_PREEMPTION_CHECKING
 	  if (!force_p)
 	    {
 	      EMACS_TIME tm, dif;
@@ -4856,10 +4812,6 @@ update_frame_1 (f, force_p, inhibit_id_p)
 		    break;
 		}
 	    }
-#else
-	  if (!force_p && (i - 1) % preempt_count == 0)
-	    detect_input_pending_ignore_squeezables ();
-#endif
 
 	  update_frame_line (f, i);
 	}
@@ -5698,56 +5650,6 @@ marginal_area_string (w, part, x, y, charpos, object, dx, dy, width, height)
 			 Changing Frame Sizes
  ***********************************************************************/
 
-#ifdef SIGWINCH
-
-SIGTYPE
-window_change_signal (signalnum) /* If we don't have an argument, */
-     int signalnum;		/* some compilers complain in signal calls.  */
-{
-  int width, height;
-#ifndef USE_CRT_DLL
-  extern int errno;
-#endif
-  int old_errno = errno;
-
-  struct tty_display_info *tty;
-
-  signal (SIGWINCH, window_change_signal);
-  SIGNAL_THREAD_CHECK (signalnum);
-
-  /* The frame size change obviously applies to a single
-     termcap-controlled terminal, but we can't decide which.
-     Therefore, we resize the frames corresponding to each tty.
-  */
-  for (tty = tty_list; tty; tty = tty->next) {
-
-    if (! tty->term_initted)
-      continue;
-
-    /* Suspended tty frames have tty->input == NULL avoid trying to
-       use it.  */
-    if (!tty->input)
-      continue;
-
-    get_tty_size (fileno (tty->input), &width, &height);
-
-    if (width > 5 && height > 2) {
-      Lisp_Object tail, frame;
-
-      FOR_EACH_FRAME (tail, frame)
-        if (FRAME_TERMCAP_P (XFRAME (frame)) && FRAME_TTY (XFRAME (frame)) == tty)
-          /* Record the new sizes, but don't reallocate the data
-             structures now.  Let that be done later outside of the
-             signal handler.  */
-          change_frame_size (XFRAME (frame), height, width, 0, 1, 0);
-    }
-  }
-
-  errno = old_errno;
-}
-#endif /* SIGWINCH */
-
-
 /* Do any change in frame size that was requested by a signal.  SAFE
    non-zero means this function is called from a place where it is
    safe to change frame sizes  while a redisplay is in progress.  */
@@ -5796,18 +5698,7 @@ change_frame_size (f, newheight, newwidth, pretend, delay, safe)
 {
   Lisp_Object tail, frame;
 
-  if (FRAME_MSDOS_P (f))
-    {
-      /* On MS-DOS, all frames use the same screen, so a change in
-         size affects all frames.  Termcap now supports multiple
-         ttys. */
-      FOR_EACH_FRAME (tail, frame)
-	if (! FRAME_WINDOW_P (XFRAME (frame)))
-	  change_frame_size_1 (XFRAME (frame), newheight, newwidth,
-			       pretend, delay, safe);
-    }
-  else
-    change_frame_size_1 (f, newheight, newwidth, pretend, delay, safe);
+  change_frame_size_1 (f, newheight, newwidth, pretend, delay, safe);
 }
 
 static void
@@ -5871,11 +5762,6 @@ change_frame_size_1 (f, newheight, newwidth, pretend, delay, safe)
 	/* Frame has just one top-level window.  */
 	set_window_height (FRAME_ROOT_WINDOW (f),
 			   newheight - FRAME_TOP_MARGIN (f), 2);
-
-      /* MSDOS frames cannot PRETEND, as they change frame size by
-	 manipulating video hardware.  */
-      if ((FRAME_TERMCAP_P (f) && !pretend) || FRAME_MSDOS_P (f))
-	FrameRows (FRAME_TTY (f)) = newheight;
     }
 
   if (new_frame_total_cols != FRAME_TOTAL_COLS (f))
@@ -5883,11 +5769,6 @@ change_frame_size_1 (f, newheight, newwidth, pretend, delay, safe)
       set_window_width (FRAME_ROOT_WINDOW (f), new_frame_total_cols, 2);
       if (FRAME_HAS_MINIBUF_P (f))
 	set_window_width (FRAME_MINIBUF_WINDOW (f), new_frame_total_cols, 0);
-
-      /* MSDOS frames cannot PRETEND, as they change frame size by
-	 manipulating video hardware.  */
-      if ((FRAME_TERMCAP_P (f) && !pretend) || FRAME_MSDOS_P (f))
-	FrameCols (FRAME_TTY (f)) = newwidth;
 
       if (WINDOWP (f->tool_bar_window))
 	XSETFASTINT (XWINDOW (f->tool_bar_window)->total_cols, newwidth);
@@ -5935,71 +5816,9 @@ FILE = nil means just close any termscript file currently open.  */)
      (file)
      Lisp_Object file;
 {
-  struct tty_display_info *tty;
-
-  if (! FRAME_TERMCAP_P (SELECTED_FRAME ())
-      && ! FRAME_MSDOS_P (SELECTED_FRAME ()))
-    error ("Current frame is not on a tty device");
-
-  tty = CURTTY ();
-
-  if (tty->termscript != 0)
-  {
-    BLOCK_INPUT;
-    fclose (tty->termscript);
-    UNBLOCK_INPUT;
-  }
-  tty->termscript = 0;
-
-  if (! NILP (file))
-    {
-      file = Fexpand_file_name (file, Qnil);
-      tty->termscript = fopen (SDATA (file), "w");
-      if (tty->termscript == 0)
-	report_file_error ("Opening termscript", Fcons (file, Qnil));
-    }
+  error ("Would not work in Emacsanity!");
   return Qnil;
 }
-
-
-DEFUN ("send-string-to-terminal", Fsend_string_to_terminal,
-       Ssend_string_to_terminal, 1, 2, 0,
-       doc: /* Send STRING to the terminal without alteration.
-Control characters in STRING will have terminal-dependent effects.
-
-Optional parameter TERMINAL specifies the tty terminal device to use.
-It may be a terminal id, a frame, or nil for the terminal used by the
-currently selected frame.  */)
-  (string, terminal)
-     Lisp_Object string;
-     Lisp_Object terminal;
-{
-  struct terminal *t = get_tty_terminal (terminal, 1);
-  struct tty_display_info *tty;
-
-  /* ??? Perhaps we should do something special for multibyte strings here.  */
-  CHECK_STRING (string);
-  BLOCK_INPUT;
-
-  if (!t)
-    error ("Unknown terminal device");
-
-  tty = t->display_info.tty;
-
-  if (! tty->output)
-    error ("Terminal is currently suspended");
-
-  if (tty->termscript)
-    {
-      fwrite (SDATA (string), 1, SBYTES (string), tty->termscript);
-      fflush (tty->termscript);
-    }
-  fwrite (SDATA (string), 1, SBYTES (string), tty->output);
-  fflush (tty->output);
-  UNBLOCK_INPUT;
-  return Qnil;
-}
-
 
 DEFUN ("ding", Fding, Sding, 0, 1, 0,
        doc: /* Beep, or flash the screen.
@@ -6321,10 +6140,6 @@ init_display ()
 {
   char *terminal_type;
 
-#ifdef HAVE_X_WINDOWS
-  extern int display_arg;
-#endif
-
   /* Construct the space glyph.  */
   space_glyph.type = CHAR_GLYPH;
   SET_CHAR_GLYPH (space_glyph, ' ', DEFAULT_FACE_ID, 0);
@@ -6338,20 +6153,6 @@ init_display ()
      during startup.  */
   Vinitial_window_system = Qnil;
 
-  /* SIGWINCH needs to be handled no matter what display we start
-     with.  Otherwise newly opened tty frames will not resize
-     automatically. */
-#ifdef SIGWINCH
-#ifndef CANNOT_DUMP
-  if (initialized)
-#endif /* CANNOT_DUMP */
-    signal (SIGWINCH, window_change_signal);
-#endif /* SIGWINCH */
-
-  /* If running as a daemon, no need to initialize any frames/terminal. */
-  if (IS_DAEMON)
-      return;
-
   /* If the user wants to use a window system, we shouldn't bother
      initializing the terminal.  This is especially important when the
      terminal is so dumb that emacs gives up before and doesn't bother
@@ -6359,43 +6160,6 @@ init_display ()
 
      If the DISPLAY environment variable is set and nonempty,
      try to use X, and die with an error message if that doesn't work.  */
-
-#ifdef HAVE_X_WINDOWS
-  if (! inhibit_window_system && ! display_arg)
-    {
-      char *display;
-      display = getenv ("DISPLAY");
-      display_arg = (display != 0 && *display != 0);
-
-      if (display_arg && !x_display_ok (display))
-	{
-	  fprintf (stderr, "Display %s unavailable, simulating -nw\n",
-		   display);
-	  inhibit_window_system = 1;
-	}
-    }
-
-  if (!inhibit_window_system && display_arg
-#ifndef CANNOT_DUMP
-     && initialized
-#endif
-     )
-    {
-      Vinitial_window_system = intern ("x");
-#ifdef HAVE_X11
-      Vwindow_system_version = make_number (11);
-#endif
-#if defined (GNU_LINUX) && defined (HAVE_LIBNCURSES)
-      /* In some versions of ncurses,
-	 tputs crashes if we have not called tgetent.
-	 So call tgetent.  */
-      { char b[2044]; tgetent (b, "xterm");}
-#endif
-      adjust_frame_glyphs_initially ();
-      return;
-    }
-#endif /* HAVE_X_WINDOWS */
-
 #ifdef HAVE_NTGUI
   if (!inhibit_window_system)
     {
@@ -6406,110 +6170,8 @@ init_display ()
     }
 #endif /* HAVE_NTGUI */
 
-#ifdef HAVE_NS
-  if (!inhibit_window_system
-#ifndef CANNOT_DUMP
-     && initialized
-#endif
-      )
-    {
-      Vinitial_window_system = intern("ns");
-      Vwindow_system_version = make_number(10);
-      adjust_frame_glyphs_initially ();
-      return;
-    }
-#endif
-
-  /* If no window system has been specified, try to use the terminal.  */
-  if (! isatty (0))
-    {
-      fatal ("standard input is not a tty");
-      exit (1);
-    }
-
-#ifdef WINDOWSNT
-  terminal_type = "w32console";
-#else
-  /* Look at the TERM variable.  */
-  terminal_type = (char *) getenv ("TERM");
-#endif
-  if (!terminal_type)
-    {
-#ifdef HAVE_WINDOW_SYSTEM
-      if (! inhibit_window_system)
-	fprintf (stderr, "Please set the environment variable DISPLAY or TERM (see `tset').\n");
-      else
-#endif /* HAVE_WINDOW_SYSTEM */
-	fprintf (stderr, "Please set the environment variable TERM; see `tset'.\n");
-      exit (1);
-    }
-
-  {
-    struct terminal *t;
-    struct frame *f = XFRAME (selected_frame);
-
-    /* Open a display on the controlling tty. */
-    t = init_tty (0, terminal_type, 1); /* Errors are fatal. */
-
-    /* Convert the initial frame to use the new display. */
-    if (f->output_method != output_initial)
-      abort ();
-    f->output_method = t->type;
-    f->terminal = t;
-
-    t->reference_count++;
-    t->display_info.tty->top_frame = selected_frame;
-    change_frame_size (XFRAME (selected_frame),
-                       FrameRows (t->display_info.tty),
-                       FrameCols (t->display_info.tty), 0, 0, 1);
-
-    /* Delete the initial terminal. */
-    if (--initial_terminal->reference_count == 0
-        && initial_terminal->delete_terminal_hook)
-      (*initial_terminal->delete_terminal_hook) (initial_terminal);
-
-    /* Update frame parameters to reflect the new type. */
-    Fmodify_frame_parameters
-      (selected_frame, Fcons (Fcons (Qtty_type,
-                                     Ftty_type (selected_frame)), Qnil));
-    if (t->display_info.tty->name)
-      Fmodify_frame_parameters (selected_frame,
-				Fcons (Fcons (Qtty, build_string (t->display_info.tty->name)),
-				       Qnil));
-    else
-      Fmodify_frame_parameters (selected_frame, Fcons (Fcons (Qtty, Qnil),
-						       Qnil));
-  }
-
-  {
-    struct frame *sf = SELECTED_FRAME ();
-    int width = FRAME_TOTAL_COLS (sf);
-    int height = FRAME_LINES (sf);
-
-    unsigned int total_glyphs = height * (width + 2) * sizeof (struct glyph);
-
-    /* If these sizes are so big they cause overflow, just ignore the
-       change.  It's not clear what better we could do.  */
-    if (total_glyphs / sizeof (struct glyph) / height != width + 2)
-      fatal ("screen size %dx%d too big", width, height);
-  }
-
-  adjust_frame_glyphs_initially ();
-  calculate_costs (XFRAME (selected_frame));
-
-  /* Set up faces of the initial terminal frame of a dumped Emacs.  */
-  if (initialized
-      && !noninteractive
-      && NILP (Vinitial_window_system))
-    {
-      /* For the initial frame, we don't have any way of knowing what
-	 are the foreground and background colors of the terminal.  */
-      struct frame *sf = SELECTED_FRAME();
-
-      FRAME_FOREGROUND_PIXEL (sf) = FACE_TTY_DEFAULT_FG_COLOR;
-      FRAME_BACKGROUND_PIXEL (sf) = FACE_TTY_DEFAULT_BG_COLOR;
-      call0 (intern ("tty-set-up-initial-frame-faces"));
-    }
+  fatal ("Emacsanity does not fallback to tty!");
+  exit (1);
 }
 
 
@@ -6588,7 +6250,6 @@ syms_of_display ()
   defsubr (&Sding);
   defsubr (&Sredisplay);
   defsubr (&Ssleep_for);
-  defsubr (&Ssend_string_to_terminal);
   defsubr (&Sinternal_show_cursor);
   defsubr (&Sinternal_show_cursor_p);
   defsubr (&Slast_nonminibuf_frame);

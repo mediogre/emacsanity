@@ -280,7 +280,6 @@ EMACS_INT gcs_done;		/* accumulated GCs  */
 static void mark_buffer P_ ((Lisp_Object));
 static void mark_terminals P_ ((void));
 extern void mark_kboards P_ ((void));
-extern void mark_ttys P_ ((void));
 extern void mark_backtrace P_ ((void));
 static void gc_sweep P_ ((void));
 static void mark_glyph_matrix P_ ((struct glyph_matrix *));
@@ -4940,7 +4939,6 @@ returns nil, because real GC can't be done.  */)
     }
   mark_terminals ();
   mark_kboards ();
-  mark_ttys ();
 
 #if (GC_MARK_STACK == GC_MAKE_GCPROS_NOOPS \
      || GC_MARK_STACK == GC_MARK_STACK_CHECK_GCPROS)

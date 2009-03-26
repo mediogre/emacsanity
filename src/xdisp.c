@@ -8659,8 +8659,7 @@ resize_mini_window (w, exact_p)
     return 0;
 
   /* Nil means don't try to resize.  */
-  if (NILP (Vresize_mini_windows)
-      || (FRAME_X_P (f) && FRAME_X_OUTPUT (f) == NULL))
+  if (NILP (Vresize_mini_windows))
     return 0;
 
   if (!FRAME_MINIBUF_ONLY_P (f))
@@ -11295,20 +11294,6 @@ redisplay_internal (preserve_echo_area)
   if (face_change_count)
     ++windows_or_buffers_changed;
 
-  if ((FRAME_TERMCAP_P (sf) || FRAME_MSDOS_P (sf))
-      && FRAME_TTY (sf)->previous_frame != sf)
-    {
-      /* Since frames on a single ASCII terminal share the same
-	 display area, displaying a different frame means redisplay
-	 the whole thing.  */
-      windows_or_buffers_changed++;
-      SET_FRAME_GARBAGED (sf);
-#ifndef DOS_NT
-      set_tty_color_mode (FRAME_TTY (sf), sf);
-#endif
-      FRAME_TTY (sf)->previous_frame = sf;
-    }
-
   /* Set the visible flags for all frames.  Do this before checking
      for resized or garbaged frames; they want to know if their frames
      are visible.  See the comment in frame.h for
@@ -11687,7 +11672,7 @@ redisplay_internal (preserve_echo_area)
 	{
 	  struct frame *f = XFRAME (frame);
 
-	  if (FRAME_WINDOW_P (f) || FRAME_TERMCAP_P (f) || f == sf)
+	  if (FRAME_WINDOW_P (f) || f == sf)
 	    {
 	      if (! EQ (frame, selected_frame))
 		/* Select the frame, for the sake of frame-local

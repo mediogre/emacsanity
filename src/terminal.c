@@ -527,7 +527,7 @@ frame's terminal).  */)
 struct terminal *
 init_initial_terminal (void)
 {
-  if (initialized || terminal_list || tty_list)
+  if (initialized || terminal_list)
     abort ();
 
   initial_terminal = create_terminal ();

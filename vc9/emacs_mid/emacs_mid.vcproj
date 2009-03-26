@@ -389,10 +389,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\termcap.c"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\terminal.c"
 				>
 			</File>

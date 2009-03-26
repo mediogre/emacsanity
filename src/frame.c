@@ -557,52 +557,6 @@ make_initial_frame (void)
   return f;
 }
 
-
-struct frame *
-make_terminal_frame (struct terminal *terminal)
-{
-  register struct frame *f;
-  Lisp_Object frame;
-  char name[20];
-
-  if (!terminal->name)
-    error ("Terminal is not live, can't create new frames on it");
-
-  f = make_frame (1);
-
-  XSETFRAME (frame, f);
-  Vframe_list = Fcons (frame, Vframe_list);
-
-  tty_frame_count++;
-  sprintf (name, "F%d", tty_frame_count);
-  f->name = build_string (name);
-
-  f->visible = 1;		/* FRAME_SET_VISIBLE wd set frame_garbaged. */
-  f->async_visible = 1;		/* Don't let visible be cleared later. */
-  f->terminal = terminal;
-  f->terminal->reference_count++;
-
-  f->output_method = output_termcap;
-  create_tty_output (f);
-  FRAME_FOREGROUND_PIXEL (f) = FACE_TTY_DEFAULT_FG_COLOR;
-  FRAME_BACKGROUND_PIXEL (f) = FACE_TTY_DEFAULT_BG_COLOR;
-
-  FRAME_CAN_HAVE_SCROLL_BARS (f) = 0;
-  FRAME_VERTICAL_SCROLL_BAR_TYPE (f) = vertical_scroll_bar_none;
-
-  /* Set the top frame to the newly created frame. */
-  if (FRAMEP (FRAME_TTY (f)->top_frame)
-      && FRAME_LIVE_P (XFRAME (FRAME_TTY (f)->top_frame)))
-    XFRAME (FRAME_TTY (f)->top_frame)->async_visible = 2; /* obscured */
-
-  FRAME_TTY (f)->top_frame = frame;
-
-  if (!noninteractive)
-    init_frame_faces (f);
-
-  return f;
-}
-
 /* Get a suitable value for frame parameter PARAMETER for a newly
    created frame, based on (1) the user-supplied frame parameter
    alist SUPPLIED_PARMS, (2) CURRENT_VALUE, and finally, if all else
@@ -650,89 +604,7 @@ affects all frames on the same terminal device.  */)
      (parms)
      Lisp_Object parms;
 {
-  struct frame *f;
-  struct terminal *t = NULL;
-  Lisp_Object frame, tem;
-  struct frame *sf = SELECTED_FRAME ();
-
-#ifdef WINDOWSNT                           /* This should work now! */
-  if (sf->output_method != output_termcap)
-    error ("Not using an ASCII terminal now; cannot make a new ASCII frame");
-#endif
-
-  {
-    Lisp_Object terminal;
-
-    terminal = Fassq (Qterminal, parms);
-    if (!NILP (terminal))
-      {
-        terminal = XCDR (terminal);
-        t = get_terminal (terminal, 1);
-      }
-  }
-
-  if (!t)
-    {
-      char *name = 0, *type = 0;
-      Lisp_Object tty, tty_type;
-
-      tty = get_future_frame_param
-        (Qtty, parms, (FRAME_TERMCAP_P (XFRAME (selected_frame))
-                       ? FRAME_TTY (XFRAME (selected_frame))->name
-                       : NULL));
-      if (!NILP (tty))
-        {
-          name = (char *) alloca (SBYTES (tty) + 1);
-          strncpy (name, SDATA (tty), SBYTES (tty));
-          name[SBYTES (tty)] = 0;
-        }
-
-      tty_type = get_future_frame_param
-        (Qtty_type, parms, (FRAME_TERMCAP_P (XFRAME (selected_frame))
-                            ? FRAME_TTY (XFRAME (selected_frame))->type
-                            : NULL));
-      if (!NILP (tty_type))
-        {
-          type = (char *) alloca (SBYTES (tty_type) + 1);
-          strncpy (type, SDATA (tty_type), SBYTES (tty_type));
-          type[SBYTES (tty_type)] = 0;
-        }
-
-      t = init_tty (name, type, 0); /* Errors are not fatal. */
-    }
-
-  f = make_terminal_frame (t);
-
-  {
-    int width, height;
-    get_tty_size (fileno (FRAME_TTY (f)->input), &width, &height);
-    change_frame_size (f, height, width, 0, 0, 0);
-  }
-
-  adjust_glyphs (f);
-  calculate_costs (f);
-  XSETFRAME (frame, f);
-  Fmodify_frame_parameters (frame, Vdefault_frame_alist);
-  Fmodify_frame_parameters (frame, parms);
-  Fmodify_frame_parameters (frame, Fcons (Fcons (Qtty_type,
-                                                 build_string (t->display_info.tty->type)),
-                                          Qnil));
-  if (t->display_info.tty->name != NULL)
-    Fmodify_frame_parameters (frame, Fcons (Fcons (Qtty,
-                                                   build_string (t->display_info.tty->name)),
-                                            Qnil));
-  else
-    Fmodify_frame_parameters (frame, Fcons (Fcons (Qtty, Qnil), Qnil));
-
-  /* Make the frame face alist be frame-specific, so that each
-     frame could change its face definitions independently.  */
-  f->face_alist = Fcopy_alist (sf->face_alist);
-  /* Simple Fcopy_alist isn't enough, because we need the contents of
-     the vectors which are the CDRs of associations in face_alist to
-     be copied as well.  */
-  for (tem = f->face_alist; CONSP (tem); tem = XCDR (tem))
-    XSETCDR (XCAR (tem), Fcopy_sequence (XCDR (XCAR (tem))));
-  return frame;
+    error ("Would not work in emacsanity!");
 }
 
 
@@ -822,15 +694,6 @@ do_switch_frame (frame, track, for_deletion, norecord)
 
   if (!for_deletion && FRAME_HAS_MINIBUF_P (sf))
     resize_mini_window (XWINDOW (FRAME_MINIBUF_WINDOW (sf)), 1);
-
-  if (FRAME_TERMCAP_P (XFRAME (frame)) || FRAME_MSDOS_P (XFRAME (frame)))
-    {
-      if (FRAMEP (FRAME_TTY (XFRAME (frame))->top_frame))
-	/* Mark previously displayed frame as now obscured.  */
-	XFRAME (FRAME_TTY (XFRAME (frame))->top_frame)->async_visible = 2;
-      XFRAME (frame)->async_visible = 1;
-      FRAME_TTY (XFRAME (frame))->top_frame = frame;
-    }
 
   selected_frame = frame;
   if (! FRAME_MINIBUF_ONLY_P (XFRAME (selected_frame)))
@@ -1058,10 +921,7 @@ next_frame (frame, minibuf)
 	f = XCAR (tail);
 
 	if (passed
-	    && ((!FRAME_TERMCAP_P (XFRAME (f)) && !FRAME_TERMCAP_P (XFRAME (frame))
-                 && FRAME_KBOARD (XFRAME (f)) == FRAME_KBOARD (XFRAME (frame)))
-                || (FRAME_TERMCAP_P (XFRAME (f)) && FRAME_TERMCAP_P (XFRAME (frame))
-                    && FRAME_TTY (XFRAME (f)) == FRAME_TTY (XFRAME (frame)))))
+	    && (FRAME_KBOARD (XFRAME (f)) == FRAME_KBOARD (XFRAME (frame))))
 	  {
 	    /* Decide whether this frame is eligible to be returned.  */
 
@@ -1138,10 +998,7 @@ prev_frame (frame, minibuf)
       if (EQ (frame, f) && !NILP (prev))
 	return prev;
 
-      if ((!FRAME_TERMCAP_P (XFRAME (f)) && !FRAME_TERMCAP_P (XFRAME (frame))
-           && FRAME_KBOARD (XFRAME (f)) == FRAME_KBOARD (XFRAME (frame)))
-          || (FRAME_TERMCAP_P (XFRAME (f)) && FRAME_TERMCAP_P (XFRAME (frame))
-              && FRAME_TTY (XFRAME (f)) == FRAME_TTY (XFRAME (frame))))
+      if (FRAME_KBOARD (XFRAME (f)) == FRAME_KBOARD (XFRAME (frame)))
 	{
 	  /* Decide whether this frame is eligible to be returned,
 	     according to minibuf.  */
@@ -1952,12 +1809,8 @@ doesn't support multiple overlapping frames, this function selects FRAME.  */)
 
   f = XFRAME (frame);
 
-  if (FRAME_TERMCAP_P (f))
-    /* On a text-only terminal select FRAME.  */
-    Fselect_frame (frame, Qnil);
-  else
-    /* Do like the documentation says. */
-    Fmake_frame_visible (frame);
+  /* Do like the documentation says. */
+  Fmake_frame_visible (frame);
 
   if (FRAME_TERMINAL (f)->frame_raise_lower_hook)
     (*FRAME_TERMINAL (f)->frame_raise_lower_hook) (f, 1);
@@ -2224,14 +2077,6 @@ store_frame_param (f, prop, val)
  	swap_in_global_binding (prop);
     }
 
-  /* The tty color needed to be set before the frame's parameter
-     alist was updated with the new value.  This is not true any more,
-     but we still do this test early on.  */
-  if (FRAME_TERMCAP_P (f) && EQ (prop, Qtty_color_mode)
-      && f == FRAME_TTY (f)->previous_frame)
-    /* Force redisplay of this tty.  */
-    FRAME_TTY (f)->previous_frame = NULL;
-
   /* Update the frame parameter alist.  */
   old_alist_elt = Fassq (prop, f->param_alist);
   if (EQ (old_alist_elt, Qnil))
@@ -2292,49 +2137,6 @@ If FRAME is omitted, return information on the currently selected frame.  */)
   alist = Fcopy_alist (f->param_alist);
   GCPRO1 (alist);
 
-  if (!FRAME_WINDOW_P (f))
-    {
-      int fg = FRAME_FOREGROUND_PIXEL (f);
-      int bg = FRAME_BACKGROUND_PIXEL (f);
-      Lisp_Object elt;
-
-      /* If the frame's parameter alist says the colors are
-	 unspecified and reversed, take the frame's background pixel
-	 for foreground and vice versa.  */
-      elt = Fassq (Qforeground_color, alist);
-      if (CONSP (elt) && STRINGP (XCDR (elt)))
-	{
-	  if (strncmp (SDATA (XCDR (elt)),
-		       unspecified_bg,
-		       SCHARS (XCDR (elt))) == 0)
-	    store_in_alist (&alist, Qforeground_color, tty_color_name (f, bg));
-	  else if (strncmp (SDATA (XCDR (elt)),
-			    unspecified_fg,
-			    SCHARS (XCDR (elt))) == 0)
-	    store_in_alist (&alist, Qforeground_color, tty_color_name (f, fg));
-	}
-      else
-	store_in_alist (&alist, Qforeground_color, tty_color_name (f, fg));
-      elt = Fassq (Qbackground_color, alist);
-      if (CONSP (elt) && STRINGP (XCDR (elt)))
-	{
-	  if (strncmp (SDATA (XCDR (elt)),
-		       unspecified_fg,
-		       SCHARS (XCDR (elt))) == 0)
-	    store_in_alist (&alist, Qbackground_color, tty_color_name (f, fg));
-	  else if (strncmp (SDATA (XCDR (elt)),
-			    unspecified_bg,
-			    SCHARS (XCDR (elt))) == 0)
-	    store_in_alist (&alist, Qbackground_color, tty_color_name (f, bg));
-	}
-      else
-	store_in_alist (&alist, Qbackground_color, tty_color_name (f, bg));
-      store_in_alist (&alist, intern ("font"),
-		      build_string (FRAME_MSDOS_P (f)
-				    ? "ms-dos"
-				    : FRAME_W32_P (f) ? "w32term"
-				    :"tty"));
-    }
   store_in_alist (&alist, Qname, f->name);
   height = (f->new_text_lines ? f->new_text_lines : FRAME_LINES (f));
   store_in_alist (&alist, Qheight, make_number (height));
@@ -2401,34 +2203,6 @@ If FRAME is nil, describe the currently selected frame.  */)
 	  if (CONSP (value))
 	    {
 	      value = XCDR (value);
-	      /* Fframe_parameters puts the actual fg/bg color names,
-		 even if f->param_alist says otherwise.  This is
-		 important when param_alist's notion of colors is
-		 "unspecified".  We need to do the same here.  */
-	      if (STRINGP (value) && !FRAME_WINDOW_P (f))
-		{
-		  const char *color_name;
-		  EMACS_INT csz;
-
-		  if (EQ (parameter, Qbackground_color))
-		    {
-		      color_name = SDATA (value);
-		      csz = SCHARS (value);
-		      if (strncmp (color_name, unspecified_bg, csz) == 0)
-			value = tty_color_name (f, FRAME_BACKGROUND_PIXEL (f));
-		      else if (strncmp (color_name, unspecified_fg, csz) == 0)
-			value = tty_color_name (f, FRAME_FOREGROUND_PIXEL (f));
-		    }
-		  else if (EQ (parameter, Qforeground_color))
-		    {
-		      color_name = SDATA (value);
-		      csz = SCHARS (value);
-		      if (strncmp (color_name, unspecified_fg, csz) == 0)
-			value = tty_color_name (f, FRAME_FOREGROUND_PIXEL (f));
-		      else if (strncmp (color_name, unspecified_bg, csz) == 0)
-			value = tty_color_name (f, FRAME_BACKGROUND_PIXEL (f));
-		    }
-		}
 	    }
 	  else
 	    value = Fcdr (Fassq (parameter, Fframe_parameters (frame)));
@@ -2627,16 +2401,13 @@ but that the idea of the actual height of the frame should not be changed.  */)
   f = XFRAME (frame);
 
   /* I think this should be done with a hook.  */
-#ifdef HAVE_WINDOW_SYSTEM
   if (FRAME_WINDOW_P (f))
     {
       if (XINT (lines) != FRAME_LINES (f))
 	x_set_window_size (f, 1, FRAME_COLS (f), XINT (lines));
       do_pending_window_change (0);
     }
-  else
-#endif
-    change_frame_size (f, XINT (lines), 0, !NILP (pretend), 0, 0);
+
   return Qnil;
 }
 

@@ -3415,8 +3415,7 @@ usage: (message-box FORMAT-STRING &rest ARGS)  */)
 #ifdef HAVE_MENUS
       /* The MS-DOS frames support popup menus even though they are
 	 not FRAME_WINDOW_P.  */
-      if (FRAME_WINDOW_P (XFRAME (selected_frame))
-	  || FRAME_MSDOS_P (XFRAME (selected_frame)))
+      if (FRAME_WINDOW_P (XFRAME (selected_frame)))
       {
 	Lisp_Object pane, menu, obj;
 	struct gcpro gcpro1;

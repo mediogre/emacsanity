@@ -1625,7 +1625,7 @@ appended.  By default, FONT-SPEC overrides the previous settings.  */)
 	  Lisp_Object font_object;
 	  struct face *face;
 
-	  if (FRAME_INITIAL_P (f) || FRAME_TERMCAP_P (f))
+	  if (FRAME_INITIAL_P (f))
 	    continue;
 	  if (fontset_id != FRAME_FONTSET (f))
 	    continue;

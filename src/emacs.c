@@ -229,10 +229,6 @@ int noninteractive1;
 /* Name for the server started by the daemon.*/
 static char *daemon_name;
 
-/* Pipe used to send exit notification to the daemon parent at
-   startup.  */
-int daemon_pipe[2];
-
 /* Save argv and argc.  */
 char **initial_argv;
 int initial_argc;
@@ -1184,13 +1180,6 @@ main (int argc, char **argv)
      many circumstances; it seems flimsy to put off initializing it
      until calling init_callproc.  */
   set_initial_environment ();
-  /* AIX crashes are reported in system versions 3.2.3 and 3.2.4
-     if this is not done.  Do it after set_global_environment so that we
-     don't pollute Vglobal_environment.  */
-  /* Setting LANG here will defeat the startup locale processing...  */
-#ifdef AIX
-  putenv ("LANG=C");
-#endif
 
   init_buffer ();	/* Init default directory of main buffer.  */
 
@@ -1258,6 +1247,7 @@ main (int argc, char **argv)
       syms_of_syntax ();
       syms_of_terminal ();
       syms_of_term ();
+
       syms_of_undo ();
 #ifdef HAVE_SOUND
       syms_of_sound ();
@@ -1285,16 +1275,8 @@ main (int argc, char **argv)
       syms_of_fontset ();
 #endif /* HAVE_NTGUI */
 
-#ifdef HAVE_DBUS
-      syms_of_dbusbind ();
-#endif /* HAVE_DBUS */
-
 #ifdef SYMS_SYSTEM
       SYMS_SYSTEM;
-#endif
-
-#ifdef SYMS_MACHINE
-      SYMS_MACHINE;
 #endif
 
       keys_of_casefiddle ();
@@ -1750,24 +1732,8 @@ shut_down_emacs (sig, no_x, stuff)
   /* Don't update display from now on.  */
   Vinhibit_redisplay = Qt;
 
-  /* If we are controlling the terminal, reset terminal modes.  */
-#ifdef EMACS_HAVE_TTY_PGRP
-  {
-    int pgrp = EMACS_GETPGRP (0);
-
-    int tpgrp;
-    if (EMACS_GET_TTY_PGRP (0, &tpgrp) != -1
-	&& tpgrp == pgrp)
-      {
-	reset_all_sys_modes ();
-	if (sig && sig != SIGTERM)
-	  fprintf (stderr, "Fatal error (%d)", sig);
-      }
-  }
-#else
   fflush (stdout);
   reset_all_sys_modes ();
-#endif
 
   stuff_buffered_input (stuff);
 
@@ -2046,51 +2012,7 @@ DEFUN ("daemonp", Fdaemonp, Sdaemonp, 0, 0, 0,
 If the daemon was given a name argument, return that name. */)
   ()
 {
-  if (IS_DAEMON)
-    if (daemon_name)
-      return build_string (daemon_name);
-    else
-      return Qt;
-  else
     return Qnil;
-}
-
-DEFUN ("daemon-initialized", Fdaemon_initialized, Sdaemon_initialized, 0, 0, 0,
-       doc: /* Mark the Emacs daemon as being initialized.
-This finishes the daemonization process by doing the other half of detaching
-from the parent process and its tty file descriptors.  */)
-  ()
-{
-  int nfd;
-
-  if (!IS_DAEMON)
-    error ("This function can only be called if emacs is run as a daemon");
-
-  if (daemon_pipe[1] < 0)
-    error ("The daemon has already been initialized");
-
-  if (NILP (Vafter_init_time))
-    error ("This function can only be called after loading the init files");
-
-  /* Get rid of stdin, stdout and stderr.  */
-  nfd = open ("/dev/null", O_RDWR);
-  dup2 (nfd, 0);
-  dup2 (nfd, 1);
-  dup2 (nfd, 2);
-  close (nfd);
-
-  /* Closing the pipe will notify the parent that it can exit.
-     FIXME: In case some other process inherited the pipe, closing it here
-     won't notify the parent because it's still open elsewhere, so we
-     additionally send a byte, just to make sure the parent really exits.
-     Instead, we should probably close the pipe in start-process and
-     call-process to make sure the pipe is never inherited by
-     subprocesses.  */
-  write (daemon_pipe[1], "\n", 1);
-  close (daemon_pipe[1]);
-  /* Set it to an invalid value so we know we've already run this function.  */
-  daemon_pipe[1] = -1;
-  return Qt;
 }
 
 void
@@ -2112,7 +2034,6 @@ syms_of_emacs ()
   defsubr (&Sinvocation_name);
   defsubr (&Sinvocation_directory);
   defsubr (&Sdaemonp);
-  defsubr (&Sdaemon_initialized);
 
   DEFVAR_LISP ("command-line-args", &Vcommand_line_args,
 	       doc: /* Args passed by shell to Emacs, as a list of strings.
@@ -2210,9 +2131,6 @@ was found.  */);
 	       doc: /* Value of `current-time' after loading the init files.
 This is nil during initialization.  */);
   Vafter_init_time = Qnil;
-
-  /* Make sure IS_DAEMON starts up as false.  */
-  daemon_pipe[1] = 0;
 }
 
 /* arch-tag: 7bfd356a-c720-4612-8ab6-aa4222931c2e

@@ -508,27 +508,13 @@ typedef struct frame *FRAME_PTR;
 
 /* Test a frame for particular kinds of display methods.  */
 #define FRAME_INITIAL_P(f) ((f)->output_method == output_initial)
-#define FRAME_TERMCAP_P(f) ((f)->output_method == output_termcap)
-#define FRAME_X_P(f) ((f)->output_method == output_x_window)
 #define FRAME_W32_P(f) ((f)->output_method == output_w32)
-#define FRAME_MSDOS_P(f) ((f)->output_method == output_msdos_raw)
-#define FRAME_MAC_P(f) ((f)->output_method == output_mac)
-#define FRAME_NS_P(f) ((f)->output_method == output_ns)
 
 /* FRAME_WINDOW_P tests whether the frame is a window, and is
    defined to be the predicate for the window system being used.  */
 
-#ifdef HAVE_X_WINDOWS
-#define FRAME_WINDOW_P(f) FRAME_X_P (f)
-#endif
 #ifdef HAVE_NTGUI
 #define FRAME_WINDOW_P(f) FRAME_W32_P (f)
-#endif
-#ifdef HAVE_NS
-#define FRAME_WINDOW_P(f) FRAME_NS_P(f)
-#endif
-#ifndef FRAME_WINDOW_P
-#define FRAME_WINDOW_P(f) (0)
 #endif
 
 /* Nonzero if frame F is still alive (not deleted).  */
@@ -810,7 +796,6 @@ extern Lisp_Object Qnoelisp;
 extern struct frame *last_nonminibuf_frame;
 
 extern struct frame *make_initial_frame P_ ((void));
-extern struct frame *make_terminal_frame P_ ((struct terminal *));
 extern struct frame *make_frame P_ ((int));
 #ifdef HAVE_WINDOW_SYSTEM
 extern struct frame *make_minibuffer_frame P_ ((void));

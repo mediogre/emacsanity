@@ -176,14 +176,6 @@ enum event_kind
      save yourself before shutdown. */
   SAVE_SESSION_EVENT
 
-#ifdef HAVE_GPM
-  , GPM_CLICK_EVENT
-#endif
-
-#ifdef HAVE_DBUS
-  , DBUS_EVENT
-#endif
-
 #ifdef WINDOWSNT
   /* Generated when an APPCOMMAND event is received, in response to
      Multimedia or Internet buttons on some keyboards.
@@ -197,14 +189,6 @@ enum event_kind
      On X, the window manager seems to grab the keys it wants
      first, so this is not a problem there.  */
   , MULTIMEDIA_KEY_EVENT
-#endif
-
-#ifdef HAVE_NS
-  /* Generated when native multi-keystroke input method is used to modify
-     tentative or indicative text display. */
-  , NS_TEXT_EVENT
-  /* Non-key system events (e.g. application menu events) */
-  , NS_NONKEY_EVENT
 #endif
 
 };
@@ -304,15 +288,6 @@ enum {
   meta_modifier	=  CHAR_META	/* Under X, the XK_Meta_[LR] keysyms.  */
 };
 
-#ifdef HAVE_GPM
-#include <gpm.h>
-extern int handle_one_term_event (struct tty_display_info *, Gpm_Event *, struct input_event *);
-extern void term_mouse_moveto (int, int);
-
-/* The device for which we have enabled gpm support.  */
-extern struct tty_display_info *gpm_tty;
-#endif
-
 #endif /* CONSP */
 
 
@@ -396,14 +371,6 @@ struct terminal
                                    measured in characters. */
   int memory_below_frame;	/* Terminal remembers lines scrolled
                                    off bottom */
-
-#if 0  /* These are not used anywhere. */
-  /* EMACS_INT baud_rate; */	/* Output speed in baud */
-  int min_padding_speed;	/* Speed below which no padding necessary. */
-  int dont_calculate_costs;     /* Nonzero means don't bother computing
-                                   various cost tables; we won't use them. */
-#endif
-
 
   /* Window-based redisplay interface for this device (0 for tty
      devices). */
@@ -630,16 +597,10 @@ extern struct terminal *terminal_list;
 
 /* FRAME_WINDOW_P tests whether the frame is a window, and is
    defined to be the predicate for the window system being used.  */
-
-#ifdef HAVE_X_WINDOWS
-#define FRAME_WINDOW_P(f) FRAME_X_P (f)
-#endif
 #ifdef HAVE_NTGUI
 #define FRAME_WINDOW_P(f) FRAME_W32_P (f)
 #endif
-#ifndef FRAME_WINDOW_P
-#define FRAME_WINDOW_P(f) (0)
-#endif
+
 
 /* Return true if the terminal device is not suspended. */
 #define TERMINAL_ACTIVE_P(d) (((d)->type != output_termcap && (d)->type !=output_msdos_raw) || (d)->display_info.tty->input)
@@ -651,10 +612,6 @@ extern void delete_terminal P_ ((struct terminal *));
 
 /* The initial terminal device, created by initial_term_init. */
 extern struct terminal *initial_terminal;
-
-#ifdef HAVE_GPM
-extern void close_gpm (void);
-#endif
 
 /* arch-tag: 33a00ecc-52b5-4186-a410-8801ac9f087d
    (do not change this comment) */

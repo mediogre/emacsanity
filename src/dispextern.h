@@ -2787,10 +2787,8 @@ int image_ascent P_ ((struct image *, struct face *, struct glyph_slice *));
 
 /* Defined in sysdep.c */
 
-void get_tty_size P_ ((int, int *, int *));
 void request_sigio P_ ((void));
 void unrequest_sigio P_ ((void));
-int tabs_safe_p P_ ((int));
 void init_baud_rate P_ ((int));
 void init_sigio P_ ((int));
 
@@ -2802,7 +2800,6 @@ void x_free_colors P_ ((struct frame *, unsigned long *, int));
 
 void update_face_from_frame_parameter P_ ((struct frame *, Lisp_Object,
 					   Lisp_Object));
-Lisp_Object tty_color_name P_ ((struct frame *, int));
 void clear_face_cache P_ ((int));
 unsigned long load_color P_ ((struct frame *, struct face *, Lisp_Object,
 			      enum lface_attribute_index));
@@ -2950,7 +2947,6 @@ int line_hash_code P_ ((struct glyph_row *));
 void set_window_update_flags P_ ((struct window *, int));
 void redraw_frame P_ ((struct frame *));
 void redraw_garbaged_frames P_ ((void));
-int scroll_cost P_ ((struct frame *, int, int, int));
 int direct_output_for_insert P_ ((int));
 int direct_output_forward_char P_ ((int));
 int update_frame P_ ((struct frame *, int, int));
@@ -2989,14 +2985,9 @@ extern void tty_set_terminal_modes P_ ((struct terminal *));
 extern void tty_reset_terminal_modes P_ ((struct terminal *));
 extern void tty_turn_off_insert P_ ((struct tty_display_info *));
 extern void tty_turn_off_highlight P_ ((struct tty_display_info *));
-extern int string_cost P_ ((char *));
-extern int per_line_cost P_ ((char *));
 extern void calculate_costs P_ ((struct frame *));
 extern void produce_glyphs P_ ((struct it *));
 extern void produce_special_glyphs P_ ((struct it *, enum display_element_type));
-extern int tty_capable_p P_ ((struct tty_display_info *, unsigned, unsigned long, unsigned long));
-extern void set_tty_color_mode (struct tty_display_info *, struct frame *);
-extern struct terminal *get_tty_terminal P_ ((Lisp_Object, int));
 extern struct terminal *get_named_tty P_ ((char *));
 EXFUN (Ftty_type, 1);
 extern void create_tty_output P_ ((struct frame *));
@@ -3006,10 +2997,7 @@ extern struct terminal *init_tty P_ ((char *, char *, int));
 /* Defined in scroll.c */
 
 extern int scrolling_max_lines_saved P_ ((int, int, int *, int *, int *));
-extern int scroll_cost P_ ((struct frame *, int, int, int));
-extern void do_line_insertion_deletion_costs P_ ((struct frame *, char *,
-						  char *, char *, char *,
-						  char *, char *, int));
+
 void scrolling_1 P_ ((struct frame *, int, int, int, int *, int *, int *,
 		      int *, int));
 
