@@ -21,30 +21,16 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 
 #include <config.h>
 #include <signal.h>
-#include <errno.h>
 #include <stdio.h>
 
 #include <sys/types.h>
 #include <sys/file.h>
-
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-
-#ifdef BSD_SYSTEM
-#include <sys/ioctl.h>
-#endif
 
 #ifdef WINDOWSNT
 #include <fcntl.h>
 #include <windows.h> /* just for w32.h */
 #include "w32.h"
 #include "w32heap.h" /* for prototype of sbrk */
-#endif
-
-#ifdef NS_IMPL_GNUSTEP
-/* At least under Debian, GSConfig is in a subdirectory.  --Stef  */
-#include <GNUstepBase/GSConfig.h>
 #endif
 
 #include "lisp.h"
@@ -66,51 +52,18 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <locale.h>
 #endif
 
-#ifdef HAVE_SETRLIMIT
-#include <sys/time.h>
-#include <sys/resource.h>
-#endif
-
-#ifdef HAVE_PERSONALITY_LINUX32
-#include <sys/personality.h>
-#endif
-
-#ifndef O_RDWR
-#define O_RDWR 2
-#endif
-
-#ifdef HAVE_SETPGID
-#if !defined (USG) || defined (BSD_PGRPS)
-#undef setpgrp
-#define setpgrp setpgid
-#endif
-#endif
-
 extern void malloc_warning P_ ((char *));
 extern void set_time_zone_rule P_ ((char *));
-#ifdef HAVE_INDEX
-extern char *index P_ ((const char *, int));
-#endif
 
 /* Make these values available in GDB, which doesn't see macros.  */
 
-#ifdef USE_LSB_TAG
-int gdb_use_lsb = 1;
-#else
 int gdb_use_lsb = 0;
-#endif
-#ifndef USE_LISP_UNION_TYPE
 int gdb_use_union = 0;
-#else
-int gdb_use_union = 1;
-#endif
+
 EMACS_INT gdb_valbits = VALBITS;
 EMACS_INT gdb_gctypebits = GCTYPEBITS;
-#if defined (DATA_SEG_BITS) && ! defined (USE_LSB_TAG)
-EMACS_INT gdb_data_seg_bits = DATA_SEG_BITS;
-#else
 EMACS_INT gdb_data_seg_bits = 0;
-#endif
+
 EMACS_INT PVEC_FLAG = PSEUDOVECTOR_FLAG;
 EMACS_INT gdb_array_mark_flag = ARRAY_MARK_FLAG;
 /* GDB might say "No enum type named pvec_type" if we don't have at
@@ -179,20 +132,6 @@ EMACS_INT emacs_priority;
    data on the first attempt to change it inside asynchronous code.  */
 int running_asynch_code;
 
-#ifdef BSD_PGRPS
-/* See sysdep.c.  */
-extern int inherited_pgroup;
-#endif
-
-#if defined(HAVE_X_WINDOWS) || defined(HAVE_NS)
-/* If non-zero, -d was specified, meaning we're using some window system.  */
-int display_arg;
-#endif
-
-#ifdef HAVE_NS
-extern char ns_no_defaults;
-#endif
-
 /* An address near the bottom of the stack.
    Tells GC how to save a copy of the stack.  */
 char *stack_bottom;
@@ -260,10 +199,8 @@ Initialization options:\n\
 --no-shared-memory, -nl     do not use shared memory\n\
 --no-site-file              do not load site-start.el\n\
 --no-splash                 do not display a splash screen on startup\n\
---no-window-system, -nw     do not communicate with X, ignoring $DISPLAY\n\
 --quick, -Q                 equivalent to -q --no-site-file --no-splash\n\
 --script FILE               run FILE as an Emacs Lisp script\n\
---terminal, -t DEVICE       use DEVICE for terminal I/O\n\
 --unibyte, --no-multibyte   run Emacs in unibyte mode\n\
 --user, -u USER             load ~USER/.emacs instead of your own\n\
 \n%s"
@@ -529,30 +466,6 @@ DEFUN ("invocation-directory", Finvocation_directory, Sinvocation_directory,
 static char dump_tz[] = "UtC0";
 #endif
 
-#ifndef ORDINARY_LINK
-/* We don't include crtbegin.o and crtend.o in the link,
-   so these functions and variables might be missed.
-   Provide dummy definitions to avoid error.
-   (We don't have any real constructors or destructors.)  */
-#ifdef __GNUC__
-#ifndef GCC_CTORS_IN_LIBC
-void __do_global_ctors ()
-{}
-void __do_global_ctors_aux ()
-{}
-void __do_global_dtors ()
-{}
-/* GNU/Linux has a bug in its library; avoid an error.  */
-#ifndef GNU_LINUX
-char * __CTOR_LIST__[2] = { (char *) (-1), 0 };
-#endif
-char * __DTOR_LIST__[2] = { (char *) (-1), 0 };
-#endif /* GCC_CTORS_IN_LIBC */
-void __main ()
-{}
-#endif /* __GNUC__ */
-#endif /* ORDINARY_LINK */
-
 /* Test whether the next argument in ARGV matches SSTR or a prefix of
    LSTR (at least MINLEN characters).  If so, then if VALPTR is non-null
    (the argument is supposed to have a value) store in *VALPTR either
@@ -665,12 +578,7 @@ main (int argc, char **argv)
   char stack_bottom_variable;
   int do_initial_setlocale;
   int skip_args = 0;
-#ifndef USE_CRT_DLL
-  extern int errno;
-#endif
-#ifdef HAVE_SETRLIMIT
-  struct rlimit rlim;
-#endif
+
   int no_loadup = 0;
   char *junk = 0;
   char *dname_arg = 0;
@@ -688,22 +596,6 @@ main (int argc, char **argv)
 
       heap_bss_diff = (char *)my_heap_start - max (my_endbss, my_endbss_static);
     }
-
-#ifdef LINUX_SBRK_BUG
-  /* This is only used GNU/LINUX running on alpha when using libc5 */
-  __sbrk (1);
-#endif
-
-#ifdef RUN_TIME_REMAP
-  if (initialized)
-    run_time_remap (argv[0]);
-#endif
-
-/* If using unexmacosx.c (set by s/darwin.h), we must do this. */
-#ifdef DARWIN_OS
-  if (!initialized)
-    unexec_init_emacs_zone ();
-#endif
 
   sort_args (argc, argv);
   argc = 0;
@@ -739,85 +631,6 @@ main (int argc, char **argv)
 	  exit (0);
 	}
     }
-
-#ifdef HAVE_PERSONALITY_LINUX32
-  if (!initialized
-      && (strcmp (argv[argc-1], "dump") == 0
-          || strcmp (argv[argc-1], "bootstrap") == 0)
-      && ! getenv ("EMACS_HEAP_EXEC"))
-    {
-      /* Set this so we only do this once.  */
-      putenv("EMACS_HEAP_EXEC=true");
-
-      /* A flag to turn off address randomization which is introduced
-         in linux kernel shipped with fedora core 4 */
-#define ADD_NO_RANDOMIZE 0x0040000
-      personality (PER_LINUX32 | ADD_NO_RANDOMIZE);
-#undef  ADD_NO_RANDOMIZE
-
-      execvp (argv[0], argv);
-
-      /* If the exec fails, try to dump anyway.  */
-      perror ("execvp");
-    }
-#endif /* HAVE_PERSONALITY_LINUX32 */
-
-
-/* Map in shared memory, if we are using that.  */
-#ifdef HAVE_SHM
-  if (argmatch (argv, argc, "-nl", "--no-shared-memory", 6, NULL, &skip_args))
-    {
-      map_in_data (0);
-      /* The shared memory was just restored, which clobbered this.  */
-      skip_args = 1;
-    }
-  else
-    {
-      map_in_data (1);
-      /* The shared memory was just restored, which clobbered this.  */
-      skip_args = 0;
-    }
-#endif
-
-#if defined (HAVE_SETRLIMIT) && defined (RLIMIT_STACK)
-  /* Extend the stack space available.
-     Don't do that if dumping, since some systems (e.g. DJGPP)
-     might define a smaller stack limit at that time.  */
-  if (1
-#ifndef CANNOT_DUMP
-      && (!noninteractive || initialized)
-#endif
-      && !getrlimit (RLIMIT_STACK, &rlim))
-    {
-      long newlim;
-      extern size_t re_max_failures;
-      /* Approximate the amount regex.c needs per unit of re_max_failures.  */
-      int ratio = 20 * sizeof (char *);
-      /* Then add 33% to cover the size of the smaller stacks that regex.c
-	 successively allocates and discards, on its way to the maximum.  */
-      ratio += ratio / 3;
-      /* Add in some extra to cover
-	 what we're likely to use for other reasons.  */
-      newlim = re_max_failures * ratio + 200000;
-#ifdef __NetBSD__
-      /* NetBSD (at least NetBSD 1.2G and former) has a bug in its
-       stack allocation routine for new process that the allocation
-       fails if stack limit is not on page boundary.  So, round up the
-       new limit to page boundary.  */
-      newlim = (newlim + getpagesize () - 1) / getpagesize () * getpagesize();
-#endif
-      if (newlim > rlim.rlim_max)
-	{
-	  newlim = rlim.rlim_max;
-	  /* Don't let regex.c overflow the stack we have.  */
-	  re_max_failures = (newlim - 200000) / ratio;
-	}
-      if (rlim.rlim_cur < newlim)
-	rlim.rlim_cur = newlim;
-
-      setrlimit (RLIMIT_STACK, &rlim);
-    }
-#endif /* HAVE_SETRLIMIT and RLIMIT_STACK */
 
   /* Record (approximately) where the stack begins.  */
   stack_bottom = &stack_bottom_variable;
@@ -857,43 +670,6 @@ main (int argc, char **argv)
     setlocale (LC_ALL, "");
 
   inhibit_window_system = 0;
-
-  /* Handle the -t switch, which specifies filename to use as terminal.  */
-  while (1)
-    {
-      char *term;
-      if (argmatch (argv, argc, "-t", "--terminal", 4, &term, &skip_args))
-	{
-	  int result;
-	  emacs_close (0);
-	  emacs_close (1);
-	  result = emacs_open (term, O_RDWR, 0);
-	  if (result < 0)
-	    {
-	      char *errstring = strerror (errno);
-	      fprintf (stderr, "%s: %s: %s\n", argv[0], term, errstring);
-	      exit (1);
-	    }
-	  dup (0);
-	  if (! isatty (0))
-	    {
-	      fprintf (stderr, "%s: %s: not a tty\n", argv[0], term);
-	      exit (1);
-	    }
-	  fprintf (stderr, "Using %s\n", term);
-#ifdef HAVE_WINDOW_SYSTEM
-	  inhibit_window_system = 1; /* -t => -nw */
-#endif
-	}
-      else
-	break;
-    }
-
-  /* Command line option --no-windows is deprecated and thus not mentioned
-     in the manual and usage informations.  */
-  if (argmatch (argv, argc, "-nw", "--no-window-system", 6, NULL, &skip_args)
-      || argmatch (argv, argc, "-nw", "--no-windows", 6, NULL, &skip_args))
-    inhibit_window_system = 1;
 
   /* Handle the -batch switch, which means don't do interactive display.  */
   noninteractive = 0;
@@ -961,61 +737,12 @@ main (int argc, char **argv)
       signal (SIGQUIT, fatal_error_signal);
       signal (SIGILL, fatal_error_signal);
       signal (SIGTRAP, fatal_error_signal);
-#ifdef SIGUSR1
-      add_user_signal (SIGUSR1, "sigusr1");
-#endif
-#ifdef SIGUSR2
-      add_user_signal (SIGUSR2, "sigusr2");
-#endif
 #ifdef SIGABRT
       signal (SIGABRT, fatal_error_signal);
 #endif
-#ifdef SIGHWE
-      signal (SIGHWE, fatal_error_signal);
-#endif
-#ifdef SIGPRE
-      signal (SIGPRE, fatal_error_signal);
-#endif
-#ifdef SIGORE
-      signal (SIGORE, fatal_error_signal);
-#endif
-#ifdef SIGUME
-      signal (SIGUME, fatal_error_signal);
-#endif
-#ifdef SIGDLK
-      signal (SIGDLK, fatal_error_signal);
-#endif
-#ifdef SIGCPULIM
-      signal (SIGCPULIM, fatal_error_signal);
-#endif
-#ifdef SIGIOT
-      /* This is missing on some systems - OS/2, for example.  */
-      signal (SIGIOT, fatal_error_signal);
-#endif
-#ifdef SIGEMT
-      signal (SIGEMT, fatal_error_signal);
-#endif
       signal (SIGFPE, fatal_error_signal);
-#ifdef SIGBUS
-      signal (SIGBUS, fatal_error_signal);
-#endif
       signal (SIGSEGV, fatal_error_signal);
-#ifdef SIGSYS
-      signal (SIGSYS, fatal_error_signal);
-#endif
       signal (SIGTERM, fatal_error_signal);
-#ifdef SIGXCPU
-      signal (SIGXCPU, fatal_error_signal);
-#endif
-#ifdef SIGXFSZ
-      signal (SIGXFSZ, fatal_error_signal);
-#endif /* SIGXFSZ */
-
-#ifdef SIGDANGER
-      /* This just means available memory is getting low.  */
-      signal (SIGDANGER, memory_warning_signal);
-#endif
-
     }
 
   noninteractive1 = noninteractive;
@@ -1160,13 +887,6 @@ main (int argc, char **argv)
   /* Initialize environment from registry settings.  */
   init_environment (argv);
   init_ntproc ();	/* must precede init_editfns.  */
-#endif
-
-#ifdef HAVE_NS
-#ifndef CANNOT_DUMP
-  if (initialized)
-#endif
-    ns_init_paths ();
 #endif
 
   /* egetenv is a pretty low-level facility, which may get called in
@@ -1343,37 +1063,6 @@ main (int argc, char **argv)
 #endif
     }
 
-  /* Set up for profiling.  This is known to work on FreeBSD,
-     GNU/Linux and MinGW.  It might work on some other systems too.
-     Give it a try and tell us if it works on your system.  To compile
-     for profiling, add -pg to the switches your platform uses in
-     CFLAGS and LDFLAGS.  For example:
-       `make CFLAGS="-pg -g -O -DPROFILING=1" LDFLAGS="-pg -g"'.  */
-#if defined (__FreeBSD__) || defined (GNU_LINUX) || defined(__MINGW32__)
-#ifdef PROFILING
-  if (initialized)
-    {
-      extern void _mcleanup ();
-#ifdef __MINGW32__
-      extern unsigned char etext asm ("etext");
-#else
-      extern char etext;
-#endif
-      extern void safe_bcopy ();
-      extern void dump_opcode_frequencies ();
-
-      atexit (_mcleanup);
-      /* This uses safe_bcopy because that function comes first in the
-	 Emacs executable.  It might be better to use something that
-	 gives the start of the text segment, but start_of_text is not
-	 defined on all systems now.  */
-      monstartup (safe_bcopy, &etext);
-    }
-  else
-    moncontrol (0);
-#endif
-#endif
-
   initialized = 1;
 
 #ifdef LOCALTIME_CACHE
@@ -1407,12 +1096,6 @@ struct standard_args
 struct standard_args standard_args[] =
 {
   { "-version", "--version", 150, 0 },
-#ifdef HAVE_SHM
-  { "-nl", "--no-shared-memory", 140, 0 },
-#endif
-  { "-t", "--terminal", 120, 1 },
-  { "-nw", "--no-window-system", 110, 0 },
-  { "-nw", "--no-windows", 110, 0 },
   { "-batch", "--batch", 100, 0 },
   { "-script", "--script", 100, 1 },
   { "-daemon", "--daemon", 99, 0 },
@@ -1468,15 +1151,6 @@ struct standard_args standard_args[] =
   { "-color", "--color", 5, 0},
   { "-no-splash", "--no-splash", 3, 0 },
   { "-no-desktop", "--no-desktop", 3, 0 },
-#ifdef HAVE_NS
-  { "-NSAutoLaunch", 0, 5, 1 },
-  { "-NXAutoLaunch", 0, 5, 1 },
-  { "-disable-font-backend", "--disable-font-backend", 65, 0 },
-  { "-_NSMachLaunch", 0, 85, 1 },
-  { "-MachLaunch", 0, 85, 1 },
-  { "-macosx", 0, 85, 0 },
-  { "-NSHost", 0, 85, 1 },
-#endif
   /* These have the same priority as ordinary file name args,
      so they are not reordered with respect to those.  */
   { "-L", "--directory", 0, 1 },
@@ -1496,13 +1170,7 @@ struct standard_args standard_args[] =
   { "-visit", "--visit", 0, 1 },
   { "-file", "--file", 0, 1 },
   { "-insert", "--insert", 0, 1 },
-#ifdef HAVE_NS
-  { "-NXOpen", 0, 0, 1 },
-  { "-NXOpenTemp", 0, 0, 1 },
-  { "-NSOpen", 0, 0, 1 },
-  { "-NSOpenTemp", 0, 0, 1 },
-  { "-GSFilePath", 0, 0, 1 },
-#endif
+
   /* This should be processed after ordinary file name args and the like.  */
   { "-kill", "--kill", -10, 0 },
 };
@@ -1734,13 +1402,6 @@ shut_down_emacs (sig, no_x, stuff)
   unlock_all_files ();
 #endif
 
-#ifdef SIGIO
-  /* There is a tendency for a SIGIO signal to arrive within exit,
-     and cause a SIGHUP because the input descriptor is already closed.  */
-  unrequest_sigio ();
-  signal (SIGIO, SIG_IGN);
-#endif
-
 #ifdef WINDOWSNT
   term_ntproc ();
 #endif
@@ -1757,40 +1418,6 @@ shut_down_emacs (sig, no_x, stuff)
 
 
 #ifndef CANNOT_DUMP
-
-#ifdef HAVE_SHM
-
-DEFUN ("dump-emacs-data", Fdump_emacs_data, Sdump_emacs_data, 1, 1, 0,
-       doc: /* Dump current state of Emacs into data file FILENAME.
-This function exists on systems that use HAVE_SHM.  */)
-     (filename)
-     Lisp_Object filename;
-{
-  extern char my_edata[];
-  Lisp_Object tem;
-
-  check_pure_size ();
-  CHECK_STRING (filename);
-  filename = Fexpand_file_name (filename, Qnil);
-
-  tem = Vpurify_flag;
-  Vpurify_flag = Qnil;
-
-  fflush (stdout);
-  /* Tell malloc where start of impure now is.  */
-  /* Also arrange for warnings when nearly out of space.  */
-#ifndef SYSTEM_MALLOC
-  memory_warnings (my_edata, malloc_warning);
-#endif
-  map_out_data (SDATA (filename));
-
-  Vpurify_flag = tem;
-
-  return Qnil;
-}
-
-#else /* not HAVE_SHM */
-
 DEFUN ("dump-emacs", Fdump_emacs, Sdump_emacs, 2, 2, 0,
        doc: /* Dump current state of Emacs into executable file FILENAME.
 Take symbols from SYMFILE (presumably the file you executed to run Emacs).
@@ -1809,20 +1436,6 @@ You must run Emacs in batch mode in order to dump it.  */)
 
   if (! noninteractive)
     error ("Dumping Emacs works only in batch mode");
-
-#ifdef GNU_LINUX
-  if (heap_bss_diff > MAX_HEAP_BSS_DIFF)
-    {
-      fprintf (stderr, "**************************************************\n");
-      fprintf (stderr, "Warning: Your system has a gap between BSS and the\n");
-      fprintf (stderr, "heap (%lu bytes).  This usually means that exec-shield\n",
-               heap_bss_diff);
-      fprintf (stderr, "or something similar is in effect.  The dump may\n");
-      fprintf (stderr, "fail because of this.  See the section about\n");
-      fprintf (stderr, "exec-shield in etc/PROBLEMS for more information.\n");
-      fprintf (stderr, "**************************************************\n");
-    }
-#endif /* GNU_LINUX */
 
   /* Bind `command-line-processed' to nil before dumping,
      so that the dumped Emacs will process its command line
@@ -1844,28 +1457,9 @@ You must run Emacs in batch mode in order to dump it.  */)
 
 #ifdef HAVE_TZSET
   set_time_zone_rule (dump_tz);
-#ifndef LOCALTIME_CACHE
-  /* Force a tz reload, since set_time_zone_rule doesn't.  */
-  tzset ();
-#endif
 #endif
 
   fflush (stdout);
-  /* Tell malloc where start of impure now is.  */
-  /* Also arrange for warnings when nearly out of space.  */
-#ifndef SYSTEM_MALLOC
-#ifndef WINDOWSNT
-  /* On Windows, this was done before dumping, and that once suffices.
-     Meanwhile, my_edata is not valid on Windows.  */
-  memory_warnings (my_edata, malloc_warning);
-#endif /* not WINDOWSNT */
-#endif
-#if !defined (SYSTEM_MALLOC) && defined (HAVE_GTK_AND_PTHREAD) && !defined SYNC_INPUT
-  /* Pthread may call malloc before main, and then we will get an endless
-     loop, because pthread_self (see alloc.c) calls malloc the first time
-     it is called on some systems.  */
-  reset_malloc_hooks ();
-#endif
 
   unexec (SDATA (filename),
 	  !NILP (symfile) ? SDATA (symfile) : 0, my_edata, 0, 0);
@@ -1874,8 +1468,6 @@ You must run Emacs in batch mode in order to dump it.  */)
 
   return unbind_to (count, Qnil);
 }
-
-#endif /* not HAVE_SHM */
 
 #endif /* not CANNOT_DUMP */
 
@@ -1919,16 +1511,8 @@ synchronize_system_time_locale ()
 void
 synchronize_system_messages_locale ()
 {
-#ifdef LC_MESSAGES
-  synchronize_locale (LC_MESSAGES, &Vprevious_system_messages_locale,
-		      Vsystem_messages_locale);
-#endif
 }
 #endif /* HAVE_SETLOCALE */
-
-#ifndef SEPCHAR
-#define SEPCHAR ':'
-#endif
 
 Lisp_Object
 decode_env_path (evarname, defalt)
@@ -2009,11 +1593,7 @@ syms_of_emacs ()
   staticpro (&Qfile_name_handler_alist);
 
 #ifndef CANNOT_DUMP
-#ifdef HAVE_SHM
-  defsubr (&Sdump_emacs_data);
-#else
   defsubr (&Sdump_emacs);
-#endif
 #endif
 
   defsubr (&Skill_emacs);
