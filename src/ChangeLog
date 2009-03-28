@@ -1,3 +1,69 @@
+2009-03-28  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* frame.c (delete_frame): Work around compiler bug.
+
+	* editfns.c (general_insert_function): Adjust to insdel.c changes.
+	* insdel.c (prepare_to_modify_buffer, signal_before_change):
+	Some more EMACS_INT.
+	* lisp.h (copy_text, count_size_as_multibyte): Fix last change.
+
+	* xdisp.c (dump_glyph): Fix typo.
+
+	* insdel.c (move_gap, move_gap_both, gap_left, gap_right)
+	(adjust_markers_gap_motion, adjust_markers_for_delete)
+	(adjust_markers_for_insert, adjust_point)
+	(adjust_markers_for_replace, make_gap_larger, make_gap_smaller)
+	(make_gap, copy_text, count_size_as_multibyte, insert)
+	(insert_and_inherit, insert_before_markers)
+	(insert_before_markers_and_inherit, insert_1)
+	(count_combining_before, count_combining_after, insert_1_both)
+	(insert_from_string, insert_from_string_before_markers)
+	(insert_from_string_1, insert_from_gap, insert_from_buffer)
+	(insert_from_buffer_1, adjust_after_replace)
+	(adjust_after_replace_noundo, adjust_after_insert, replace_range)
+	(replace_range_2, del_range, del_range_1, del_range_byte)
+	(del_range_both, del_range_2, modify_region)
+	(prepare_to_modify_buffer, signal_before_change)
+	(signal_after_change, Fcombine_after_change_execute): Use EMACS_INT
+	for buffer positions and sizes.
+	* lisp.h: Adjust prototypes accordingly.
+
+	* fileio.c (adjust_markers_for_delete): Move declaration to lisp.h.
+	(non_regular_inserted, non_regular_nbytes, read_non_regular)
+	(Finsert_file_contents): Use EMACS_INT for buffer positions.
+
+	* fileio.c (Finsert_file_contents): Don't limit size to INT_MAX/4.
+
+2009-03-27  Jan Djärv  <jan.h.d@swipnet.se>
+
+	* frame.c (x_set_font): If the fullscreen property is non-nil, adjust
+	lines and columns so we keep the same pixel height and width.
+
+	* xterm.c (handle_one_xevent): Call x_handle_net_wm_state if
+	the property _NET_WM_STATE has changed.
+	updated.
+	(x_handle_net_wm_state): New function to update frame parameter
+	fullscreen.
+	(x_term_init): Initialize atoms for _NET_WM_STATE.
+
+	* xterm.h (struct x_display_info): Add atoms for _NET_WM_STATE.
+
+2009-03-27  Kevin Ryde  <user42@zip.com.au>
+
+	* keyboard.c (tty_read_avail_input): Don't treat a -1 return from
+	Gpm_GetEvent as an error that justifies closing the filedescriptor.
+	* term.c (close_gpm): Get the filedescriptor as a (new) parameter.
+	(Fgpm_mouse_stop): Pass that new parameter.
+	* termhooks.h (close_gpm): Adjust prototype.
+
+2009-03-26  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* lisp.h (Fx_focus_frame): Declare.
+
+	* callint.c (Fcall_interactively): For '^' just delegate the work to
+	handle-shift-selection.
+	(syms_of_callint): Move declaration of shift-select-mode to simple.el.
+
 2009-03-24  Chong Yidong  <cyd@stupidchicken.com>
 
 	* editfns.c (Ffloat_time): Doc fix (Bug#2768).
@@ -97,7 +163,7 @@
 2009-03-17  Stefan Monnier  <monnier@iro.umontreal.ca>
 
 	* dired.c (file_name_completion): Check completion-ignored-extensions
-	only if the entry can't affect bestmatch anyway.
+	only if the entry can affect bestmatch.
 	Stop the search early, as Ftry_completion already does.
 
 2009-03-17  Chong Yidong  <cyd@stupidchicken.com>

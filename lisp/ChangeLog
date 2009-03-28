@@ -1,3 +1,25 @@
+2009-03-27  Eli Zaretskii  <eliz@gnu.org>
+
+	* ls-lisp.el (ls-lisp-insert-directory): Allow for a trailing '/'
+	when looking for "." and "..".  (Bug#2801)
+
+2009-03-27  Andreas Schwab  <schwab@linux-m68k.org>
+
+	* simple.el (shift-select-mode): Make it a defcustom.
+	* cus-start.el: Remove shift-select-mode.
+
+2009-03-26  Stefan Monnier  <monnier@iro.umontreal.ca>
+
+	* simple.el (shift-select-mode): Move declaration from callint.c.
+	(handle-shift-selection): Remove `deactivate' arg and check
+	shift-select-mode instead.
+
+2009-03-26  Juanma Barranquero  <lekktu@gmail.com>
+
+	* align.el (align-large-region, align-perl-modes, align-rules-list)
+	(align-open-comment-modes): Fix typos in docstrings.
+	(align-region-separate): Doc fixes.
+
 2009-03-26  Stefan Monnier  <monnier@iro.umontreal.ca>
 
 	* arc-mode.el (archive-ar-summarize): Don't burp on special GNU
