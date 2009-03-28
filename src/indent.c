@@ -2027,7 +2027,6 @@ whether or not it is currently displayed in some window.  */)
   struct text_pos pt;
   struct window *w;
   Lisp_Object old_buffer;
-  struct gcpro gcpro1;
   Lisp_Object lcols = Qnil;
   double cols;
 
@@ -2047,7 +2046,6 @@ whether or not it is currently displayed in some window.  */)
   w = XWINDOW (window);
 
   old_buffer = Qnil;
-  GCPRO1 (old_buffer);
   if (XBUFFER (w->buffer) != current_buffer)
     {
       /* Set the window's buffer temporarily to the current buffer.  */
@@ -2174,7 +2172,7 @@ whether or not it is currently displayed in some window.  */)
   if (BUFFERP (old_buffer))
     w->buffer = old_buffer;
 
-  RETURN_UNGCPRO (make_number (it.vpos));
+  return (make_number (it.vpos));
 }
 
 

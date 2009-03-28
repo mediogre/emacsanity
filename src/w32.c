@@ -3604,7 +3604,6 @@ BOOL WINAPI global_memory_status_ex (
 Lisp_Object
 list_system_processes ()
 {
-  struct gcpro gcpro1;
   Lisp_Object proclist = Qnil;
   HANDLE h_snapshot;
 
@@ -3616,8 +3615,6 @@ list_system_processes ()
       DWORD proc_id;
       BOOL res;
 
-      GCPRO1 (proclist);
-
       proc_entry.dwSize = sizeof (PROCESSENTRY32);
       for (res = process32_first (h_snapshot, &proc_entry); res;
 	   res = process32_next  (h_snapshot, &proc_entry))
@@ -3627,7 +3624,6 @@ list_system_processes ()
 	}
 
       CloseHandle (h_snapshot);
-      UNGCPRO;
       proclist = Fnreverse (proclist);
     }
 
@@ -3760,7 +3756,6 @@ Lisp_Object
 system_process_attributes (pid)
      Lisp_Object pid;
 {
-  struct gcpro gcpro1, gcpro2, gcpro3;
   Lisp_Object attrs = Qnil;
   Lisp_Object cmd_str, decoded_cmd, tem;
   HANDLE h_snapshot, h_proc;
@@ -3792,8 +3787,6 @@ system_process_attributes (pid)
   proc_id = FLOATP (pid) ? XFLOAT_DATA (pid) : XINT (pid);
 
   h_snapshot = create_toolhelp32_snapshot (TH32CS_SNAPPROCESS, 0);
-
-  GCPRO3 (attrs, decoded_cmd, tem);
 
   if (h_snapshot != INVALID_HANDLE_VALUE)
     {
@@ -3837,7 +3830,6 @@ system_process_attributes (pid)
 
   if (!found_proc)
     {
-      UNGCPRO;
       return Qnil;
     }
 
@@ -4057,7 +4049,6 @@ system_process_attributes (pid)
 
   if (h_proc)
     CloseHandle (h_proc);
-  UNGCPRO;
   return attrs;
 }
 

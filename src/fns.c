@@ -1847,7 +1847,6 @@ if the first element should sort before the second.  */)
 {
   Lisp_Object front, back;
   register Lisp_Object len, tem;
-  struct gcpro gcpro1, gcpro2;
   register int length;
 
   front = list;
@@ -1861,10 +1860,8 @@ if the first element should sort before the second.  */)
   back = Fcdr (tem);
   Fsetcdr (tem, Qnil);
 
-  GCPRO2 (front, back);
   front = Fsort (front, predicate);
   back = Fsort (back, predicate);
-  UNGCPRO;
   return merge (front, back, predicate);
 }
 
@@ -1877,23 +1874,16 @@ merge (org_l1, org_l2, pred)
   register Lisp_Object tail;
   Lisp_Object tem;
   register Lisp_Object l1, l2;
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
 
   l1 = org_l1;
   l2 = org_l2;
   tail = Qnil;
   value = Qnil;
 
-  /* It is sufficient to protect org_l1 and org_l2.
-     When l1 and l2 are updated, we copy the new values
-     back into the org_ vars.  */
-  GCPRO4 (org_l1, org_l2, pred, value);
-
   while (1)
     {
       if (NILP (l1))
 	{
-	  UNGCPRO;
 	  if (NILP (tail))
 	    return l2;
 	  Fsetcdr (tail, l2);
@@ -1901,7 +1891,6 @@ merge (org_l1, org_l2, pred)
 	}
       if (NILP (l2))
 	{
-	  UNGCPRO;
 	  if (NILP (tail))
 	    return l1;
 	  Fsetcdr (tail, l1);
@@ -2440,20 +2429,14 @@ mapcar1 (leni, vals, fn, seq)
   register Lisp_Object tail;
   Lisp_Object dummy;
   register int i;
-  struct gcpro gcpro1, gcpro2, gcpro3;
 
   if (vals)
     {
       /* Don't let vals contain any garbage when GC happens.  */
       for (i = 0; i < leni; i++)
 	vals[i] = Qnil;
-
-      GCPRO3 (dummy, fn, seq);
-      gcpro1.var = vals;
-      gcpro1.nvars = leni;
     }
-  else
-    GCPRO2 (fn, seq);
+
   /* We need not explicitly protect `tail' because it is used only on lists, and
     1) lists are not relocated and 2) the list is marked via `seq' so will not
     be freed */
@@ -2506,8 +2489,6 @@ mapcar1 (leni, vals, fn, seq)
 	  tail = XCDR (tail);
 	}
     }
-
-  UNGCPRO;
 }
 
 DEFUN ("mapconcat", Fmapconcat, Smapconcat, 3, 3, 0,
@@ -2523,7 +2504,6 @@ SEQUENCE may be a list, a vector, a bool-vector, or a string.  */)
   int nargs;
   register Lisp_Object *args;
   register int i;
-  struct gcpro gcpro1;
   Lisp_Object ret;
   USE_SAFE_ALLOCA;
 
@@ -2536,9 +2516,7 @@ SEQUENCE may be a list, a vector, a bool-vector, or a string.  */)
 
   SAFE_ALLOCA_LISP (args, nargs);
 
-  GCPRO1 (separator);
   mapcar1 (leni, args, function, sequence);
-  UNGCPRO;
 
   for (i = leni - 1; i > 0; i--)
     args[i + i] = args[i];
@@ -2618,7 +2596,6 @@ is nil and `use-dialog-box' is non-nil.  */)
   register int answer;
   Lisp_Object xprompt;
   Lisp_Object args[2];
-  struct gcpro gcpro1, gcpro2;
   int count = SPECPDL_INDEX ();
 
   specbind (Qcursor_in_echo_area, Qt);
@@ -2627,7 +2604,6 @@ is nil and `use-dialog-box' is non-nil.  */)
 
   CHECK_STRING (prompt);
   xprompt = prompt;
-  GCPRO2 (prompt, xprompt);
 
 #ifdef HAVE_WINDOW_SYSTEM
   if (display_hourglass_p)
@@ -2725,7 +2701,6 @@ is nil and `use-dialog-box' is non-nil.  */)
 	  xprompt = Fconcat (2, args);
 	}
     }
-  UNGCPRO;
 
   if (! noninteractive)
     {
@@ -2766,7 +2741,6 @@ is nil, and `use-dialog-box' is non-nil.  */)
 {
   register Lisp_Object ans;
   Lisp_Object args[2];
-  struct gcpro gcpro1;
 
   CHECK_STRING (prompt);
 
@@ -2781,10 +2755,8 @@ is nil, and `use-dialog-box' is non-nil.  */)
       pane = Fcons (Fcons (build_string ("Yes"), Qt),
 		    Fcons (Fcons (build_string ("No"), Qnil),
 			   Qnil));
-      GCPRO1 (pane);
       menu = Fcons (prompt, pane);
       obj = Fx_popup_dialog (Qt, menu, Qnil);
-      UNGCPRO;
       return obj;
     }
 #endif /* HAVE_MENUS */
@@ -2793,7 +2765,6 @@ is nil, and `use-dialog-box' is non-nil.  */)
   args[1] = build_string ("(yes or no) ");
   prompt = Fconcat (2, args);
 
-  GCPRO1 (prompt);
 
   while (1)
     {
@@ -2802,12 +2773,10 @@ is nil, and `use-dialog-box' is non-nil.  */)
 					      Qnil));
       if (SCHARS (ans) == 3 && !strcmp (SDATA (ans), "yes"))
 	{
-	  UNGCPRO;
 	  return Qt;
 	}
       if (SCHARS (ans) == 2 && !strcmp (SDATA (ans), "no"))
 	{
-	  UNGCPRO;
 	  return Qnil;
 	}
 
@@ -2933,7 +2902,6 @@ The normal messages at start and end of loading FILENAME are suppressed.  */)
      Lisp_Object feature, filename, noerror;
 {
   register Lisp_Object tem;
-  struct gcpro gcpro1, gcpro2;
   int from_file = load_in_progress;
 
   CHECK_SYMBOL (feature);
@@ -2989,10 +2957,8 @@ The normal messages at start and end of loading FILENAME are suppressed.  */)
       Vautoload_queue = Qt;
 
       /* Load the file.  */
-      GCPRO2 (feature, filename);
       tem = Fload (NILP (filename) ? Fsymbol_name (feature) : filename,
 		   noerror, Qt, Qnil, (NILP (filename) ? Qt : Qnil));
-      UNGCPRO;
 
       /* If load failed entirely, return nil.  */
       if (NILP (tem))
@@ -3085,15 +3051,12 @@ usage: (widget-apply WIDGET PROPERTY &rest ARGS)  */)
 {
   /* This function can GC. */
   Lisp_Object newargs[3];
-  struct gcpro gcpro1, gcpro2;
   Lisp_Object result;
 
   newargs[0] = Fwidget_get (args[0], args[1]);
   newargs[1] = args[0];
   newargs[2] = Flist (nargs - 2, args + 2);
-  GCPRO2 (newargs[0], newargs[2]);
   result = Fapply (3, newargs);
-  UNGCPRO;
   return result;
 }
 
@@ -4154,7 +4117,6 @@ hash_lookup (h, key, hash)
   start_of_bucket = hash_code % ASIZE (h->index);
   idx = HASH_INDEX (h, start_of_bucket);
 
-  /* We need not gcpro idx since it's either an integer or nil.  */
   while (!NILP (idx))
     {
       int i = XFASTINT (idx);
@@ -4221,7 +4183,6 @@ hash_remove_from_table (h, key)
   idx = HASH_INDEX (h, start_of_bucket);
   prev = Qnil;
 
-  /* We need not gcpro idx, prev since they're either integers or nil.  */
   while (!NILP (idx))
     {
       int i = XFASTINT (idx);

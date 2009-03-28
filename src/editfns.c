@@ -897,7 +897,6 @@ save_excursion_restore (info)
      Lisp_Object info;
 {
   Lisp_Object tem, tem1, omark, nmark;
-  struct gcpro gcpro1, gcpro2, gcpro3;
   int visible_p;
 
   tem = Fmarker_buffer (XCAR (info));
@@ -909,7 +908,6 @@ save_excursion_restore (info)
     return Qnil;
 
   omark = nmark = Qnil;
-  GCPRO3 (info, omark, nmark);
 
   Fset_buffer (tem);
 
@@ -973,7 +971,6 @@ save_excursion_restore (info)
 	   && XBUFFER (tem1) == current_buffer)))
     Fset_window_point (tem, make_number (PT));
 
-  UNGCPRO;
   return Qnil;
 }
 
@@ -2880,10 +2877,7 @@ Both characters must have the same length of multi-byte form.  */)
 	    {
 	      Lisp_Object tem, string;
 
-	      struct gcpro gcpro1;
-
 	      tem = current_buffer->undo_list;
-	      GCPRO1 (tem);
 
 	      /* Make a multibyte string containing this single character.  */
 	      string = make_multibyte_string (tostr, 1, len);
@@ -2903,7 +2897,6 @@ Both characters must have the same length of multi-byte form.  */)
 	      if (! NILP (noundo))
 		current_buffer->undo_list = tem;
 
-	      UNGCPRO;
 	    }
 	  else
 	    {
@@ -3418,12 +3411,9 @@ usage: (message-box FORMAT-STRING &rest ARGS)  */)
       if (FRAME_WINDOW_P (XFRAME (selected_frame)))
       {
 	Lisp_Object pane, menu, obj;
-	struct gcpro gcpro1;
 	pane = Fcons (Fcons (build_string ("OK"), Qt), Qnil);
-	GCPRO1 (pane);
 	menu = Fcons (val, pane);
 	obj = Fx_popup_dialog (Qt, menu, Qt);
-	UNGCPRO;
 	return val;
       }
 #endif /* HAVE_MENUS */
@@ -3491,7 +3481,6 @@ usage: (propertize STRING &rest PROPERTIES)  */)
      Lisp_Object *args;
 {
   Lisp_Object properties, string;
-  struct gcpro gcpro1, gcpro2;
   int i;
 
   /* Number of args must be odd.  */
@@ -3499,7 +3488,6 @@ usage: (propertize STRING &rest PROPERTIES)  */)
     error ("Wrong number of arguments");
 
   properties = string = Qnil;
-  GCPRO2 (properties, string);
 
   /* First argument must be a string.  */
   CHECK_STRING (args[0]);
@@ -3511,7 +3499,7 @@ usage: (propertize STRING &rest PROPERTIES)  */)
   Fadd_text_properties (make_number (0),
 			make_number (SCHARS (string)),
 			properties, string);
-  RETURN_UNGCPRO (string);
+  return (string);
 }
 
 
@@ -4070,12 +4058,10 @@ usage: (format STRING &rest OBJECTS)  */)
   if (STRING_INTERVALS (args[0]) || arg_intervals)
     {
       Lisp_Object len, new_len, props;
-      struct gcpro gcpro1;
 
       /* Add text properties from the format string.  */
       len = make_number (SCHARS (args[0]));
       props = text_property_list (args[0], make_number (0), len, Qnil);
-      GCPRO1 (props);
 
       if (CONSP (props))
 	{
@@ -4164,7 +4150,6 @@ usage: (format STRING &rest OBJECTS)  */)
 					     make_number (info[n].start));
 	    }
 
-      UNGCPRO;
     }
 
   return val;

@@ -4222,7 +4222,6 @@ This function is an internal primitive--use `make-frame' instead.  */)
   long window_prompting = 0;
   int width, height;
   int count = SPECPDL_INDEX ();
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   Lisp_Object display;
   struct w32_display_info *dpyinfo = NULL;
   Lisp_Object parent;
@@ -4267,7 +4266,6 @@ This function is an internal primitive--use `make-frame' instead.  */)
   /* No need to protect DISPLAY because that's not used after passing
      it to make_frame_without_minibuffer.  */
   frame = Qnil;
-  GCPRO4 (parameters, parent, name, frame);
   tem = x_get_arg (dpyinfo, parameters, Qminibuffer, "minibuffer", "Minibuffer",
                      RES_TYPE_SYMBOL);
   if (EQ (tem, Qnone) || NILP (tem))
@@ -4503,8 +4501,6 @@ This function is an internal primitive--use `make-frame' instead.  */)
   for (tem = parameters; CONSP (tem); tem = XCDR (tem))
     if (CONSP (XCAR (tem)) && !NILP (XCAR (XCAR (tem))))
       f->param_alist = Fcons (XCAR (tem), f->param_alist);
-
-  UNGCPRO;
 
   /* Make sure windows on this frame appear in calls to next-window
      and similar functions.  */
@@ -4932,11 +4928,8 @@ terminate Emacs if we can't open the connection.  */)
      HOME directory, then in Emacs etc dir for a file called rgb.txt. */
   {
     Lisp_Object color_file;
-    struct gcpro gcpro1;
 
     color_file = build_string ("~/rgb.txt");
-
-    GCPRO1 (color_file);
 
     if (NILP (Ffile_readable_p (color_file)))
       color_file =
@@ -4945,7 +4938,6 @@ terminate Emacs if we can't open the connection.  */)
 
     Vw32_color_map = Fx_load_color_file (color_file);
 
-    UNGCPRO;
   }
   if (NILP (Vw32_color_map))
     Vw32_color_map = Fw32_default_color_map ();
@@ -5352,7 +5344,6 @@ x_create_tip_frame (dpyinfo, parms, text)
   long window_prompting = 0;
   int width, height;
   int count = SPECPDL_INDEX ();
-  struct gcpro gcpro1, gcpro2, gcpro3;
   struct kboard *kb;
   int face_change_count_before = face_change_count;
   Lisp_Object buffer;
@@ -5375,7 +5366,6 @@ x_create_tip_frame (dpyinfo, parms, text)
   Vx_resource_name = name;
 
   frame = Qnil;
-  GCPRO3 (parms, name, frame);
   /* Make a frame without minibuffer nor mode-line.  */
   f = make_frame (0);
   f->wants_modeline = 0;
@@ -5546,8 +5536,6 @@ x_create_tip_frame (dpyinfo, parms, text)
 
   f->no_split = 1;
 
-  UNGCPRO;
-
   /* It is now ok to make the frame official even if we get an error
      below.  And the frame needs to be on Vframe_list or making it
      visible won't work.  */
@@ -5693,13 +5681,10 @@ Text larger than the specified size is clipped.  */)
   struct buffer *old_buffer;
   struct text_pos pos;
   int i, width, height;
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   int old_windows_or_buffers_changed = windows_or_buffers_changed;
   int count = SPECPDL_INDEX ();
 
   specbind (Qinhibit_redisplay, Qt);
-
-  GCPRO4 (string, parms, frame, timeout);
 
   CHECK_STRING (string);
   f = check_x_frame (frame);
@@ -5906,7 +5891,6 @@ Text larger than the specified size is clipped.  */)
   tip_timer = call3 (intern ("run-at-time"), timeout, Qnil,
 		     intern ("x-hide-tip"));
 
-  UNGCPRO;
   return unbind_to (count, Qnil);
 }
 
@@ -5918,7 +5902,6 @@ Value is t if tooltip was open, nil otherwise.  */)
 {
   int count;
   Lisp_Object deleted, frame, timer;
-  struct gcpro gcpro1, gcpro2;
 
   /* Return quickly if nothing to do.  */
   if (NILP (tip_timer) && NILP (tip_frame))
@@ -5926,7 +5909,6 @@ Value is t if tooltip was open, nil otherwise.  */)
 
   frame = tip_frame;
   timer = tip_timer;
-  GCPRO2 (frame, timer);
   tip_frame = tip_timer = deleted = Qnil;
 
   count = SPECPDL_INDEX ();
@@ -5942,7 +5924,6 @@ Value is t if tooltip was open, nil otherwise.  */)
       deleted = Qt;
     }
 
-  UNGCPRO;
   return unbind_to (count, deleted);
 }
 
@@ -6020,12 +6001,10 @@ If ONLY-DIR-P is non-nil, the user can only select directories.  */)
   struct frame *f = SELECTED_FRAME ();
   Lisp_Object file = Qnil;
   int count = SPECPDL_INDEX ();
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5, gcpro6;
   char filename[MAX_PATH + 1];
   char init_dir[MAX_PATH + 1];
   int default_filter_index = 1; /* 1: All Files, 2: Directories only  */
 
-  GCPRO6 (prompt, dir, default_filename, mustmatch, only_dir_p, file);
   CHECK_STRING (prompt);
   CHECK_STRING (dir);
 
@@ -6127,8 +6106,6 @@ If ONLY-DIR-P is non-nil, the user can only select directories.  */)
 
     file = unbind_to (count, file);
   }
-
-  UNGCPRO;
 
   /* Make "Cancel" equivalent to C-g.  */
   if (NILP (file))
@@ -6314,21 +6291,16 @@ w32_parse_hot_key (key)
   int vk_code;
   int lisp_modifiers;
   int w32_modifiers;
-  struct gcpro gcpro1;
 
   CHECK_VECTOR (key);
 
   if (XFASTINT (Flength (key)) != 1)
     return Qnil;
 
-  GCPRO1 (key);
-
   c = Faref (key, make_number (0));
 
   if (CONSP (c) && lucid_event_type_list_p (c))
     c = Fevent_convert_list (c);
-
-  UNGCPRO;
 
   if (! INTEGERP (c) && ! SYMBOLP (c))
     error ("Key definition is invalid");

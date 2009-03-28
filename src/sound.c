@@ -1370,7 +1370,6 @@ Internal use only, use `play-sound' instead.  */)
 
 #ifndef WINDOWSNT
   Lisp_Object file;
-  struct gcpro gcpro1, gcpro2;
   Lisp_Object args[2];
 #else /* WINDOWSNT */
   int len = 0;
@@ -1387,7 +1386,6 @@ Internal use only, use `play-sound' instead.  */)
 
 #ifndef WINDOWSNT
   file = Qnil;
-  GCPRO2 (sound, file);
   current_sound_device = (struct sound_device *) xmalloc (sizeof (struct sound_device));
   bzero (current_sound_device, sizeof (struct sound_device));
   current_sound = (struct sound *) xmalloc (sizeof (struct sound));
@@ -1450,7 +1448,6 @@ Internal use only, use `play-sound' instead.  */)
   current_sound->play (current_sound, current_sound_device);
 
   /* Clean up.  */
-  UNGCPRO;
 
 #else /* WINDOWSNT */
 

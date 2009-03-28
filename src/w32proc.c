@@ -804,12 +804,8 @@ sys_spawnve (int mode, char *cmdname, char **argv, char **envp)
   program = make_string (cmdname, strlen (cmdname));
   if (NILP (Ffile_executable_p (program)))
     {
-      struct gcpro gcpro1;
-
       full = Qnil;
-      GCPRO1 (program);
       openp (Vexec_path, program, Vexec_suffixes, &full, make_number (X_OK));
-      UNGCPRO;
       if (NILP (full))
 	{
 	  errno = EINVAL;

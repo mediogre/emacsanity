@@ -311,7 +311,6 @@ each iteration of the macro.  Iteration stops if LOOPFUNC returns nil.  */)
   Lisp_Object tem;
   int pdlcount = SPECPDL_INDEX ();
   int repeat = 1;
-  struct gcpro gcpro1, gcpro2;
   int success_count = 0;
 
   executing_kbd_macro_iterations = 0;
@@ -331,7 +330,6 @@ each iteration of the macro.  Iteration stops if LOOPFUNC returns nil.  */)
 		      real_this_command));
   record_unwind_protect (pop_kbd_macro, tem);
 
-  GCPRO2 (final, loopfunc);
   do
     {
       Vexecuting_kbd_macro = final;
@@ -361,7 +359,6 @@ each iteration of the macro.  Iteration stops if LOOPFUNC returns nil.  */)
 
   real_this_command = Vexecuting_kbd_macro;
 
-  UNGCPRO;
   return unbind_to (pdlcount, Qnil);
 }
 

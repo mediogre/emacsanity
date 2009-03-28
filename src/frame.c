@@ -426,7 +426,6 @@ make_frame_without_minibuffer (mini_window, kb, display)
      Lisp_Object display;
 {
   register struct frame *f;
-  struct gcpro gcpro1;
 
   if (!NILP (mini_window))
     CHECK_LIVE_WINDOW (mini_window);
@@ -447,11 +446,9 @@ make_frame_without_minibuffer (mini_window, kb, display)
           Lisp_Object frame_dummy;
 
           XSETFRAME (frame_dummy, f);
-          GCPRO1 (frame_dummy);
 	  /* If there's no minibuffer frame to use, create one.  */
 	  kb->Vdefault_minibuffer_frame =
 	    call1 (intern ("make-initial-minibuffer-frame"), display);
-          UNGCPRO;
 	}
 
       mini_window = XFRAME (kb->Vdefault_minibuffer_frame)->minibuffer_window;
@@ -1493,7 +1490,6 @@ and returns whatever that function returns.  */)
   Lisp_Object x, y, retval;
   int col, row;
   unsigned long long_dummy;
-  struct gcpro gcpro1;
 
   f = SELECTED_FRAME ();
   x = y = Qnil;
@@ -1516,10 +1512,9 @@ and returns whatever that function returns.  */)
 #endif
   XSETFRAME (lispy_dummy, f);
   retval = Fcons (lispy_dummy, Fcons (x, y));
-  GCPRO1 (retval);
   if (!NILP (Vmouse_position_function))
     retval = call1 (Vmouse_position_function, retval);
-  RETURN_UNGCPRO (retval);
+  return (retval);
 }
 
 DEFUN ("mouse-pixel-position", Fmouse_pixel_position,
@@ -2123,7 +2118,6 @@ If FRAME is omitted, return information on the currently selected frame.  */)
   Lisp_Object alist;
   FRAME_PTR f;
   int height, width;
-  struct gcpro gcpro1;
 
   if (NILP (frame))
     frame = selected_frame;
@@ -2135,7 +2129,6 @@ If FRAME is omitted, return information on the currently selected frame.  */)
     return Qnil;
 
   alist = Fcopy_alist (f->param_alist);
-  GCPRO1 (alist);
 
   store_in_alist (&alist, Qname, f->name);
   height = (f->new_text_lines ? f->new_text_lines : FRAME_LINES (f));
@@ -2164,7 +2157,6 @@ If FRAME is omitted, return information on the currently selected frame.  */)
       store_in_alist (&alist, Qmenu_bar_lines, lines);
     }
 
-  UNGCPRO;
   return alist;
 }
 
@@ -2633,8 +2625,6 @@ x_set_frame_parameters (f, alist)
   int width_for_full_height = 0;
   enum fullscreen_type fullscreen_wanted = FULLSCREEN_NONE;
 
-  struct gcpro gcpro1, gcpro2;
-
   i = 0;
   for (tail = alist; CONSP (tail); tail = Fcdr (tail))
     i++;
@@ -2657,12 +2647,6 @@ x_set_frame_parameters (f, alist)
   /* TAIL and ALIST are not used again below here.  */
   alist = tail = Qnil;
 
-  GCPRO2 (*parms, *values);
-  gcpro1.nvars = i;
-  gcpro2.nvars = i;
-
-  /* There is no need to gcpro LEFT, TOP, ICON_LEFT, or ICON_TOP,
-     because their values appear in VALUES and strings are not valid.  */
   top = left = Qunbound;
   icon_left = icon_top = Qunbound;
 
@@ -2909,7 +2893,6 @@ x_set_frame_parameters (f, alist)
       x_wm_set_icon_position (f, XINT (icon_left), XINT (icon_top));
   }
 
-  UNGCPRO;
 }
 
 

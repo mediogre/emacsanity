@@ -507,8 +507,6 @@ print_string (string, printcharfun)
       int i;
       int size = SCHARS (string);
       int size_byte = SBYTES (string);
-      struct gcpro gcpro1;
-      GCPRO1 (string);
       if (size == size_byte)
 	for (i = 0; i < size; i++)
 	  PRINTCHAR (SREF (string, i));
@@ -523,7 +521,6 @@ print_string (string, printcharfun)
 	    PRINTCHAR (ch);
 	    i += len;
 	  }
-      UNGCPRO;
     }
 }
 
@@ -623,19 +620,14 @@ internal_with_output_to_temp_buffer (bufname, function, args)
 {
   int count = SPECPDL_INDEX ();
   Lisp_Object buf, val;
-  struct gcpro gcpro1;
 
-  GCPRO1 (args);
   record_unwind_protect (Fset_buffer, Fcurrent_buffer ());
   temp_output_buffer_setup (bufname);
   buf = Vstandard_output;
-  UNGCPRO;
 
   val = (*function) (args);
 
-  GCPRO1 (val);
   temp_output_buffer_show (buf);
-  UNGCPRO;
 
   return unbind_to (count, val);
 }
@@ -673,23 +665,18 @@ usage: (with-output-to-temp-buffer BUFNAME BODY...)  */)
      (args)
      Lisp_Object args;
 {
-  struct gcpro gcpro1;
   Lisp_Object name;
   int count = SPECPDL_INDEX ();
   Lisp_Object buf, val;
 
-  GCPRO1(args);
   name = Feval (Fcar (args));
   CHECK_STRING (name);
   temp_output_buffer_setup (SDATA (name));
   buf = Vstandard_output;
-  UNGCPRO;
 
   val = Fprogn (XCDR (args));
 
-  GCPRO1 (val);
   temp_output_buffer_show (buf);
-  UNGCPRO;
 
   return unbind_to (count, val);
 }
@@ -770,7 +757,6 @@ A printed representation of an object is text which describes that object.  */)
      Lisp_Object object, noescape;
 {
   Lisp_Object printcharfun;
-  /* struct gcpro gcpro1, gcpro2; */
   Lisp_Object save_deactivate_mark;
   int count = SPECPDL_INDEX ();
   struct buffer *previous;
@@ -784,7 +770,6 @@ A printed representation of an object is text which describes that object.  */)
        but we don't want to deactivate the mark just for that.
        No need for specbind, since errors deactivate the mark.  */
     save_deactivate_mark = Vdeactivate_mark;
-    /* GCPRO2 (object, save_deactivate_mark); */
     abort_on_gc++;
 
     printcharfun = Vprin1_to_string_buffer;
@@ -807,7 +792,6 @@ A printed representation of an object is text which describes that object.  */)
   set_buffer_internal (previous);
 
   Vdeactivate_mark = save_deactivate_mark;
-  /* UNGCPRO; */
 
   abort_on_gc--;
   return unbind_to (count, object);
@@ -875,17 +859,14 @@ is used instead.  */)
      Lisp_Object object, printcharfun;
 {
   PRINTDECLARE;
-  struct gcpro gcpro1;
 
   if (NILP (printcharfun))
     printcharfun = Vstandard_output;
-  GCPRO1 (object);
   PRINTPREPARE;
   PRINTCHAR ('\n');
   print (object, printcharfun, 1);
   PRINTCHAR ('\n');
   PRINTFINISH;
-  UNGCPRO;
   return object;
 }
 
@@ -1007,7 +988,6 @@ error message is constructed.  */)
 {
   struct buffer *old = current_buffer;
   Lisp_Object value;
-  struct gcpro gcpro1;
 
   /* If OBJ is (error STRING), just return STRING.
      That is not only faster, it also avoids the need to allocate
@@ -1023,10 +1003,8 @@ error message is constructed.  */)
   set_buffer_internal (XBUFFER (Vprin1_to_string_buffer));
   value = Fbuffer_string ();
 
-  GCPRO1 (value);
   Ferase_buffer ();
   set_buffer_internal (old);
-  UNGCPRO;
 
   return value;
 }
@@ -1043,7 +1021,6 @@ print_error_message (data, stream, context, caller)
      Lisp_Object caller;
 {
   Lisp_Object errname, errmsg, file_error, tail;
-  struct gcpro gcpro1;
   int i;
 
   if (context != 0)
@@ -1081,7 +1058,6 @@ print_error_message (data, stream, context, caller)
   /* Print an error message including the data items.  */
 
   tail = Fcdr_safe (data);
-  GCPRO1 (tail);
 
   /* For file-error, make error message by concatenating
      all the data items.  They are all strings.  */
@@ -1105,7 +1081,6 @@ print_error_message (data, stream, context, caller)
 	Fprin1 (obj, stream);
     }
 
-  UNGCPRO;
 }
 
 
@@ -1610,15 +1585,12 @@ print_object (obj, printcharfun, escapeflag)
       else
 	{
 	  register int i, i_byte;
-	  struct gcpro gcpro1;
 	  unsigned char *str;
 	  int size_byte;
 	  /* 1 means we must ensure that the next character we output
 	     cannot be taken as part of a hex character escape.  */
 	  int need_nonhex = 0;
 	  int multibyte = STRING_MULTIBYTE (obj);
-
-	  GCPRO1 (obj);
 
 	  if (! EQ (Vprint_charset_text_property, Qt))
 	    obj = print_prune_string_charset (obj);
@@ -1721,7 +1693,6 @@ print_object (obj, printcharfun, escapeflag)
 	      PRINTCHAR (')');
 	    }
 
-	  UNGCPRO;
 	}
       break;
 
@@ -1944,12 +1915,9 @@ print_object (obj, printcharfun, escapeflag)
 	{
 	  register int i;
 	  register unsigned char c;
-	  struct gcpro gcpro1;
 	  int size_in_chars
 	    = ((XBOOL_VECTOR (obj)->size + BOOL_VECTOR_BITS_PER_CHAR - 1)
 	       / BOOL_VECTOR_BITS_PER_CHAR);
-
-	  GCPRO1 (obj);
 
 	  PRINTCHAR ('#');
 	  PRINTCHAR ('&');
@@ -1994,8 +1962,6 @@ print_object (obj, printcharfun, escapeflag)
 		}
 	    }
 	  PRINTCHAR ('\"');
-
-	  UNGCPRO;
 	}
       else if (SUBRP (obj))
 	{

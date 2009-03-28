@@ -183,7 +183,6 @@ cached information about equivalent key sequences.  */)
   int keymaps = 0;
   int for_click = 0;
   int specpdl_count = SPECPDL_INDEX ();
-  struct gcpro gcpro1;
 
 #ifdef HAVE_MENUS
   if (! NILP (position))
@@ -269,7 +268,6 @@ cached information about equivalent key sequences.  */)
   record_unwind_protect (unuse_menu_items, Qnil);
 
   title = Qnil;
-  GCPRO1 (title);
 
   /* Decode the menu items from what was specified.  */
 
@@ -343,7 +341,6 @@ cached information about equivalent key sequences.  */)
     {
       discard_menu_items ();
       FRAME_X_DISPLAY_INFO (f)->grabbed = 0;
-      UNGCPRO;
       return Qnil;
     }
 
@@ -357,7 +354,6 @@ cached information about equivalent key sequences.  */)
     {
       discard_menu_items ();
       FRAME_X_DISPLAY_INFO (f)->grabbed = 0;
-      UNGCPRO;
       return Qnil;
     }
 
@@ -372,8 +368,6 @@ cached information about equivalent key sequences.  */)
   FRAME_X_DISPLAY_INFO (f)->grabbed = 0;
 
 #endif /* HAVE_MENUS */
-
-  UNGCPRO;
 
   if (error_name) error (error_name);
   return selection;

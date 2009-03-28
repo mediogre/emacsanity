@@ -794,10 +794,7 @@ Value, if non-nil, is a list \(interactive SPEC).  */)
 	return Fassq (Qinteractive, Fcdr (XCDR (fun)));
       else if (EQ (funcar, Qautoload))
 	{
-	  struct gcpro gcpro1;
-	  GCPRO1 (cmd);
 	  do_autoload (fun, cmd);
-	  UNGCPRO;
 	  return Finteractive_form (cmd);
 	}
     }
@@ -1440,13 +1437,11 @@ usage: (setq-default [VAR VALUE]...)  */)
 {
   register Lisp_Object args_left;
   register Lisp_Object val, symbol;
-  struct gcpro gcpro1;
 
   if (NILP (args))
     return Qnil;
 
   args_left = args;
-  GCPRO1 (args);
 
   do
     {
@@ -1457,7 +1452,6 @@ usage: (setq-default [VAR VALUE]...)  */)
     }
   while (!NILP (args_left));
 
-  UNGCPRO;
   return val;
 }
 

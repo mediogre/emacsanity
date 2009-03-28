@@ -467,7 +467,6 @@ Return what remains of the list.  */)
      (n, list)
      Lisp_Object n, list;
 {
-  struct gcpro gcpro1, gcpro2;
   Lisp_Object next;
   int count = SPECPDL_INDEX ();
   register int arg;
@@ -488,9 +487,6 @@ Return what remains of the list.  */)
   CHECK_NUMBER (n);
   arg = XINT (n);
   next = Qnil;
-  GCPRO2 (next, list);
-  /* I don't think we need to gcpro oldlist, as we use it only
-     to check for EQ.  ++kfs  */
 
   /* In a writable buffer, enable undoing read-only text that is so
      because of text properties.  */
@@ -659,7 +655,6 @@ Return what remains of the list.  */)
     current_buffer->undo_list
       = Fcons (list3 (Qapply, Qcdr, Qnil), current_buffer->undo_list);
 
-  UNGCPRO;
   return unbind_to (count, list);
 }
 

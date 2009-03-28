@@ -319,19 +319,6 @@ static int
 reread_doc_file (file)
      Lisp_Object file;
 {
-#if 0
-  Lisp_Object reply, prompt[3];
-  struct gcpro gcpro1;
-  GCPRO1 (file);
-  prompt[0] = build_string ("File ");
-  prompt[1] = NILP (file) ? Vdoc_file_name : file;
-  prompt[2] = build_string (" is out of sync.  Reload? ");
-  reply = Fy_or_n_p (Fconcat (3, prompt));
-  UNGCPRO;
-  if (NILP (reply))
-    return 0;
-#endif
-
   if (NILP (file))
     Fsnarf_documentation (Vdoc_file_name);
   else
@@ -444,10 +431,7 @@ string is passed through `substitute-command-keys'.  */)
       if (NILP (tem) && try_reload)
 	{
 	  /* The file is newer, we need to reset the pointers.  */
-	  struct gcpro gcpro1, gcpro2;
-	  GCPRO2 (function, raw);
 	  try_reload = reread_doc_file (Fcar_safe (doc));
-	  UNGCPRO;
 	  if (try_reload)
 	    {
 	      try_reload = 0;
@@ -490,10 +474,7 @@ aren't strings.  */)
       if (NILP (tem) && try_reload)
 	{
 	  /* The file is newer, we need to reset the pointers.  */
-	  struct gcpro gcpro1, gcpro2, gcpro3;
-	  GCPRO3 (symbol, prop, raw);
 	  try_reload = reread_doc_file (Fcar_safe (doc));
-	  UNGCPRO;
 	  if (try_reload)
 	    {
 	      try_reload = 0;
@@ -749,7 +730,6 @@ a new string, without any text properties, is returned.  */)
   unsigned char *start;
   int length, length_byte;
   Lisp_Object name;
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   int multibyte;
   int nchars;
 
@@ -760,7 +740,6 @@ a new string, without any text properties, is returned.  */)
   tem = Qnil;
   keymap = Qnil;
   name = Qnil;
-  GCPRO4 (string, tem, keymap, name);
 
   multibyte = STRING_MULTIBYTE (string);
   nchars = 0;
@@ -973,7 +952,7 @@ a new string, without any text properties, is returned.  */)
   else
     tem = string;
   xfree (buf);
-  RETURN_UNGCPRO (tem);
+  return (tem);
 }
 
 void

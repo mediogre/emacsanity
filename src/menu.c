@@ -261,7 +261,6 @@ single_keymap_panes (keymap, pane_name, prefix, notreal, maxdepth)
      int maxdepth;
 {
   struct skp skp;
-  struct gcpro gcpro1;
 
   skp.pending_maps = Qnil;
   skp.maxdepth = maxdepth;
@@ -281,9 +280,7 @@ single_keymap_panes (keymap, pane_name, prefix, notreal, maxdepth)
   skp.notbuttons = menu_items_used;
 #endif
 
-  GCPRO1 (skp.pending_maps);
   map_keymap_canonical (keymap, single_menu_item, Qnil, &skp);
-  UNGCPRO;
 
   /* Process now any submenus which want to be panes at this level.  */
   while (CONSP (skp.pending_maps))
@@ -315,14 +312,11 @@ single_menu_item (key, item, dummy, skp_v)
      void *skp_v;
 {
   Lisp_Object map, item_string, enabled;
-  struct gcpro gcpro1, gcpro2;
   int res;
   struct skp *skp = skp_v;
 
   /* Parse the menu item and leave the result in item_properties.  */
-  GCPRO2 (key, item);
   res = parse_menu_item (item, skp->notreal, 0);
-  UNGCPRO;
   if (!res)
     return;			/* Not a menu item.  */
 

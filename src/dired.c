@@ -133,13 +133,11 @@ directory_files_internal (directory, full, match, nosort, attrs, id_format)
   struct re_pattern_buffer *bufp = NULL;
   int needsep = 0;
   int count = SPECPDL_INDEX ();
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
   DIRENTRY *dp;
 
   /* Because of file name handlers, these functions might call
      Ffuncall, and cause a GC.  */
   list = encoded_directory = dirfilename = Qnil;
-  GCPRO5 (match, directory, list, dirfilename, encoded_directory);
   dirfilename = Fdirectory_file_name (directory);
 
   if (!NILP (match))
@@ -215,11 +213,9 @@ directory_files_internal (directory, full, match, nosort, attrs, id_format)
 	  int len;
 	  int wanted = 0;
 	  Lisp_Object name, finalname;
-	  struct gcpro gcpro1, gcpro2;
 
 	  len = NAMLEN (dp);
 	  name = finalname = make_unibyte_string (dp->d_name, len);
-	  GCPRO2 (finalname, name);
 
 	  /* Note: DECODE_FILE can GC; it should protect its argument,
 	     though.  */
@@ -276,23 +272,19 @@ directory_files_internal (directory, full, match, nosort, attrs, id_format)
 		  /* Construct an expanded filename for the directory entry.
 		     Use the decoded names for input to Ffile_attributes.  */
 		  Lisp_Object decoded_fullname, fileattrs;
-		  struct gcpro gcpro1, gcpro2;
 
 		  decoded_fullname = fileattrs = Qnil;
-		  GCPRO2 (decoded_fullname, fileattrs);
 
 		  /* Both Fexpand_file_name and Ffile_attributes can GC.  */
 		  decoded_fullname = Fexpand_file_name (name, directory);
 		  fileattrs = Ffile_attributes (decoded_fullname, id_format);
 
 		  list = Fcons (Fcons (finalname, fileattrs), list);
-		  UNGCPRO;
 		}
 	      else
 		list = Fcons (finalname, list);
 	    }
 
-	  UNGCPRO;
 	}
     }
 
@@ -307,7 +299,7 @@ directory_files_internal (directory, full, match, nosort, attrs, id_format)
     list = Fsort (Fnreverse (list),
 		  attrs ? Qfile_attributes_lessp : Qstring_lessp);
 
-  RETURN_UNGCPRO (list);
+  return (list);
 }
 
 
@@ -450,7 +442,6 @@ file_name_completion (file, dirname, all_flag, ver_flag, predicate)
      anything.  */
   int includeall = 1;
   int count = SPECPDL_INDEX ();
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
 
   elt = Qnil;
 
@@ -461,7 +452,6 @@ file_name_completion (file, dirname, all_flag, ver_flag, predicate)
 #endif
   bestmatch = Qnil;
   encoded_file = encoded_dir = Qnil;
-  GCPRO5 (file, dirname, bestmatch, encoded_file, encoded_dir);
   dirname = Fexpand_file_name (dirname, Qnil);
   specbind (Qdefault_directory, dirname);
 
@@ -662,11 +652,8 @@ file_name_completion (file, dirname, all_flag, ver_flag, predicate)
       if (!NILP (predicate))
 	{
 	  Lisp_Object val;
-	  struct gcpro gcpro1;
 
-	  GCPRO1 (name);
 	  val = call1 (predicate, name);
-	  UNGCPRO;
 
 	  if (NILP (val))
 	    continue;
@@ -753,7 +740,6 @@ file_name_completion (file, dirname, all_flag, ver_flag, predicate)
 	}
     }
 
-  UNGCPRO;
   /* This closes the directory.  */
   bestmatch = unbind_to (count, bestmatch);
 
@@ -933,7 +919,6 @@ which see.  */)
 #endif
   char modes[10];
   Lisp_Object handler;
-  struct gcpro gcpro1;
   EMACS_INT ino, uid, gid;
   char *uname = NULL, *gname = NULL;
 
@@ -951,9 +936,7 @@ which see.  */)
 	return call3 (handler, Qfile_attributes, filename, id_format);
     }
 
-  GCPRO1 (filename);
   encoded = ENCODE_FILE (filename);
-  UNGCPRO;
 
   if (lstat (SDATA (encoded), &s) < 0)
     return Qnil;

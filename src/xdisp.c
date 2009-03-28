@@ -2377,16 +2377,11 @@ safe_call (nargs, args)
   else
     {
       int count = SPECPDL_INDEX ();
-      struct gcpro gcpro1;
-
-      GCPRO1 (args[0]);
-      gcpro1.nvars = nargs;
       specbind (Qinhibit_redisplay, Qt);
       /* Use Qt to ensure debugger does not run,
 	 so there is no possibility of wanting to redisplay.  */
       val = internal_condition_case_2 (Ffuncall, nargs, args, Qt,
 				       safe_eval_handler);
-      UNGCPRO;
       val = unbind_to (count, val);
     }
 
@@ -3331,10 +3326,8 @@ handle_fontified_prop (it)
       else
 	{
 	  Lisp_Object globals, fn;
-	  struct gcpro gcpro1, gcpro2;
 
 	  globals = Qnil;
-	  GCPRO2 (val, globals);
 
 	  for (; CONSP (val); val = XCDR (val))
 	    {
@@ -3360,7 +3353,6 @@ handle_fontified_prop (it)
 		safe_call1 (fn, pos);
 	    }
 
-	  UNGCPRO;
 	}
 
       unbind_to (count, Qnil);
@@ -4055,7 +4047,6 @@ handle_single_display_spec (it, spec, object, overlay, position,
   if (!NILP (form) && !EQ (form, Qt))
     {
       int count = SPECPDL_INDEX ();
-      struct gcpro gcpro1;
 
       /* Bind `object' to the object having the `display' property, a
 	 buffer or string.  Bind `position' to the position in the
@@ -4066,9 +4057,7 @@ handle_single_display_spec (it, spec, object, overlay, position,
       specbind (Qbuffer_position,
 		make_number (STRINGP (object)
 			     ? IT_CHARPOS (*it) : CHARPOS (*position)));
-      GCPRO1 (form);
       form = safe_eval (form);
-      UNGCPRO;
       unbind_to (count, Qnil);
     }
 
@@ -7591,7 +7580,6 @@ add_to_log (format, arg1, arg2)
   Lisp_Object msg, fmt;
   char *buffer;
   int len;
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   USE_SAFE_ALLOCA;
 
   /* Do nothing if called asynchronously.  Inserting text into
@@ -7601,7 +7589,6 @@ add_to_log (format, arg1, arg2)
     return;
 
   fmt = msg = Qnil;
-  GCPRO4 (fmt, msg, arg1, arg2);
 
   args[0] = fmt = build_string (format);
   args[1] = arg1;
@@ -7615,7 +7602,6 @@ add_to_log (format, arg1, arg2)
   message_dolog (buffer, len - 1, 1, 0);
   SAFE_FREE ();
 
-  UNGCPRO;
 }
 
 
@@ -7654,7 +7640,6 @@ message_dolog (m, nbytes, nlflag, multibyte)
       int point_at_end = 0;
       int zv_at_end = 0;
       Lisp_Object old_deactivate_mark, tem;
-      struct gcpro gcpro1;
 
       old_deactivate_mark = Vdeactivate_mark;
       oldbuf = current_buffer;
@@ -7667,7 +7652,6 @@ message_dolog (m, nbytes, nlflag, multibyte)
       set_marker_restricted (oldbegv, make_number (BEGV), Qnil);
       oldzv = message_dolog_marker3;
       set_marker_restricted (oldzv, make_number (ZV), Qnil);
-      GCPRO1 (old_deactivate_mark);
 
       if (PT == Z)
 	point_at_end = 1;
@@ -7789,7 +7773,6 @@ message_dolog (m, nbytes, nlflag, multibyte)
 	TEMP_SET_PT_BOTH (XMARKER (oldpoint)->charpos,
 			  XMARKER (oldpoint)->bytepos);
 
-      UNGCPRO;
       unchain_marker (XMARKER (oldpoint));
       unchain_marker (XMARKER (oldbegv));
       unchain_marker (XMARKER (oldzv));
@@ -7936,9 +7919,6 @@ message3 (m, nbytes, multibyte)
      int nbytes;
      int multibyte;
 {
-  struct gcpro gcpro1;
-
-  GCPRO1 (m);
   clear_message (1,1);
   cancel_echoing ();
 
@@ -7955,8 +7935,6 @@ message3 (m, nbytes, multibyte)
       SAFE_FREE ();
     }
   message3_nolog (m, nbytes, multibyte);
-
-  UNGCPRO;
 }
 
 
@@ -8095,12 +8073,9 @@ message_with_string (m, string, log)
       if (FRAME_MESSAGE_BUF (f))
 	{
 	  Lisp_Object args[2], message;
-	  struct gcpro gcpro1, gcpro2;
 
 	  args[0] = build_string (m);
 	  args[1] = message = string;
-	  GCPRO2 (args[0], message);
-	  gcpro1.nvars = 2;
 
 	  message = Fformat (2, args);
 
@@ -8108,8 +8083,6 @@ message_with_string (m, string, log)
 	    message3 (message, SBYTES (message), STRING_MULTIBYTE (message));
 	  else
 	    message3_nolog (message, SBYTES (message), STRING_MULTIBYTE (message));
-
-	  UNGCPRO;
 
 	  /* Print should start at the beginning of the message
 	     buffer next time.  */
@@ -9475,7 +9448,6 @@ void
 prepare_menu_bars ()
 {
   int all_windows;
-  struct gcpro gcpro1, gcpro2;
   struct frame *f;
   Lisp_Object tooltip_frame;
 
@@ -9535,7 +9507,6 @@ prepare_menu_bars ()
 	      /* Clear flag first in case we get an error below.  */
 	      FRAME_WINDOW_SIZES_CHANGED (f) = 0;
 	      functions = Vwindow_size_change_functions;
-	      GCPRO2 (tail, functions);
 
 	      while (CONSP (functions))
 		{
@@ -9543,15 +9514,12 @@ prepare_menu_bars ()
 		    call1 (XCAR (functions), frame);
 		  functions = XCDR (functions);
 		}
-	      UNGCPRO;
 	    }
 
-	  GCPRO1 (tail);
 	  menu_bar_hooks_run = update_menu_bar (f, 0, menu_bar_hooks_run);
 #ifdef HAVE_WINDOW_SYSTEM
 	  update_tool_bar (f, 0);
 #endif
-	  UNGCPRO;
 	}
 
       unbind_to (count, Qnil);
@@ -9833,7 +9801,6 @@ update_tool_bar (f, save_match_data)
 	  int count = SPECPDL_INDEX ();
 	  Lisp_Object frame, new_tool_bar;
           int new_n_tool_bar;
-	  struct gcpro gcpro1;
 
 	  /* Set current_buffer to the buffer of the selected
 	     window of the frame, so that we get the right local
@@ -9850,8 +9817,6 @@ update_tool_bar (f, save_match_data)
 	      specbind (Qoverriding_terminal_local_map, Qnil);
 	      specbind (Qoverriding_local_map, Qnil);
 	    }
-
-	  GCPRO1 (new_tool_bar);
 
 	  /* We must temporarily set the selected frame to this frame
 	     before calling tool_bar_items, because the calculation of
@@ -9879,8 +9844,6 @@ update_tool_bar (f, save_match_data)
               UNBLOCK_INPUT;
             }
 
-	  UNGCPRO;
-
 	  unbind_to (count, Qnil);
 	  set_buffer_internal_1 (prev);
 	}
@@ -9897,11 +9860,9 @@ build_desired_tool_bar_string (f)
      struct frame *f;
 {
   int i, size, size_needed;
-  struct gcpro gcpro1, gcpro2, gcpro3;
   Lisp_Object image, plist, props;
 
   image = plist = props = Qnil;
-  GCPRO3 (image, plist, props);
 
   /* Prepare F->desired_tool_bar_string.  If we can reuse it, do so.
      Otherwise, make a new string.  */
@@ -10047,8 +10008,6 @@ build_desired_tool_bar_string (f)
 			    props, f->desired_tool_bar_string);
 #undef PROP
     }
-
-  UNGCPRO;
 }
 
 

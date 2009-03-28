@@ -661,9 +661,7 @@ bug_reporting_address ()
 int
 main (int argc, char **argv)
 {
-#if GC_MARK_STACK
   Lisp_Object dummy;
-#endif
   char stack_bottom_variable;
   int do_initial_setlocale;
   int skip_args = 0;
@@ -676,14 +674,9 @@ main (int argc, char **argv)
   int no_loadup = 0;
   char *junk = 0;
   char *dname_arg = 0;
-#ifdef NS_IMPL_COCOA
-  char dname_arg2[80];
-#endif
 
-#if GC_MARK_STACK
   extern Lisp_Object *stack_base;
   stack_base = &dummy;
-#endif
 
   if (!initialized)
     {
@@ -1684,17 +1677,11 @@ all of which are called before Emacs is actually killed.  */)
      (arg)
      Lisp_Object arg;
 {
-  struct gcpro gcpro1;
-
-  GCPRO1 (arg);
-
   if (feof (stdin))
     arg = Qt;
 
   if (!NILP (Vrun_hooks) && !noninteractive)
     call1 (Vrun_hooks, intern ("kill-emacs-hook"));
-
-  UNGCPRO;
 
   shut_down_emacs (0, 0, STRINGP (arg) ? arg : Qnil);
 

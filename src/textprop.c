@@ -379,15 +379,10 @@ add_properties (plist, i, object)
   Lisp_Object tail1, tail2, sym1, val1;
   register int changed = 0;
   register int found;
-  struct gcpro gcpro1, gcpro2, gcpro3;
 
   tail1 = plist;
   sym1 = Qnil;
   val1 = Qnil;
-  /* No need to protect OBJECT, because we can GC only in the case
-     where it is a buffer, and live buffers are always protected.
-     I and its plist are also protected, via OBJECT.  */
-  GCPRO3 (tail1, sym1, val1);
 
   /* Go through each element of PLIST.  */
   for (tail1 = plist; CONSP (tail1); tail1 = Fcdr (XCDR (tail1)))
@@ -400,8 +395,6 @@ add_properties (plist, i, object)
       for (tail2 = i->plist; CONSP (tail2); tail2 = Fcdr (XCDR (tail2)))
 	if (EQ (sym1, XCAR (tail2)))
 	  {
-	    /* No need to gcpro, because tail2 protects this
-	       and it must be a cons cell (we get an error otherwise).  */
 	    register Lisp_Object this_cdr;
 
 	    this_cdr = XCDR (tail2);
@@ -438,8 +431,6 @@ add_properties (plist, i, object)
 	  changed++;
 	}
     }
-
-  UNGCPRO;
 
   return changed;
 }
@@ -1214,7 +1205,6 @@ Return t if any property value actually changed, nil otherwise.  */)
 {
   register INTERVAL i, unchanged;
   register int s, len, modified = 0;
-  struct gcpro gcpro1;
 
   properties = validate_plist (properties);
   if (NILP (properties))
@@ -1230,10 +1220,6 @@ Return t if any property value actually changed, nil otherwise.  */)
   s = XINT (start);
   len = XINT (end) - s;
 
-  /* No need to protect OBJECT, because we GC only if it's a buffer,
-     and live buffers are always protected.  */
-  GCPRO1 (properties);
-
   /* If we're not starting on an interval boundary, we have to
     split this interval.  */
   if (i->position != s)
@@ -1244,7 +1230,7 @@ Return t if any property value actually changed, nil otherwise.  */)
 	{
 	  int got = (LENGTH (i) - (s - i->position));
 	  if (got >= len)
-	    RETURN_UNGCPRO (Qnil);
+	    return (Qnil);
 	  len -= got;
 	  i = next_interval (i);
 	}
@@ -1267,11 +1253,6 @@ Return t if any property value actually changed, nil otherwise.  */)
 
       if (LENGTH (i) >= len)
 	{
-	  /* We can UNGCPRO safely here, because there will be just
-	     one more chance to gc, in the next call to add_properties,
-	     and after that we will not need PROPERTIES or OBJECT again.  */
-	  UNGCPRO;
-
 	  if (interval_has_all_properties (properties, i))
 	    {
 	      if (BUFFERP (object))
@@ -1856,7 +1837,6 @@ copy_text_properties (start, end, src, pos, dest, prop)
   Lisp_Object stuff;
   Lisp_Object plist;
   int s, e, e2, p, len, modified = 0;
-  struct gcpro gcpro1, gcpro2;
 
   i = validate_interval_range (src, &start, &end, soft);
   if (NULL_INTERVAL_P (i))
@@ -1915,8 +1895,6 @@ copy_text_properties (start, end, src, pos, dest, prop)
       s = i->position;
     }
 
-  GCPRO2 (stuff, dest);
-
   while (! NILP (stuff))
     {
       res = Fcar (stuff);
@@ -1926,8 +1904,6 @@ copy_text_properties (start, end, src, pos, dest, prop)
 	modified++;
       stuff = Fcdr (stuff);
     }
-
-  UNGCPRO;
 
   return modified ? Qt : Qnil;
 }
@@ -2002,10 +1978,7 @@ int
 add_text_properties_from_list (object, list, delta)
      Lisp_Object object, list, delta;
 {
-  struct gcpro gcpro1, gcpro2;
   int modified_p = 0;
-
-  GCPRO2 (list, object);
 
   for (; CONSP (list); list = XCDR (list))
     {
@@ -2021,7 +1994,6 @@ add_text_properties_from_list (object, list, delta)
 	modified_p = 1;
     }
 
-  UNGCPRO;
   return modified_p;
 }
 
@@ -2055,14 +2027,11 @@ static void
 call_mod_hooks (list, start, end)
      Lisp_Object list, start, end;
 {
-  struct gcpro gcpro1;
-  GCPRO1 (list);
   while (!NILP (list))
     {
       call2 (Fcar (list), start, end);
       list = Fcdr (list);
     }
-  UNGCPRO;
 }
 
 /* Check for read-only intervals between character positions START ... END,
@@ -2083,7 +2052,6 @@ verify_interval_modification (buf, start, end)
   Lisp_Object hooks;
   register Lisp_Object prev_mod_hooks;
   Lisp_Object mod_hooks;
-  struct gcpro gcpro1;
 
   hooks = Qnil;
   prev_mod_hooks = Qnil;
@@ -2235,7 +2203,6 @@ verify_interval_modification (buf, start, end)
 
       if (!inhibit_modification_hooks)
 	{
-	  GCPRO1 (hooks);
 	  hooks = Fnreverse (hooks);
 	  while (! EQ (hooks, Qnil))
 	    {
@@ -2243,7 +2210,6 @@ verify_interval_modification (buf, start, end)
 			      make_number (end));
 	      hooks = Fcdr (hooks);
 	    }
-	  UNGCPRO;
 	}
     }
 }

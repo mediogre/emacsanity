@@ -294,7 +294,6 @@ invoke it.  If KEYS is omitted or nil, the return value of
   char prompt1[100];
   char *tem1;
   int arg_from_tty = 0;
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
   int key_count;
   int record_then_fail = 0;
 
@@ -335,9 +334,7 @@ invoke it.  If KEYS is omitted or nil, the return value of
   /* Set SPECS to the interactive form, or barf if not interactive.  */
   {
     Lisp_Object form;
-    GCPRO2 (function, prefix_arg);
     form = Finteractive_form (function);
-    UNGCPRO;
     if (CONSP (form))
       specs = filter_specs = Fcar (XCDR (form));
     else
@@ -359,9 +356,7 @@ invoke it.  If KEYS is omitted or nil, the return value of
       i = num_input_events;
       input = specs;
       /* Compute the arg values using the user's expression.  */
-      GCPRO2 (input, filter_specs);
       specs = Feval (specs);
-      UNGCPRO;
       if (i != num_input_events || !NILP (record_flag))
 	{
 	  /* We should record this command on the command history.  */
@@ -496,10 +491,6 @@ invoke it.  If KEYS is omitted or nil, the return value of
       visargs[i] = Qnil;
       varies[i] = 0;
     }
-
-  GCPRO5 (prefix_arg, function, *args, *visargs, up_event);
-  gcpro3.nvars = (count + 1);
-  gcpro4.nvars = (count + 1);
 
   if (!NILP (enable))
     specbind (Qenable_recursive_minibuffers, Qt);
@@ -869,7 +860,6 @@ invoke it.  If KEYS is omitted or nil, the return value of
 
     temporarily_switch_to_single_kboard (NULL);
     val = Ffuncall (count + 1, args);
-    UNGCPRO;
     return unbind_to (speccount, val);
   }
 }

@@ -241,11 +241,8 @@ static Lisp_Object
 string_to_object (val, defalt)
      Lisp_Object val, defalt;
 {
-  struct gcpro gcpro1, gcpro2;
   Lisp_Object expr_and_pos;
   int pos;
-
-  GCPRO2 (val, defalt);
 
   if (STRINGP (val) && SCHARS (val) == 0)
     {
@@ -272,7 +269,7 @@ string_to_object (val, defalt)
     }
 
   val = Fcar (expr_and_pos);
-  RETURN_UNGCPRO (val);
+  return (val);
 }
 
 
@@ -453,7 +450,6 @@ read_minibuf (map, initial, prompt, backup_n, expflag,
   Lisp_Object val;
   int count = SPECPDL_INDEX ();
   Lisp_Object mini_frame, ambient_dir, minibuffer, input_method;
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
   Lisp_Object enable_multibyte;
   int pos = INTEGERP (backup_n) ? XINT (backup_n) : 0;
   /* String to add to the history.  */
@@ -506,11 +502,6 @@ read_minibuf (map, initial, prompt, backup_n, expflag,
   input_method = Qnil;
   enable_multibyte = Qnil;
 
-  /* Don't need to protect PROMPT, HISTVAR, and HISTPOS because we
-     store them away before we can GC.  Don't need to protect
-     BACKUP_N because we use the value only if it is an integer.  */
-  GCPRO5 (map, initial, val, ambient_dir, input_method);
-
   if (!STRINGP (prompt))
     prompt = empty_unibyte_string;
 
@@ -532,7 +523,6 @@ read_minibuf (map, initial, prompt, backup_n, expflag,
 					 make_number (pos),
 					 expflag, histvar, histpos, defalt,
 					 allow_props, inherit_input_method);
-      UNGCPRO;
       return unbind_to (count, val);
     }
 
@@ -826,7 +816,6 @@ read_minibuf (map, initial, prompt, backup_n, expflag,
 
   /* The appropriate frame will get selected
      in set-window-configuration.  */
-  UNGCPRO;
   return unbind_to (count, val);
 }
 
@@ -1002,7 +991,6 @@ and some related functions, which use zero-indexing for POSITION.  */)
      Lisp_Object inherit_input_method;
 {
   Lisp_Object histvar, histpos, val;
-  struct gcpro gcpro1;
 
   CHECK_STRING (prompt);
   if (NILP (keymap))
@@ -1025,13 +1013,11 @@ and some related functions, which use zero-indexing for POSITION.  */)
   if (NILP (histpos))
     XSETFASTINT (histpos, 0);
 
-  GCPRO1 (default_value);
   val = read_minibuf (keymap, initial_contents, prompt,
 		      Qnil, !NILP (read),
 		      histvar, histpos, default_value,
 		      minibuffer_allow_text_properties,
 		      !NILP (inherit_input_method));
-  UNGCPRO;
   return val;
 }
 
@@ -1308,7 +1294,6 @@ is used to further constrain the set of candidates.  */)
   int matchcount = 0;
   int bindcount = -1;
   Lisp_Object bucket, zero, end, tem;
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
 
   CHECK_STRING (string);
   if (type == function_table)
@@ -1421,13 +1406,11 @@ is used to further constrain the set of candidates.  */)
 		      unbind_to (bindcount, Qnil);
 		      bindcount = -1;
 		    }
-		  GCPRO4 (tail, string, eltstring, bestmatch);
 		  tem = (type == hash_table
 			 ? call2 (predicate, elt,
 				  HASH_VALUE (XHASH_TABLE (collection),
 					      index - 1))
 			 : call1 (predicate, elt));
-		  UNGCPRO;
 		}
 	      if (NILP (tem)) continue;
 	    }
@@ -1573,7 +1556,6 @@ are ignored unless STRING itself starts with a space.  */)
   int index = 0, obsize = 0;
   int bindcount = -1;
   Lisp_Object bucket, tem, zero;
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
 
   CHECK_STRING (string);
   if (type == 0)
@@ -1690,12 +1672,10 @@ are ignored unless STRING itself starts with a space.  */)
 		    unbind_to (bindcount, Qnil);
 		    bindcount = -1;
 		  }
-		  GCPRO4 (tail, eltstring, allmatches, string);
 		  tem = type == 3
 		    ? call2 (predicate, elt,
 			     HASH_VALUE (XHASH_TABLE (collection), index - 1))
 		    : call1 (predicate, elt);
-		  UNGCPRO;
 		}
 	      if (NILP (tem)) continue;
 	    }
@@ -1775,10 +1755,8 @@ Completion ignores case if the ambient value of
   Lisp_Object init;
   int pos = 0;
   int count = SPECPDL_INDEX ();
-  struct gcpro gcpro1;
 
   init = initial_input;
-  GCPRO1 (def);
 
   specbind (Qminibuffer_completion_table, collection);
   specbind (Qminibuffer_completion_predicate, predicate);
@@ -1833,7 +1811,7 @@ Completion ignores case if the ambient value of
   if (STRINGP (val) && SCHARS (val) == 0 && ! NILP (def))
     val = CONSP (def) ? XCAR (def) : def;
 
-  RETURN_UNGCPRO (unbind_to (count, val));
+  return (unbind_to (count, val));
 }
 
 Lisp_Object Fassoc_string ();

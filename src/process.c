@@ -1599,12 +1599,7 @@ usage: (start-process NAME BUFFER PROGRAM &rest PROGRAM-ARGS)  */)
      function.  The argument list is protected by the caller, so all
      we really have to worry about is buffer.  */
   {
-    struct gcpro gcpro1, gcpro2;
-
     current_dir = current_buffer->directory;
-
-    GCPRO2 (buffer, current_dir);
-
     current_dir = Funhandled_file_name_directory (current_dir);
     if (NILP (current_dir))
       /* If the file name handler says that current_dir is unreachable, use
@@ -1615,7 +1610,6 @@ usage: (start-process NAME BUFFER PROGRAM &rest PROGRAM-ARGS)  */)
       report_file_error ("Setting current directory",
 			 Fcons (current_buffer->directory, Qnil));
 
-    UNGCPRO;
   }
 
   name = args[0];
@@ -1660,7 +1654,6 @@ usage: (start-process NAME BUFFER PROGRAM &rest PROGRAM-ARGS)  */)
     /* Qt denotes we have not yet called Ffind_operation_coding_system.  */
     Lisp_Object coding_systems = Qt;
     Lisp_Object val, *args2;
-    struct gcpro gcpro1, gcpro2;
 
     val = Vcoding_system_for_read;
     if (NILP (val))
@@ -1668,9 +1661,7 @@ usage: (start-process NAME BUFFER PROGRAM &rest PROGRAM-ARGS)  */)
 	args2 = (Lisp_Object *) alloca ((nargs + 1) * sizeof *args2);
 	args2[0] = Qstart_process;
 	for (i = 0; i < nargs; i++) args2[i + 1] = args[i];
-	GCPRO2 (proc, current_dir);
 	coding_systems = Ffind_operation_coding_system (nargs + 1, args2);
-	UNGCPRO;
 	if (CONSP (coding_systems))
 	  val = XCAR (coding_systems);
 	else if (CONSP (Vdefault_process_coding_system))
@@ -1686,9 +1677,7 @@ usage: (start-process NAME BUFFER PROGRAM &rest PROGRAM-ARGS)  */)
 	    args2 = (Lisp_Object *) alloca ((nargs + 1) * sizeof args2);
 	    args2[0] = Qstart_process;
 	    for (i = 0; i < nargs; i++) args2[i + 1] = args[i];
-	    GCPRO2 (proc, current_dir);
 	    coding_systems = Ffind_operation_coding_system (nargs + 1, args2);
-	    UNGCPRO;
 	  }
 	if (CONSP (coding_systems))
 	  val = XCDR (coding_systems);
@@ -1706,12 +1695,8 @@ usage: (start-process NAME BUFFER PROGRAM &rest PROGRAM-ARGS)  */)
       && !(SCHARS (program) > 1
 	   && IS_DEVICE_SEP (SREF (program, 1))))
     {
-      struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
-
       tem = Qnil;
-      GCPRO4 (name, program, buffer, current_dir);
       openp (Vexec_path, program, Vexec_suffixes, &tem, make_number (X_OK));
-      UNGCPRO;
       if (NILP (tem))
 	report_file_error ("Searching for program", Fcons (program, Qnil));
       tem = Fexpand_file_name (tem, Qnil);
@@ -2727,10 +2712,8 @@ usage: (serial-process-configure &rest ARGS)  */)
   struct Lisp_Process *p;
   Lisp_Object contact = Qnil;
   Lisp_Object proc = Qnil;
-  struct gcpro gcpro1;
 
   contact = Flist (nargs, args);
-  GCPRO1 (contact);
 
   proc = Fplist_get (contact, QCprocess);
   if (NILP (proc))
@@ -2746,13 +2729,11 @@ usage: (serial-process-configure &rest ARGS)  */)
 
   if (NILP (Fplist_get (p->childp, QCspeed)))
     {
-      UNGCPRO;
       return Qnil;
     }
 
   serial_configure (p, contact);
 
-  UNGCPRO;
   return Qnil;
 }
 
@@ -2846,7 +2827,6 @@ usage:  (make-serial-process &rest ARGS)  */)
   int fd = -1;
   Lisp_Object proc, contact, port;
   struct Lisp_Process *p;
-  struct gcpro gcpro1;
   Lisp_Object name, buffer;
   Lisp_Object tem, val;
   int specpdl_count = -1;
@@ -2855,7 +2835,6 @@ usage:  (make-serial-process &rest ARGS)  */)
     return Qnil;
 
   contact = Flist (nargs, args);
-  GCPRO1 (contact);
 
   port = Fplist_get (contact, QCport);
   if (NILP (port))
@@ -2957,7 +2936,6 @@ usage:  (make-serial-process &rest ARGS)  */)
 
   specpdl_ptr = specpdl + specpdl_count;
 
-  UNGCPRO;
   return proc;
 }
 #endif /* HAVE_SERIAL  */
@@ -3149,7 +3127,6 @@ usage: (make-network-process &rest ARGS)  */)
   int ret = 0;
   int xerrno = 0;
   int s = -1, outch, inch;
-  struct gcpro gcpro1;
   int count = SPECPDL_INDEX ();
   int count1;
   Lisp_Object QCaddress;  /* one of QClocal or QCremote */
@@ -3166,7 +3143,6 @@ usage: (make-network-process &rest ARGS)  */)
 
   /* Save arguments for process-contact and clone-process.  */
   contact = Flist (nargs, args);
-  GCPRO1 (contact);
 
 #ifdef WINDOWSNT
   /* Ensure socket support is loaded if available. */
@@ -3706,7 +3682,6 @@ usage: (make-network-process &rest ARGS)  */)
 
   {
     /* Setup coding systems for communicating with the network stream.  */
-    struct gcpro gcpro1;
     /* Qt denotes we have not yet called Ffind_operation_coding_system.  */
     Lisp_Object coding_systems = Qt;
     Lisp_Object args[5], val;
@@ -3734,9 +3709,7 @@ usage: (make-network-process &rest ARGS)  */)
 	  {
 	    args[0] = Qopen_network_stream, args[1] = name,
 	      args[2] = buffer, args[3] = host, args[4] = service;
-	    GCPRO1 (proc);
 	    coding_systems = Ffind_operation_coding_system (5, args);
-	    UNGCPRO;
 	  }
 	if (CONSP (coding_systems))
 	  val = XCAR (coding_systems);
@@ -3767,9 +3740,7 @@ usage: (make-network-process &rest ARGS)  */)
 	      {
 		args[0] = Qopen_network_stream, args[1] = name,
 		  args[2] = buffer, args[3] = host, args[4] = service;
-		GCPRO1 (proc);
 		coding_systems = Ffind_operation_coding_system (5, args);
-		UNGCPRO;
 	      }
 	  }
 	if (CONSP (coding_systems))
@@ -3790,7 +3761,6 @@ usage: (make-network-process &rest ARGS)  */)
   p->inherit_coding_system_flag
     = !(!NILP (tem) || NILP (buffer) || !inherit_process_coding_system);
 
-  UNGCPRO;
   return proc;
 }
 #endif	/* HAVE_SOCKETS */
@@ -5271,8 +5241,6 @@ read_process_output (proc, channel)
       int outer_running_asynch_code = running_asynch_code;
       int waiting = waiting_for_user_input_p;
 
-      /* No need to gcpro these, because all we do with them later
-	 is test them for EQness, and none of them should be a string.  */
       odeactivate = Vdeactivate_mark;
       XSETBUFFER (obuffer, current_buffer);
       okeymap = current_buffer->keymap;
@@ -5532,10 +5500,7 @@ send_process (proc, buf, len, object)
   struct Lisp_Process *p = XPROCESS (proc);
   int rv;
   struct coding_system *coding;
-  struct gcpro gcpro1;
   SIGTYPE (*volatile old_sigpipe) ();
-
-  GCPRO1 (object);
 
   if (p->raw_status_new)
     update_status (p);
@@ -5793,8 +5758,6 @@ send_process (proc, buf, len, object)
       deactivate_process (proc);
       error ("SIGPIPE raised on process %s; closed it", SDATA (p->name));
     }
-
-  UNGCPRO;
 }
 
 DEFUN ("process-send-region", Fprocess_send_region, Sprocess_send_region,
@@ -6715,8 +6678,6 @@ exec_sentinel (proc, reason)
   if (inhibit_sentinels)
     return;
 
-  /* No need to gcpro these, because all we do with them later
-     is test them for EQness, and none of them should be a string.  */
   odeactivate = Vdeactivate_mark;
   XSETBUFFER (obuffer, current_buffer);
   okeymap = current_buffer->keymap;
@@ -6789,15 +6750,9 @@ status_notify (deleting_process)
 {
   register Lisp_Object proc, buffer;
   Lisp_Object tail, msg;
-  struct gcpro gcpro1, gcpro2;
 
   tail = Qnil;
   msg = Qnil;
-  /* We need to gcpro tail; if read_process_output calls a filter
-     which deletes a process and removes the cons to which tail points
-     from Vprocess_alist, and then causes a GC, tail is an unprotected
-     reference.  */
-  GCPRO2 (tail, msg);
 
   /* Set this now, so that if new processes are created by sentinels
      that we run, we get called again to handle their status changes.  */
@@ -6906,8 +6861,6 @@ status_notify (deleting_process)
 
   update_mode_lines++;  /* in case buffers use %s in mode-line-format */
   redisplay_preserve_echo_area (13);
-
-  UNGCPRO;
 }
 
 

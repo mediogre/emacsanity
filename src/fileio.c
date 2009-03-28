@@ -908,11 +908,7 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 #endif /* not DOS_NT */
 	)
       {
-	struct gcpro gcpro1;
-
-	GCPRO1 (name);
 	default_directory = Fexpand_file_name (default_directory, Qnil);
-	UNGCPRO;
       }
   }
   name = FILE_SYSTEM_CASE (name);
@@ -1842,7 +1838,6 @@ barf_or_query_if_file_exists (absname, querystring, interactive, statptr, quick)
 {
   register Lisp_Object tem, encoded_filename;
   struct stat statbuf;
-  struct gcpro gcpro1;
 
   encoded_filename = ENCODE_FILE (absname);
 
@@ -1853,14 +1848,12 @@ barf_or_query_if_file_exists (absname, querystring, interactive, statptr, quick)
       if (! interactive)
 	xsignal2 (Qfile_already_exists,
 		  build_string ("File already exists"), absname);
-      GCPRO1 (absname);
       tem = format2 ("File %s already exists; %s anyway? ",
 		     absname, build_string (querystring));
       if (quick)
 	tem = Fy_or_n_p (tem);
       else
 	tem = do_yes_or_no_p (tem);
-      UNGCPRO;
       if (NILP (tem))
 	xsignal2 (Qfile_already_exists,
 		  build_string ("File already exists"), absname);
@@ -1906,13 +1899,11 @@ uid and gid of FILE to NEWNAME.  */)
   char buf[16 * 1024];
   struct stat st, out_st;
   Lisp_Object handler;
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   int count = SPECPDL_INDEX ();
   int input_file_statable_p;
   Lisp_Object encoded_file, encoded_newname;
 
   encoded_file = encoded_newname = Qnil;
-  GCPRO4 (file, newname, encoded_file, encoded_newname);
   CHECK_STRING (file);
   CHECK_STRING (newname);
 
@@ -1930,7 +1921,7 @@ uid and gid of FILE to NEWNAME.  */)
   if (NILP (handler))
     handler = Ffind_file_name_handler (newname, Qcopy_file);
   if (!NILP (handler))
-    RETURN_UNGCPRO (call6 (handler, Qcopy_file, file, newname,
+    return (call6 (handler, Qcopy_file, file, newname,
 			   ok_if_already_exists, keep_time, preserve_uid_gid));
 
   encoded_file = ENCODE_FILE (file);
@@ -1974,7 +1965,6 @@ uid and gid of FILE to NEWNAME.  */)
   /* Discard the unwind protects.  */
   specpdl_ptr = specpdl + count;
 
-  UNGCPRO;
   return Qnil;
 }
 
@@ -2046,15 +2036,12 @@ If file has multiple names, it continues to exist with the other names.  */)
 {
   Lisp_Object handler;
   Lisp_Object encoded_file;
-  struct gcpro gcpro1;
 
-  GCPRO1 (filename);
   if (!NILP (Ffile_directory_p (filename))
       && NILP (Ffile_symlink_p (filename)))
     xsignal2 (Qfile_error,
 	      build_string ("Removing old name: is a directory"),
 	      filename);
-  UNGCPRO;
   filename = Fexpand_file_name (filename, Qnil);
 
   handler = Ffind_file_name_handler (filename, Qdelete_file);
@@ -2102,11 +2089,9 @@ This is what happens in interactive use with M-x.  */)
      Lisp_Object file, newname, ok_if_already_exists;
 {
   Lisp_Object handler;
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
   Lisp_Object encoded_file, encoded_newname, symlink_target;
 
   symlink_target = encoded_file = encoded_newname = Qnil;
-  GCPRO5 (file, newname, encoded_file, encoded_newname, symlink_target);
   CHECK_STRING (file);
   CHECK_STRING (newname);
   file = Fexpand_file_name (file, Qnil);
@@ -2128,7 +2113,7 @@ This is what happens in interactive use with M-x.  */)
   if (NILP (handler))
     handler = Ffind_file_name_handler (newname, Qrename_file);
   if (!NILP (handler))
-    RETURN_UNGCPRO (call4 (handler, Qrename_file,
+    return (call4 (handler, Qrename_file,
 			   file, newname, ok_if_already_exists));
 
   encoded_file = ENCODE_FILE (file);
@@ -2170,7 +2155,6 @@ This is what happens in interactive use with M-x.  */)
       else
 	report_file_error ("Renaming", list2 (file, newname));
     }
-  UNGCPRO;
   return Qnil;
 }
 
@@ -2186,9 +2170,7 @@ This is what happens in interactive use with M-x.  */)
 {
   Lisp_Object handler;
   Lisp_Object encoded_file, encoded_newname;
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
 
-  GCPRO4 (file, newname, encoded_file, encoded_newname);
   encoded_file = encoded_newname = Qnil;
   CHECK_STRING (file);
   CHECK_STRING (newname);
@@ -2203,14 +2185,14 @@ This is what happens in interactive use with M-x.  */)
      call the corresponding file handler.  */
   handler = Ffind_file_name_handler (file, Qadd_name_to_file);
   if (!NILP (handler))
-    RETURN_UNGCPRO (call4 (handler, Qadd_name_to_file, file,
+    return (call4 (handler, Qadd_name_to_file, file,
 			   newname, ok_if_already_exists));
 
   /* If the new name has special constructs in it,
      call the corresponding file handler.  */
   handler = Ffind_file_name_handler (newname, Qadd_name_to_file);
   if (!NILP (handler))
-    RETURN_UNGCPRO (call4 (handler, Qadd_name_to_file, file,
+    return (call4 (handler, Qadd_name_to_file, file,
 			   newname, ok_if_already_exists));
 
   encoded_file = ENCODE_FILE (file);
@@ -2225,7 +2207,6 @@ This is what happens in interactive use with M-x.  */)
   if (0 > link (SDATA (encoded_file), SDATA (encoded_newname)))
     report_file_error ("Adding new name", list2 (file, newname));
 
-  UNGCPRO;
   return Qnil;
 }
 
@@ -2242,9 +2223,7 @@ This happens for interactive use with M-x.  */)
 {
   Lisp_Object handler;
   Lisp_Object encoded_filename, encoded_linkname;
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
 
-  GCPRO4 (filename, linkname, encoded_filename, encoded_linkname);
   encoded_filename = encoded_linkname = Qnil;
   CHECK_STRING (filename);
   CHECK_STRING (linkname);
@@ -2263,14 +2242,14 @@ This happens for interactive use with M-x.  */)
      call the corresponding file handler.  */
   handler = Ffind_file_name_handler (filename, Qmake_symbolic_link);
   if (!NILP (handler))
-    RETURN_UNGCPRO (call4 (handler, Qmake_symbolic_link, filename,
+    return (call4 (handler, Qmake_symbolic_link, filename,
 			   linkname, ok_if_already_exists));
 
   /* If the new link name has special constructs in it,
      call the corresponding file handler.  */
   handler = Ffind_file_name_handler (linkname, Qmake_symbolic_link);
   if (!NILP (handler))
-    RETURN_UNGCPRO (call4 (handler, Qmake_symbolic_link, filename,
+    return (call4 (handler, Qmake_symbolic_link, filename,
 			   linkname, ok_if_already_exists));
 
 #ifdef S_IFLNK
@@ -2302,7 +2281,6 @@ This happens for interactive use with M-x.  */)
   return Qnil;
 
 #else
-  UNGCPRO;
   xsignal1 (Qfile_error, build_string ("Symbolic links are not supported"));
 
 #endif /* S_IFLNK */
@@ -2626,7 +2604,6 @@ searchable directory.  */)
 {
   Lisp_Object handler;
   int tem;
-  struct gcpro gcpro1;
 
   /* If the file name has special constructs in it,
      call the corresponding file handler.  */
@@ -2634,10 +2611,8 @@ searchable directory.  */)
   if (!NILP (handler))
     return call2 (handler, Qfile_accessible_directory_p, filename);
 
-  GCPRO1 (filename);
   tem = (NILP (Ffile_directory_p (filename))
 	 || NILP (Ffile_executable_p (filename)));
-  UNGCPRO;
   return tem ? Qnil : Qt;
 }
 
@@ -2845,16 +2820,13 @@ otherwise, if FILE2 does not exist, the answer is t.  */)
   struct stat st;
   int mtime1;
   Lisp_Object handler;
-  struct gcpro gcpro1, gcpro2;
 
   CHECK_STRING (file1);
   CHECK_STRING (file2);
 
   absname1 = Qnil;
-  GCPRO2 (absname1, file2);
   absname1 = expand_and_dir_to_file (file1, current_buffer->directory);
   absname2 = expand_and_dir_to_file (file2, current_buffer->directory);
-  UNGCPRO;
 
   /* If the file name has special constructs in it,
      call the corresponding file handler.  */
@@ -2864,10 +2836,8 @@ otherwise, if FILE2 does not exist, the answer is t.  */)
   if (!NILP (handler))
     return call3 (handler, Qfile_newer_than_file_p, absname1, absname2);
 
-  GCPRO2 (absname1, absname2);
   absname1 = ENCODE_FILE (absname1);
   absname2 = ENCODE_FILE (absname2);
-  UNGCPRO;
 
   if (stat (SDATA (absname1), &st) < 0)
     return Qnil;
@@ -3001,7 +2971,6 @@ variable `last-coding-system-used' to the coding system actually used.  */)
   register int how_much;
   register int unprocessed;
   int count = SPECPDL_INDEX ();
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
   Lisp_Object handler, val, insval, orig_filename, old_undo;
   Lisp_Object p;
   int total = 0;
@@ -3027,8 +2996,6 @@ variable `last-coding-system-used' to the coding system actually used.  */)
   p = Qnil;
   orig_filename = Qnil;
   old_undo = Qnil;
-
-  GCPRO5 (filename, val, p, orig_filename, old_undo);
 
   CHECK_STRING (filename);
   filename = Fexpand_file_name (filename, Qnil);
@@ -3493,7 +3460,6 @@ variable `last-coding-system-used' to the coding system actually used.  */)
       inserted = 0;		/* Bytes put into CONVERSION_BUFFER so far.  */
       unprocessed = 0;		/* Bytes not processed in previous loop.  */
 
-      GCPRO1 (conversion_buffer);
       while (how_much < total)
 	{
 	  /* We read one bunch by one (READ_BUF_SIZE bytes) to allow
@@ -3525,7 +3491,6 @@ variable `last-coding-system-used' to the coding system actually used.  */)
 	  if (coding.carryover_bytes > 0)
 	    bcopy (coding.carryover, read_buf, unprocessed);
 	}
-      UNGCPRO;
       emacs_close (fd);
 
       /* We should remove the unwind_protect calling
@@ -4106,7 +4071,7 @@ variable `last-coding-system-used' to the coding system actually used.  */)
 		 Fcons (make_number (inserted),
 			Qnil));
 
-  RETURN_UNGCPRO (unbind_to (count, val));
+  return (unbind_to (count, val));
 }
 
 static Lisp_Object build_annotations P_ ((Lisp_Object, Lisp_Object));
@@ -4282,7 +4247,6 @@ This calls `write-region-annotate-functions' at the start, and
   Lisp_Object encoded_filename;
   int visiting = (EQ (visit, Qt) || STRINGP (visit));
   int quietly = !NILP (visit);
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5;
   struct buffer *given_buffer;
 #ifdef DOS_NT
   int buffer_file_type = O_BINARY;
@@ -4296,7 +4260,6 @@ This calls `write-region-annotate-functions' at the start, and
     validate_region (&start, &end);
 
   visit_file = Qnil;
-  GCPRO5 (start, filename, visit, visit_file, lockname);
 
   filename = Fexpand_file_name (filename, Qnil);
 
@@ -4332,7 +4295,6 @@ This calls `write-region-annotate-functions' at the start, and
 	  XSETFASTINT (current_buffer->save_length, Z - BEG);
 	  current_buffer->filename = visit_file;
 	}
-      UNGCPRO;
       return val;
     }
 
@@ -4372,10 +4334,6 @@ This calls `write-region-annotate-functions' at the start, and
       XSETFASTINT (start, BEGV);
       XSETFASTINT (end, ZV);
     }
-
-  UNGCPRO;
-
-  GCPRO5 (start, filename, annotations, visit_file, lockname);
 
   /* Decide the coding-system to encode the data with.
      We used to make this choice before calling build_annotations, but that
@@ -4420,7 +4378,6 @@ This calls `write-region-annotate-functions' at the start, and
       if (!auto_saving) unlock_file (lockname);
       errno = save_errno;
 #endif /* CLASH_DETECTION */
-      UNGCPRO;
       report_file_error ("Opening output file", Fcons (filename, Qnil));
     }
 
@@ -4439,12 +4396,9 @@ This calls `write-region-annotate-functions' at the start, and
 #ifdef CLASH_DETECTION
 	  if (!auto_saving) unlock_file (lockname);
 #endif /* CLASH_DETECTION */
-	  UNGCPRO;
 	  report_file_error ("Lseek error", Fcons (filename, Qnil));
 	}
     }
-
-  UNGCPRO;
 
   failure = 0;
   immediate_quit = 1;
@@ -4589,7 +4543,6 @@ build_annotations (start, end)
 {
   Lisp_Object annotations;
   Lisp_Object p, res;
-  struct gcpro gcpro1, gcpro2;
   Lisp_Object original_buffer;
   int i, used_global = 0;
 
@@ -4597,7 +4550,7 @@ build_annotations (start, end)
 
   annotations = Qnil;
   p = Vwrite_region_annotate_functions;
-  GCPRO2 (annotations, p);
+
   while (CONSP (p))
     {
       struct buffer *given_buffer = current_buffer;
@@ -4658,7 +4611,6 @@ build_annotations (start, end)
 	annotations = merge (annotations, res, Qcar_less_than_car);
     }
 
-  UNGCPRO;
   return annotations;
 }
 
@@ -4916,7 +4868,6 @@ auto_save_error (error)
 {
   Lisp_Object args[3], msg;
   int i, nbytes;
-  struct gcpro gcpro1;
   char *msgbuf;
   USE_SAFE_ALLOCA;
 
@@ -4928,7 +4879,6 @@ auto_save_error (error)
   args[1] = current_buffer->name;
   args[2] = Ferror_message_string (error);
   msg = Fformat (3, args);
-  GCPRO1 (msg);
   nbytes = SBYTES (msg);
   SAFE_ALLOCA (msgbuf, char *, nbytes);
   bcopy (SDATA (msg), msgbuf, nbytes);
@@ -4943,7 +4893,6 @@ auto_save_error (error)
     }
 
   SAFE_FREE ();
-  UNGCPRO;
   return Qnil;
 }
 
@@ -5037,7 +4986,6 @@ A non-nil CURRENT-ONLY argument means save only current buffer.  */)
   int count = SPECPDL_INDEX ();
   int orig_minibuffer_auto_raise = minibuffer_auto_raise;
   int old_message_p = 0;
-  struct gcpro gcpro1, gcpro2;
 
   if (max_specpdl_size < specpdl_size + 40)
     max_specpdl_size = specpdl_size + 40;
@@ -5075,13 +5023,11 @@ A non-nil CURRENT-ONLY argument means save only current buffer.  */)
 	{
 	  Lisp_Object dir;
 	  dir = Qnil;
-	  GCPRO2 (dir, listfile);
 	  dir = Ffile_name_directory (listfile);
 	  if (NILP (Ffile_directory_p (dir)))
 	    internal_condition_case_1 (do_auto_save_make_dir,
 				       dir, Fcons (Fcons (Qfile_error, Qnil), Qnil),
 				       do_auto_save_eh);
-	  UNGCPRO;
 	}
 
       stream = fopen (SDATA (listfile), "w");
@@ -5277,10 +5223,8 @@ Lisp_Object
 Fread_file_name (prompt, dir, default_filename, mustmatch, initial, predicate)
      Lisp_Object prompt, dir, default_filename, mustmatch, initial, predicate;
 {
-  struct gcpro gcpro1, gcpro2;
   Lisp_Object args[7];
 
-  GCPRO1 (default_filename);
   args[0] = intern ("read-file-name");
   args[1] = prompt;
   args[2] = dir;
@@ -5288,7 +5232,7 @@ Fread_file_name (prompt, dir, default_filename, mustmatch, initial, predicate)
   args[4] = mustmatch;
   args[5] = initial;
   args[6] = predicate;
-  RETURN_UNGCPRO (Ffuncall (7, args));
+  return (Ffuncall (7, args));
 }
 
 

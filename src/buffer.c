@@ -427,7 +427,6 @@ even if it is dead.  The return value is never nil.  */)
      can lead to infinite regress until you run out of stack.  rms
      says that's not worth protecting against.  */
   if (!NILP (Ffboundp (Qucs_set_table_for_input)))
-    /* buffer is on buffer-alist, so no gcpro.  */
     call1 (Qucs_set_table_for_input, buffer);
 
   return buffer;
@@ -1409,7 +1408,6 @@ with SIGHUP.  */)
   register struct buffer *b;
   register Lisp_Object tem;
   register struct Lisp_Marker *m;
-  struct gcpro gcpro1;
 
   if (NILP (buffer_or_name))
     buffer = Fcurrent_buffer ();
@@ -1428,10 +1426,8 @@ with SIGHUP.  */)
   if (INTERACTIVE && !NILP (b->filename)
       && BUF_MODIFF (b) > BUF_SAVE_MODIFF (b))
     {
-      GCPRO1 (buffer);
       tem = do_yes_or_no_p (format2 ("Buffer %s modified; kill anyway? ",
 				     b->name, make_number (0)));
-      UNGCPRO;
       if (NILP (tem))
 	return Qnil;
     }
@@ -1474,8 +1470,6 @@ with SIGHUP.  */)
     {
       struct buffer *other;
 
-      GCPRO1 (buffer);
-
       for (other = all_buffers; other; other = other->next)
 	/* all_buffers contains dead buffers too;
 	   don't re-kill them.  */
@@ -1486,7 +1480,6 @@ with SIGHUP.  */)
 	    Fkill_buffer (buffer);
 	  }
 
-      UNGCPRO;
     }
 
   /* Make this buffer not be current.
@@ -1517,9 +1510,7 @@ with SIGHUP.  */)
   unlock_buffer (b);
 #endif /* CLASH_DETECTION */
 
-  GCPRO1 (buffer);
   kill_buffer_processes (buffer);
-  UNGCPRO;
 
   /* Killing buffer processes may run sentinels which may
      have called kill-buffer.  */
@@ -2330,7 +2321,6 @@ current buffer is cleared.  */)
   int narrowed = (BEG != BEGV || Z != ZV);
   int modified_p = !NILP (Fbuffer_modified_p (Qnil));
   Lisp_Object old_undo = current_buffer->undo_list;
-  struct gcpro gcpro1;
 
   if (current_buffer->base_buffer)
     error ("Cannot do `set-buffer-multibyte' on an indirect buffer");
@@ -2338,8 +2328,6 @@ current buffer is cleared.  */)
   /* Do nothing if nothing actually changes.  */
   if (NILP (flag) == NILP (current_buffer->enable_multibyte_characters))
     return flag;
-
-  GCPRO1 (old_undo);
 
   /* Don't record these buffer changes.  We will put a special undo entry
      instead.  */
@@ -2565,8 +2553,6 @@ current buffer is cleared.  */)
 						NILP (flag) ? Qt : Qnil),
 					 old_undo);
     }
-
-  UNGCPRO;
 
   /* Changing the multibyteness of a buffer means that all windows
      showing that buffer must be updated thoroughly.  */
@@ -4370,7 +4356,6 @@ report_overlay_modification (start, end, after, arg1, arg2, arg3)
   struct Lisp_Overlay *tail;
   /* 1 if this change is an insertion.  */
   int insertion = (after ? XFASTINT (arg3) == 0 : EQ (start, end));
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
 
   overlay = Qnil;
   tail = NULL;
@@ -4463,7 +4448,6 @@ report_overlay_modification (start, end, after, arg1, arg2, arg3)
 	}
     }
 
-  GCPRO4 (overlay, arg1, arg2, arg3);
   {
     /* Call the functions recorded in last_overlay_modification_hooks.
        First copy the vector contents, in case some of these hooks
@@ -4474,8 +4458,6 @@ report_overlay_modification (start, end, after, arg1, arg2, arg3)
 
     bcopy (XVECTOR (last_overlay_modification_hooks)->contents,
 	   copy, size * sizeof (Lisp_Object));
-    gcpro1.var = copy;
-    gcpro1.nvars = size;
 
     for (i = 0; i < size;)
       {
@@ -4485,7 +4467,6 @@ report_overlay_modification (start, end, after, arg1, arg2, arg3)
 	call_overlay_mod_hooks (prop, overlay, after, arg1, arg2, arg3);
       }
   }
-  UNGCPRO;
 }
 
 static void
@@ -4494,10 +4475,6 @@ call_overlay_mod_hooks (list, overlay, after, arg1, arg2, arg3)
      int after;
      Lisp_Object arg1, arg2, arg3;
 {
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
-
-  GCPRO4 (list, arg1, arg2, arg3);
-
   while (CONSP (list))
     {
       if (NILP (arg3))
@@ -4506,7 +4483,6 @@ call_overlay_mod_hooks (list, overlay, after, arg1, arg2, arg3)
 	call5 (XCAR (list), overlay, after ? Qt : Qnil, arg1, arg2, arg3);
       list = XCDR (list);
     }
-  UNGCPRO;
 }
 
 /* Delete any zero-sized overlays at position POS, if the `evaporate'

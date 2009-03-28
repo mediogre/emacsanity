@@ -990,7 +990,6 @@ Return t if the file exists and loads successfully.  */)
   register FILE *stream;
   register int fd = -1;
   int count = SPECPDL_INDEX ();
-  struct gcpro gcpro1, gcpro2, gcpro3;
   Lisp_Object found, efound, hist_file_name;
   /* 1 means we printed the ".el is newer" message.  */
   int newer = 0;
@@ -1040,7 +1039,6 @@ Return t if the file exists and loads successfully.  */)
       int size = SBYTES (file);
 
       found = Qnil;
-      GCPRO2 (file, found);
 
       if (! NILP (must_suffix))
 	{
@@ -1064,7 +1062,6 @@ Return t if the file exists and loads successfully.  */)
 				  tmp[1] = Vload_file_rep_suffixes,
 				  tmp))),
 		  &found, Qnil);
-      UNGCPRO;
     }
 
   if (fd == -1)
@@ -1140,8 +1137,6 @@ Return t if the file exists and loads successfully.  */)
 	  struct stat s1, s2;
 	  int result;
 
-	  GCPRO3 (file, found, hist_file_name);
-
 	  if (version < 0
 	      && ! (version = safe_to_load_p (fd)))
 	    {
@@ -1183,7 +1178,6 @@ Return t if the file exists and loads successfully.  */)
 				       msg_file, 1);
 		}
 	    }
-	  UNGCPRO;
 	}
     }
   else
@@ -1201,8 +1195,6 @@ Return t if the file exists and loads successfully.  */)
 	  return unbind_to (count, val);
 	}
     }
-
-  GCPRO3 (file, found, hist_file_name);
 
 #ifdef WINDOWSNT
   emacs_close (fd);
@@ -1258,8 +1250,6 @@ Return t if the file exists and loads successfully.  */)
   if (NILP (Vpurify_flag)
       && (!NILP (Ffboundp (Qdo_after_load_evaluation))))
     call1 (Qdo_after_load_evaluation, hist_file_name) ;
-
-  UNGCPRO;
 
   xfree (saved_doc_string);
   saved_doc_string = 0;
@@ -1391,7 +1381,6 @@ openp (path, str, suffixes, storeptr, predicate)
   int want_size;
   Lisp_Object filename;
   struct stat st;
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4, gcpro5, gcpro6;
   Lisp_Object string, tail, encoded_fn;
   int max_suffix_len = 0;
 
@@ -1405,7 +1394,6 @@ openp (path, str, suffixes, storeptr, predicate)
     }
 
   string = filename = encoded_fn = Qnil;
-  GCPRO6 (str, string, filename, path, suffixes, encoded_fn);
 
   if (storeptr)
     *storeptr = Qnil;
@@ -1485,7 +1473,6 @@ openp (path, str, suffixes, storeptr, predicate)
 		  /* We succeeded; return this descriptor and filename.  */
 		  if (storeptr)
 		    *storeptr = string;
-		  UNGCPRO;
 		  return -2;
 		}
 	    }
@@ -1510,7 +1497,6 @@ openp (path, str, suffixes, storeptr, predicate)
 		      /* We succeeded; return this descriptor and filename.  */
 		      if (storeptr)
 			*storeptr = string;
-		      UNGCPRO;
 		      return fd;
 		    }
 		}
@@ -1520,7 +1506,6 @@ openp (path, str, suffixes, storeptr, predicate)
 	break;
     }
 
-  UNGCPRO;
   return -1;
 }
 
@@ -1643,7 +1628,6 @@ readevalloop (readcharfun, stream, sourcename, evalfun,
   register int c;
   register Lisp_Object val;
   int count = SPECPDL_INDEX ();
-  struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
   struct buffer *b = 0;
   int continue_reading_p;
   /* Nonzero if reading an entire buffer.  */
@@ -1666,12 +1650,10 @@ readevalloop (readcharfun, stream, sourcename, evalfun,
   if (! NILP (start) && !b)
     abort ();
 
-  specbind (Qstandard_input, readcharfun); /* GCPROs readcharfun.  */
+  specbind (Qstandard_input, readcharfun); 
   specbind (Qcurrent_load_list, Qnil);
   record_unwind_protect (readevalloop_1, load_convert_to_unibyte ? Qt : Qnil);
   load_convert_to_unibyte = !NILP (unibyte);
-
-  GCPRO4 (sourcename, readfun, start, end);
 
   /* Try to ensure sourcename is a truename, except whilst preloading. */
   if (NILP (Vpurify_flag)
@@ -1788,8 +1770,6 @@ readevalloop (readcharfun, stream, sourcename, evalfun,
 
   build_load_history (sourcename,
 		      stream || whole_buffer);
-
-  UNGCPRO;
 
   unbind_to (count, Qnil);
 }
@@ -2414,14 +2394,12 @@ read1 (readcharfun, pch, first_in_list)
       if (c == '(')
 	{
 	  Lisp_Object tmp;
-	  struct gcpro gcpro1;
 	  int ch;
 
 	  /* Read the string itself.  */
 	  tmp = read1 (readcharfun, &ch, 0);
 	  if (ch != 0 || !STRINGP (tmp))
 	    invalid_syntax ("#", 1);
-	  GCPRO1 (tmp);
 	  /* Read the intervals and their properties.  */
 	  while (1)
 	    {
@@ -2439,7 +2417,6 @@ read1 (readcharfun, pch, first_in_list)
 		invalid_syntax ("Invalid string property list", 0);
 	      Fset_text_properties (beg, end, plist, tmp);
 	    }
-	  UNGCPRO;
 	  return tmp;
 	}
 
@@ -3310,7 +3287,6 @@ read_list (flag, readcharfun)
   int defunflag = flag < 0 ? -1 : 0;
   Lisp_Object val, tail;
   register Lisp_Object elt, tem;
-  struct gcpro gcpro1, gcpro2;
   /* 0 is the normal case.
      1 means this list is a doc reference; replace it with the number 0.
      2 means this list is a doc reference; replace it with the doc string.  */
@@ -3325,9 +3301,7 @@ read_list (flag, readcharfun)
   while (1)
     {
       int ch;
-      GCPRO2 (val, tail);
       elt = read1 (readcharfun, &ch, first_in_list);
-      UNGCPRO;
 
       first_in_list = 0;
 
@@ -3368,13 +3342,11 @@ read_list (flag, readcharfun)
 	    return val;
 	  if (ch == '.')
 	    {
-	      GCPRO2 (val, tail);
 	      if (!NILP (tail))
 		XSETCDR (tail, read0 (readcharfun));
 	      else
 		val = read0 (readcharfun);
 	      read1 (readcharfun, &ch, 0);
-	      UNGCPRO;
 	      if (ch == ')')
 		{
 		  if (doc_reference == 1)

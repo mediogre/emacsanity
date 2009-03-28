@@ -320,24 +320,10 @@ static POINTER_TYPE *lisp_align_malloc P_ ((size_t, enum mem_type));
 static POINTER_TYPE *lisp_malloc P_ ((size_t, enum mem_type));
 void refill_memory_reserve ();
 
-
-#if GC_MARK_STACK || defined GC_MALLOC_CHECK
-
-#if GC_MARK_STACK == GC_USE_GCPROS_CHECK_ZOMBIES
-#include <stdio.h>		/* For fprintf.  */
-#endif
-
 /* A unique object in pure space used to make some Lisp objects
    on free lists recognizable in O(1).  */
 
 static Lisp_Object Vdead;
-
-#ifdef GC_MALLOC_CHECK
-
-enum mem_type allocated_mem_type;
-static int dont_register_blocks;
-
-#endif /* GC_MALLOC_CHECK */
 
 /* A node in the red-black tree describing allocated memory containing
    Lisp data.  Each such block is recorded with its start and end
@@ -421,17 +407,6 @@ static void mem_delete P_ ((struct mem_node *));
 static void mem_delete_fixup P_ ((struct mem_node *));
 static INLINE struct mem_node *mem_find P_ ((void *));
 
-
-#if GC_MARK_STACK == GC_MARK_STACK_CHECK_GCPROS
-static void check_gcpros P_ ((void));
-#endif
-
-#endif /* GC_MARK_STACK || GC_MALLOC_CHECK */
-
-/* Recording what needs to be marked for gc.  */
-
-struct gcpro *gcprolist;
-
 /* Addresses of staticpro'd variables.  Initialize it to a nonzero
    value; otherwise some compilers put it into BSS.  */
 
@@ -503,174 +478,6 @@ buffer_memory_full ()
      get infinite recursion trying to build the string.  */
   xsignal (Qnil, Vmemory_signal_data);
 }
-
-
-#ifdef XMALLOC_OVERRUN_CHECK
-
-/* Check for overrun in malloc'ed buffers by wrapping a 16 byte header
-   and a 16 byte trailer around each block.
-
-   The header consists of 12 fixed bytes + a 4 byte integer contaning the
-   original block size, while the trailer consists of 16 fixed bytes.
-
-   The header is used to detect whether this block has been allocated
-   through these functions -- as it seems that some low-level libc
-   functions may bypass the malloc hooks.
-*/
-
-
-#define XMALLOC_OVERRUN_CHECK_SIZE 16
-
-static char xmalloc_overrun_check_header[XMALLOC_OVERRUN_CHECK_SIZE-4] =
-  { 0x9a, 0x9b, 0xae, 0xaf,
-    0xbf, 0xbe, 0xce, 0xcf,
-    0xea, 0xeb, 0xec, 0xed };
-
-static char xmalloc_overrun_check_trailer[XMALLOC_OVERRUN_CHECK_SIZE] =
-  { 0xaa, 0xab, 0xac, 0xad,
-    0xba, 0xbb, 0xbc, 0xbd,
-    0xca, 0xcb, 0xcc, 0xcd,
-    0xda, 0xdb, 0xdc, 0xdd };
-
-/* Macros to insert and extract the block size in the header.  */
-
-#define XMALLOC_PUT_SIZE(ptr, size)	\
-  (ptr[-1] = (size & 0xff),		\
-   ptr[-2] = ((size >> 8) & 0xff),	\
-   ptr[-3] = ((size >> 16) & 0xff),	\
-   ptr[-4] = ((size >> 24) & 0xff))
-
-#define XMALLOC_GET_SIZE(ptr)			\
-  (size_t)((unsigned)(ptr[-1])		|	\
-	   ((unsigned)(ptr[-2]) << 8)	|	\
-	   ((unsigned)(ptr[-3]) << 16)	|	\
-	   ((unsigned)(ptr[-4]) << 24))
-
-
-/* The call depth in overrun_check functions.  For example, this might happen:
-   xmalloc()
-     overrun_check_malloc()
-       -> malloc -> (via hook)_-> emacs_blocked_malloc
-          -> overrun_check_malloc
-             call malloc  (hooks are NULL, so real malloc is called).
-             malloc returns 10000.
-             add overhead, return 10016.
-      <- (back in overrun_check_malloc)
-      add overhead again, return 10032
-   xmalloc returns 10032.
-
-   (time passes).
-
-   xfree(10032)
-     overrun_check_free(10032)
-       decrease overhed
-       free(10016)  <-  crash, because 10000 is the original pointer.  */
-
-static int check_depth;
-
-/* Like malloc, but wraps allocated block with header and trailer.  */
-
-POINTER_TYPE *
-overrun_check_malloc (size)
-     size_t size;
-{
-  register unsigned char *val;
-  size_t overhead = ++check_depth == 1 ? XMALLOC_OVERRUN_CHECK_SIZE*2 : 0;
-
-  val = (unsigned char *) malloc (size + overhead);
-  if (val && check_depth == 1)
-    {
-      bcopy (xmalloc_overrun_check_header, val, XMALLOC_OVERRUN_CHECK_SIZE - 4);
-      val += XMALLOC_OVERRUN_CHECK_SIZE;
-      XMALLOC_PUT_SIZE(val, size);
-      bcopy (xmalloc_overrun_check_trailer, val + size, XMALLOC_OVERRUN_CHECK_SIZE);
-    }
-  --check_depth;
-  return (POINTER_TYPE *)val;
-}
-
-
-/* Like realloc, but checks old block for overrun, and wraps new block
-   with header and trailer.  */
-
-POINTER_TYPE *
-overrun_check_realloc (block, size)
-     POINTER_TYPE *block;
-     size_t size;
-{
-  register unsigned char *val = (unsigned char *)block;
-  size_t overhead = ++check_depth == 1 ? XMALLOC_OVERRUN_CHECK_SIZE*2 : 0;
-
-  if (val
-      && check_depth == 1
-      && bcmp (xmalloc_overrun_check_header,
-	       val - XMALLOC_OVERRUN_CHECK_SIZE,
-	       XMALLOC_OVERRUN_CHECK_SIZE - 4) == 0)
-    {
-      size_t osize = XMALLOC_GET_SIZE (val);
-      if (bcmp (xmalloc_overrun_check_trailer,
-		val + osize,
-		XMALLOC_OVERRUN_CHECK_SIZE))
-	abort ();
-      bzero (val + osize, XMALLOC_OVERRUN_CHECK_SIZE);
-      val -= XMALLOC_OVERRUN_CHECK_SIZE;
-      bzero (val, XMALLOC_OVERRUN_CHECK_SIZE);
-    }
-
-  val = (unsigned char *) realloc ((POINTER_TYPE *)val, size + overhead);
-
-  if (val && check_depth == 1)
-    {
-      bcopy (xmalloc_overrun_check_header, val, XMALLOC_OVERRUN_CHECK_SIZE - 4);
-      val += XMALLOC_OVERRUN_CHECK_SIZE;
-      XMALLOC_PUT_SIZE(val, size);
-      bcopy (xmalloc_overrun_check_trailer, val + size, XMALLOC_OVERRUN_CHECK_SIZE);
-    }
-  --check_depth;
-  return (POINTER_TYPE *)val;
-}
-
-/* Like free, but checks block for overrun.  */
-
-void
-overrun_check_free (block)
-     POINTER_TYPE *block;
-{
-  unsigned char *val = (unsigned char *)block;
-
-  ++check_depth;
-  if (val
-      && check_depth == 1
-      && bcmp (xmalloc_overrun_check_header,
-	       val - XMALLOC_OVERRUN_CHECK_SIZE,
-	       XMALLOC_OVERRUN_CHECK_SIZE - 4) == 0)
-    {
-      size_t osize = XMALLOC_GET_SIZE (val);
-      if (bcmp (xmalloc_overrun_check_trailer,
-		val + osize,
-		XMALLOC_OVERRUN_CHECK_SIZE))
-	abort ();
-#ifdef XMALLOC_CLEAR_FREE_MEMORY
-      val -= XMALLOC_OVERRUN_CHECK_SIZE;
-      memset (val, 0xff, osize + XMALLOC_OVERRUN_CHECK_SIZE*2);
-#else
-      bzero (val + osize, XMALLOC_OVERRUN_CHECK_SIZE);
-      val -= XMALLOC_OVERRUN_CHECK_SIZE;
-      bzero (val, XMALLOC_OVERRUN_CHECK_SIZE);
-#endif
-    }
-
-  free (val);
-  --check_depth;
-}
-
-#undef malloc
-#undef realloc
-#undef free
-#define malloc overrun_check_malloc
-#define realloc overrun_check_realloc
-#define free overrun_check_free
-#endif
 
 #ifdef SYNC_INPUT
 /* When using SYNC_INPUT, we don't call malloc from a signal handler, so
@@ -786,10 +593,6 @@ lisp_malloc (nbytes, type)
 
   MALLOC_BLOCK_INPUT;
 
-#ifdef GC_MALLOC_CHECK
-  allocated_mem_type = type;
-#endif
-
   val = (void *) malloc (nbytes);
 
 #ifndef USE_LSB_TAG
@@ -809,10 +612,8 @@ lisp_malloc (nbytes, type)
     }
 #endif
 
-#if GC_MARK_STACK && !defined GC_MALLOC_CHECK
   if (val && type != MEM_TYPE_NON_LISP)
     mem_insert (val, (char *) val + nbytes, type);
-#endif
 
   MALLOC_UNBLOCK_INPUT;
   if (!val && nbytes)
@@ -829,9 +630,9 @@ lisp_free (block)
 {
   MALLOC_BLOCK_INPUT;
   free (block);
-#if GC_MARK_STACK && !defined GC_MALLOC_CHECK
+
   mem_delete (mem_find (block));
-#endif
+
   MALLOC_UNBLOCK_INPUT;
 }
 
@@ -935,10 +736,6 @@ lisp_align_malloc (nbytes, type)
 
   MALLOC_BLOCK_INPUT;
 
-#ifdef GC_MALLOC_CHECK
-  allocated_mem_type = type;
-#endif
-
   if (!free_ablock)
     {
       int i;
@@ -1007,10 +804,8 @@ lisp_align_malloc (nbytes, type)
   val = free_ablock;
   free_ablock = free_ablock->x.next_free;
 
-#if GC_MARK_STACK && !defined GC_MALLOC_CHECK
   if (val && type != MEM_TYPE_NON_LISP)
     mem_insert (val, (char *) val + nbytes, type);
-#endif
 
   MALLOC_UNBLOCK_INPUT;
   if (!val && nbytes)
@@ -1028,9 +823,9 @@ lisp_align_free (block)
   struct ablocks *abase = ABLOCK_ABASE (ablock);
 
   MALLOC_BLOCK_INPUT;
-#if GC_MARK_STACK && !defined GC_MALLOC_CHECK
+
   mem_delete (mem_find (block));
-#endif
+
   /* Put on free list.  */
   ablock->x.next_free = free_ablock;
   free_ablock = ablock;
@@ -1111,26 +906,6 @@ emacs_blocked_free (ptr, ptr2)
 {
   BLOCK_INPUT_ALLOC;
 
-#ifdef GC_MALLOC_CHECK
-  if (ptr)
-    {
-      struct mem_node *m;
-
-      m = mem_find (ptr);
-      if (m == MEM_NIL || m->start != ptr)
-	{
-	  fprintf (stderr,
-		   "Freeing `%p' which wasn't allocated with malloc\n", ptr);
-	  abort ();
-	}
-      else
-	{
-	  /* fprintf (stderr, "free %p...%p (%p)\n", m->start, m->end, ptr); */
-	  mem_delete (m);
-	}
-    }
-#endif /* GC_MALLOC_CHECK */
-
   __free_hook = old_free_hook;
   free (ptr);
 
@@ -1167,27 +942,6 @@ emacs_blocked_malloc (size, ptr)
 
   value = (void *) malloc (size);
 
-#ifdef GC_MALLOC_CHECK
-  {
-    struct mem_node *m = mem_find (value);
-    if (m != MEM_NIL)
-      {
-	fprintf (stderr, "Malloc returned %p which is already in use\n",
-		 value);
-	fprintf (stderr, "Region in use is %p...%p, %u bytes, type %d\n",
-		 m->start, m->end, (char *) m->end - (char *) m->start,
-		 m->type);
-	abort ();
-      }
-
-    if (!dont_register_blocks)
-      {
-	mem_insert (value, (char *) value + max (1, size), allocated_mem_type);
-	allocated_mem_type = MEM_TYPE_NON_LISP;
-      }
-  }
-#endif /* GC_MALLOC_CHECK */
-
   __malloc_hook = emacs_blocked_malloc;
   UNBLOCK_INPUT_ALLOC;
 
@@ -1208,48 +962,7 @@ emacs_blocked_realloc (ptr, size, ptr2)
 
   BLOCK_INPUT_ALLOC;
   __realloc_hook = old_realloc_hook;
-
-#ifdef GC_MALLOC_CHECK
-  if (ptr)
-    {
-      struct mem_node *m = mem_find (ptr);
-      if (m == MEM_NIL || m->start != ptr)
-	{
-	  fprintf (stderr,
-		   "Realloc of %p which wasn't allocated with malloc\n",
-		   ptr);
-	  abort ();
-	}
-
-      mem_delete (m);
-    }
-
-  /* fprintf (stderr, "%p -> realloc\n", ptr); */
-
-  /* Prevent malloc from registering blocks.  */
-  dont_register_blocks = 1;
-#endif /* GC_MALLOC_CHECK */
-
   value = (void *) realloc (ptr, size);
-
-#ifdef GC_MALLOC_CHECK
-  dont_register_blocks = 0;
-
-  {
-    struct mem_node *m = mem_find (value);
-    if (m != MEM_NIL)
-      {
-	fprintf (stderr, "Realloc returns memory that is already in use\n");
-	abort ();
-      }
-
-    /* Can't handle zero size regions in the red-black tree.  */
-    mem_insert (value, (char *) value + max (size, 1), MEM_TYPE_NON_LISP);
-  }
-
-  /* fprintf (stderr, "%p <- realloc\n", value); */
-#endif /* GC_MALLOC_CHECK */
-
   __realloc_hook = emacs_blocked_realloc;
   UNBLOCK_INPUT_ALLOC;
 
@@ -2586,9 +2299,8 @@ free_cons (ptr)
      struct Lisp_Cons *ptr;
 {
   ptr->u.chain = cons_free_list;
-#if GC_MARK_STACK
   ptr->car = Vdead;
-#endif
+
   cons_free_list = ptr;
 }
 
@@ -3328,8 +3040,6 @@ refill_memory_reserve ()
 			   C Stack Marking
  ************************************************************************/
 
-#if GC_MARK_STACK || defined GC_MALLOC_CHECK
-
 /* Conservative C stack marking requires a method to identify possibly
    live Lisp objects given a pointer value.  We do this by keeping
    track of blocks of Lisp data that are allocated in a red-black tree
@@ -3399,34 +3109,15 @@ mem_insert (start, end, type)
   c = mem_root;
   parent = NULL;
 
-#if GC_MARK_STACK != GC_MAKE_GCPROS_NOOPS
-
-  while (c != MEM_NIL)
-    {
-      if (start >= c->start && start < c->end)
-	abort ();
-      parent = c;
-      c = start < c->start ? c->left : c->right;
-    }
-
-#else /* GC_MARK_STACK == GC_MARK_STACK_CHECK_GCPROS */
-
   while (c != MEM_NIL)
     {
       parent = c;
       c = start < c->start ? c->left : c->right;
     }
-
-#endif /* GC_MARK_STACK == GC_MARK_STACK_CHECK_GCPROS */
 
   /* Create a new node.  */
-#ifdef GC_MALLOC_CHECK
-  x = (struct mem_node *) _malloc_internal (sizeof *x);
-  if (x == NULL)
-    abort ();
-#else
   x = (struct mem_node *) xmalloc (sizeof *x);
-#endif
+
   x->start = start;
   x->end = end;
   x->type = type;
@@ -3648,11 +3339,7 @@ mem_delete (z)
   if (y->color == MEM_BLACK)
     mem_delete_fixup (x);
 
-#ifdef GC_MALLOC_CHECK
-  _free_internal (y);
-#else
   xfree (y);
-#endif
 }
 
 
@@ -3900,60 +3587,6 @@ live_buffer_p (m, p)
 	  && !NILP (((struct buffer *) p)->name));
 }
 
-#endif /* GC_MARK_STACK || defined GC_MALLOC_CHECK */
-
-#if GC_MARK_STACK
-
-#if GC_MARK_STACK == GC_USE_GCPROS_CHECK_ZOMBIES
-
-/* Array of objects that are kept alive because the C stack contains
-   a pattern that looks like a reference to them .  */
-
-#define MAX_ZOMBIES 10
-static Lisp_Object zombies[MAX_ZOMBIES];
-
-/* Number of zombie objects.  */
-
-static int nzombies;
-
-/* Number of garbage collections.  */
-
-static int ngcs;
-
-/* Average percentage of zombies per collection.  */
-
-static double avg_zombies;
-
-/* Max. number of live and zombie objects.  */
-
-static int max_live, max_zombies;
-
-/* Average number of live objects per GC.  */
-
-static double avg_live;
-
-DEFUN ("gc-status", Fgc_status, Sgc_status, 0, 0, "",
-       doc: /* Show information about live and zombie objects.  */)
-     ()
-{
-  Lisp_Object args[8], zombie_list = Qnil;
-  int i;
-  for (i = 0; i < nzombies; i++)
-    zombie_list = Fcons (zombies[i], zombie_list);
-  args[0] = build_string ("%d GCs, avg live/zombies = %.2f/%.2f (%f%%), max %d/%d\nzombies: %S");
-  args[1] = make_number (ngcs);
-  args[2] = make_float (avg_live);
-  args[3] = make_float (avg_zombies);
-  args[4] = make_float (avg_zombies / avg_live / 100);
-  args[5] = make_number (max_live);
-  args[6] = make_number (max_zombies);
-  args[7] = zombie_list;
-  return Fmessage (8, args);
-}
-
-#endif /* GC_MARK_STACK == GC_USE_GCPROS_CHECK_ZOMBIES */
-
-
 /* Mark OBJ if we can prove it's a Lisp_Object.  */
 
 static INLINE void
@@ -4007,11 +3640,6 @@ mark_maybe_object (obj)
 
       if (mark_p)
 	{
-#if GC_MARK_STACK == GC_USE_GCPROS_CHECK_ZOMBIES
-	  if (nzombies < MAX_ZOMBIES)
-	    zombies[nzombies] = obj;
-	  ++nzombies;
-#endif
 	  mark_object (obj);
 	}
     }
@@ -4110,10 +3738,6 @@ mark_memory (start, end, offset)
   Lisp_Object *p;
   void **pp;
 
-#if GC_MARK_STACK == GC_USE_GCPROS_CHECK_ZOMBIES
-  nzombies = 0;
-#endif
-
   /* Make START the pointer to the start of the memory region,
      if it isn't already.  */
   if (end < start)
@@ -4148,131 +3772,6 @@ mark_memory (start, end, offset)
   for (pp = (void **) ((char *) start + offset); (void *) pp < end; ++pp)
     mark_maybe_pointer (*pp);
 }
-
-/* setjmp will work with GCC unless NON_SAVING_SETJMP is defined in
-   the GCC system configuration.  In gcc 3.2, the only systems for
-   which this is so are i386-sco5 non-ELF, i386-sysv3 (maybe included
-   by others?) and ns32k-pc532-min.  */
-
-#if !defined GC_SAVE_REGISTERS_ON_STACK && !defined GC_SETJMP_WORKS
-
-static int setjmp_tested_p, longjmps_done;
-
-#define SETJMP_WILL_LIKELY_WORK "\
-\n\
-Emacs garbage collector has been changed to use conservative stack\n\
-marking.  Emacs has determined that the method it uses to do the\n\
-marking will likely work on your system, but this isn't sure.\n\
-\n\
-If you are a system-programmer, or can get the help of a local wizard\n\
-who is, please take a look at the function mark_stack in alloc.c, and\n\
-verify that the methods used are appropriate for your system.\n\
-\n\
-Please mail the result to <emacs-devel@gnu.org>.\n\
-"
-
-#define SETJMP_WILL_NOT_WORK "\
-\n\
-Emacs garbage collector has been changed to use conservative stack\n\
-marking.  Emacs has determined that the default method it uses to do the\n\
-marking will not work on your system.  We will need a system-dependent\n\
-solution for your system.\n\
-\n\
-Please take a look at the function mark_stack in alloc.c, and\n\
-try to find a way to make it work on your system.\n\
-\n\
-Note that you may get false negatives, depending on the compiler.\n\
-In particular, you need to use -O with GCC for this test.\n\
-\n\
-Please mail the result to <emacs-devel@gnu.org>.\n\
-"
-
-
-/* Perform a quick check if it looks like setjmp saves registers in a
-   jmp_buf.  Print a message to stderr saying so.  When this test
-   succeeds, this is _not_ a proof that setjmp is sufficient for
-   conservative stack marking.  Only the sources or a disassembly
-   can prove that.  */
-
-static void
-test_setjmp ()
-{
-  char buf[10];
-  register int x;
-  jmp_buf jbuf;
-  int result = 0;
-
-  /* Arrange for X to be put in a register.  */
-  sprintf (buf, "1");
-  x = strlen (buf);
-  x = 2 * x - 1;
-
-  setjmp (jbuf);
-  if (longjmps_done == 1)
-    {
-      /* Came here after the longjmp at the end of the function.
-
-         If x == 1, the longjmp has restored the register to its
-         value before the setjmp, and we can hope that setjmp
-         saves all such registers in the jmp_buf, although that
-	 isn't sure.
-
-         For other values of X, either something really strange is
-         taking place, or the setjmp just didn't save the register.  */
-
-      if (x == 1)
-	fprintf (stderr, SETJMP_WILL_LIKELY_WORK);
-      else
-	{
-	  fprintf (stderr, SETJMP_WILL_NOT_WORK);
-	  exit (1);
-	}
-    }
-
-  ++longjmps_done;
-  x = 2;
-  if (longjmps_done == 1)
-    longjmp (jbuf, 1);
-}
-
-#endif /* not GC_SAVE_REGISTERS_ON_STACK && not GC_SETJMP_WORKS */
-
-
-#if GC_MARK_STACK == GC_MARK_STACK_CHECK_GCPROS
-
-/* Abort if anything GCPRO'd doesn't survive the GC.  */
-
-static void
-check_gcpros ()
-{
-  struct gcpro *p;
-  int i;
-
-  for (p = gcprolist; p; p = p->next)
-    for (i = 0; i < p->nvars; ++i)
-      if (!survives_gc_p (p->var[i]))
-	/* FIXME: It's not necessarily a bug.  It might just be that the
-	   GCPRO is unnecessary or should release the object sooner.  */
-	abort ();
-}
-
-#elif GC_MARK_STACK == GC_USE_GCPROS_CHECK_ZOMBIES
-
-static void
-dump_zombies ()
-{
-  int i;
-
-  fprintf (stderr, "\nZombies kept alive = %d:\n", nzombies);
-  for (i = 0; i < min (MAX_ZOMBIES, nzombies); ++i)
-    {
-      fprintf (stderr, "  %d = ", i);
-      debug_print (zombies[i]);
-    }
-}
-
-#endif /* GC_MARK_STACK == GC_USE_GCPROS_CHECK_ZOMBIES */
-
 
 /* Mark live Lisp objects on the C stack.
 
@@ -4332,66 +3831,21 @@ mark_stack ()
   volatile int stack_grows_down_p = (char *) &j > (char *) stack_base;
   void *end;
 
-  /* This trick flushes the register windows so that all the state of
-     the process is contained in the stack.  */
-  /* Fixme: Code in the Boehm GC suggests flushing (with `flushrs') is
-     needed on ia64 too.  See mach_dep.c, where it also says inline
-     assembler doesn't work with relevant proprietary compilers.  */
-#ifdef __sparc__
-#if defined (__sparc64__) && defined (__FreeBSD__)
-  /* FreeBSD does not have a ta 3 handler.  */
-  asm ("flushw");
-#else
-  asm ("ta 3");
-#endif
-#endif
-
   /* Save registers that we need to see on the stack.  We need to see
      registers used to hold register variables and registers used to
      pass parameters.  */
-#ifdef GC_SAVE_REGISTERS_ON_STACK
-  GC_SAVE_REGISTERS_ON_STACK (end);
-#else /* not GC_SAVE_REGISTERS_ON_STACK */
-
-#ifndef GC_SETJMP_WORKS  /* If it hasn't been checked yet that
-			    setjmp will definitely work, test it
-			    and print a message with the result
-			    of the test.  */
-  if (!setjmp_tested_p)
-    {
-      setjmp_tested_p = 1;
-      test_setjmp ();
-    }
-#endif /* GC_SETJMP_WORKS */
-
   setjmp (j.j);
   end = stack_grows_down_p ? (char *) &j + sizeof j : (char *) &j;
-#endif /* not GC_SAVE_REGISTERS_ON_STACK */
 
   /* This assumes that the stack is a contiguous region in memory.  If
      that's not the case, something has to be done here to iterate
      over the stack segments.  */
 #ifndef GC_LISP_OBJECT_ALIGNMENT
-#ifdef __GNUC__
-#define GC_LISP_OBJECT_ALIGNMENT __alignof__ (Lisp_Object)
-#else
 #define GC_LISP_OBJECT_ALIGNMENT sizeof (Lisp_Object)
-#endif
 #endif
   for (i = 0; i < sizeof (Lisp_Object); i += GC_LISP_OBJECT_ALIGNMENT)
     mark_memory (stack_base, end, i);
-  /* Allow for marking a secondary stack, like the register stack on the
-     ia64.  */
-#ifdef GC_MARK_SECONDARY_STACK
-  GC_MARK_SECONDARY_STACK ();
-#endif
-
-#if GC_MARK_STACK == GC_MARK_STACK_CHECK_GCPROS
-  check_gcpros ();
-#endif
 }
-
-#endif /* GC_MARK_STACK != 0 */
 
 
 /* Determine whether it is safe to access memory at address P.  */
@@ -4399,26 +3853,7 @@ static int
 valid_pointer_p (p)
      void *p;
 {
-#ifdef WINDOWSNT
   return w32_valid_pointer_p (p, 16);
-#else
-  int fd;
-
-  /* Obviously, we cannot just access it (we would SEGV trying), so we
-     trick the o/s to tell us whether p is a valid pointer.
-     Unfortunately, we cannot use NULL_DEVICE here, as emacs_write may
-     not validate p in that case.  */
-
-  if ((fd = emacs_open ("__Valid__Lisp__Object__", O_CREAT | O_WRONLY | O_TRUNC, 0666)) >= 0)
-    {
-      int valid = (emacs_write (fd, (char *)p, 16) == 16);
-      emacs_close (fd);
-      unlink ("__Valid__Lisp__Object__");
-      return valid;
-    }
-
-    return -1;
-#endif
 }
 
 /* Return 1 if OBJ is a valid lisp object.
@@ -4432,9 +3867,7 @@ valid_lisp_object_p (obj)
      Lisp_Object obj;
 {
   void *p;
-#if GC_MARK_STACK
   struct mem_node *m;
-#endif
 
   if (INTEGERP (obj))
     return 1;
@@ -4442,10 +3875,6 @@ valid_lisp_object_p (obj)
   p = (void *) XPNTR (obj);
   if (PURE_POINTER_P (p))
     return 1;
-
-#if !GC_MARK_STACK
-  return valid_pointer_p (p);
-#else
 
   m = mem_find (p);
 
@@ -4492,7 +3921,6 @@ valid_lisp_object_p (obj)
     }
 
   return 0;
-#endif
 }
 
 
@@ -4940,17 +4368,7 @@ returns nil, because real GC can't be done.  */)
   mark_terminals ();
   mark_kboards ();
 
-#if (GC_MARK_STACK == GC_MAKE_GCPROS_NOOPS \
-     || GC_MARK_STACK == GC_MARK_STACK_CHECK_GCPROS)
   mark_stack ();
-#else
-  {
-    register struct gcpro *tail;
-    for (tail = gcprolist; tail; tail = tail->next)
-      for (i = 0; i < tail->nvars; i++)
-	mark_object (tail->var[i]);
-  }
-#endif
 
   mark_byte_stack ();
   for (catch = catchlist; catch; catch = catch->next)
@@ -4967,10 +4385,6 @@ returns nil, because real GC can't be done.  */)
 
 #ifdef HAVE_WINDOW_SYSTEM
   mark_fringe_data ();
-#endif
-
-#if GC_MARK_STACK == GC_USE_GCPROS_CHECK_ZOMBIES
-  mark_stack ();
 #endif
 
   /* Everything is now marked, except for the things that require special
@@ -5029,10 +4443,6 @@ returns nil, because real GC can't be done.  */)
   VECTOR_UNMARK (&buffer_defaults);
   VECTOR_UNMARK (&buffer_local_symbols);
 
-#if GC_MARK_STACK == GC_USE_GCPROS_CHECK_ZOMBIES && 0
-  dump_zombies ();
-#endif
-
   UNBLOCK_INPUT;
 
   CHECK_CONS_LIST ();
@@ -5086,23 +4496,6 @@ returns nil, because real GC can't be done.  */)
 		    make_number (total_free_intervals));
   total[7] = Fcons (make_number (total_strings),
 		    make_number (total_free_strings));
-
-#if GC_MARK_STACK == GC_USE_GCPROS_CHECK_ZOMBIES
-  {
-    /* Compute average percentage of zombies.  */
-    double nlive = 0;
-
-    for (i = 0; i < 7; ++i)
-      if (CONSP (total[i]))
-	nlive += XFASTINT (XCAR (total[i]));
-
-    avg_live = (avg_live * ngcs + nlive) / (ngcs + 1);
-    max_live = max (nlive, max_live);
-    avg_zombies = (avg_zombies * ngcs + nzombies) / (ngcs + 1);
-    max_zombies = max (nzombies, max_zombies);
-    ++ngcs;
-    }
-#endif
 
   if (!NILP (Vpost_gc_hook))
     {
@@ -5218,10 +4611,6 @@ mark_object (arg)
      Lisp_Object arg;
 {
   register Lisp_Object obj = arg;
-#ifdef GC_CHECK_MARKED_OBJECTS
-  void *po;
-  struct mem_node *m;
-#endif
   int cdr_count = 0;
 
  loop:
@@ -5233,44 +4622,9 @@ mark_object (arg)
   if (last_marked_index == LAST_MARKED_SIZE)
     last_marked_index = 0;
 
-  /* Perform some sanity checks on the objects marked here.  Abort if
-     we encounter an object we know is bogus.  This increases GC time
-     by ~80%, and requires compilation with GC_MARK_STACK != 0.  */
-#ifdef GC_CHECK_MARKED_OBJECTS
-
-  po = (void *) XPNTR (obj);
-
-  /* Check that the object pointed to by PO is known to be a Lisp
-     structure allocated from the heap.  */
-#define CHECK_ALLOCATED()			\
-  do {						\
-    m = mem_find (po);				\
-    if (m == MEM_NIL)				\
-      abort ();					\
-  } while (0)
-
-  /* Check that the object pointed to by PO is live, using predicate
-     function LIVEP.  */
-#define CHECK_LIVE(LIVEP)			\
-  do {						\
-    if (!LIVEP (m, po))				\
-      abort ();					\
-  } while (0)
-
-  /* Check both of the above conditions.  */
-#define CHECK_ALLOCATED_AND_LIVE(LIVEP)		\
-  do {						\
-    CHECK_ALLOCATED ();				\
-    CHECK_LIVE (LIVEP);				\
-  } while (0)					\
-
-#else /* not GC_CHECK_MARKED_OBJECTS */
-
 #define CHECK_ALLOCATED()		(void) 0
 #define CHECK_LIVE(LIVEP)		(void) 0
 #define CHECK_ALLOCATED_AND_LIVE(LIVEP)	(void) 0
-
-#endif /* not GC_CHECK_MARKED_OBJECTS */
 
   switch (SWITCH_ENUM_CAST (XTYPE (obj)))
     {
@@ -5451,7 +4805,6 @@ mark_object (arg)
 	  break;
 
 	case Lisp_Misc_Save_Value:
-#if GC_MARK_STACK
 	  {
 	    register struct Lisp_Save_Value *ptr = XSAVE_VALUE (obj);
 	    /* If DOGC is set, POINTER is the address of a memory
@@ -5464,7 +4817,6 @@ mark_object (arg)
 		  mark_maybe_object (*p);
 	      }
 	  }
-#endif
 	  break;
 
 	case Lisp_Misc_Overlay:
@@ -5693,9 +5045,7 @@ gc_sweep ()
 			this_free++;
 			cblk->conses[pos].u.chain = cons_free_list;
 			cons_free_list = &cblk->conses[pos];
-#if GC_MARK_STACK
 			cons_free_list->car = Vdead;
-#endif
 		      }
 		    else
 		      {
@@ -5851,9 +5201,7 @@ gc_sweep ()
 	      {
 		sym->next = symbol_free_list;
 		symbol_free_list = sym;
-#if GC_MARK_STACK
 		symbol_free_list->function = Vdead;
-#endif
 		++this_free;
 	      }
 	    else
@@ -6078,10 +5426,8 @@ init_alloc_once ()
   /* Initialize the list of free aligned blocks.  */
   free_ablock = NULL;
 
-#if GC_MARK_STACK || defined GC_MALLOC_CHECK
   mem_init ();
   Vdead = make_pure_string ("DEAD", 4, 4, 0);
-#endif
 
   all_vectors = 0;
   ignore_warnings = 1;
@@ -6102,7 +5448,6 @@ init_alloc_once ()
   refill_memory_reserve ();
 
   ignore_warnings = 0;
-  gcprolist = 0;
   byte_stack_list = 0;
   staticidx = 0;
   consing_since_gc = 0;
@@ -6118,13 +5463,7 @@ init_alloc_once ()
 void
 init_alloc ()
 {
-  gcprolist = 0;
   byte_stack_list = 0;
-#if GC_MARK_STACK
-#if !defined GC_SAVE_REGISTERS_ON_STACK && !defined GC_SETJMP_WORKS
-  setjmp_tested_p = longjmps_done = 0;
-#endif
-#endif
   Vgc_elapsed = make_float (0.0);
   gcs_done = 0;
 }
@@ -6229,10 +5568,6 @@ The time is in seconds as a floating point value.  */);
   defsubr (&Sgarbage_collect);
   defsubr (&Smemory_limit);
   defsubr (&Smemory_use_counts);
-
-#if GC_MARK_STACK == GC_USE_GCPROS_CHECK_ZOMBIES
-  defsubr (&Sgc_status);
-#endif
 }
 
 /* arch-tag: 6695ca10-e3c5-4c2c-8bc3-ed26a7dda857

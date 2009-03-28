@@ -662,7 +662,6 @@ int uniscribe_check_otf (font, otf_spec)
   HFONT check_font, old_font;
   DWORD table;
   int i, retval = 0;
-  struct gcpro gcpro1;
 
   /* Check the spec is in the right format.  */
   if (!CONSP (otf_spec) || Flength (otf_spec) < 3)
@@ -698,10 +697,6 @@ int uniscribe_check_otf (font, otf_spec)
   context = get_frame_dc (f);
   check_font = CreateFontIndirect (font);
   old_font = SelectObject (context, check_font);
-
-  /* Everything else is contained within otf_spec so should get
-     marked along with it.  */
-  GCPRO1 (otf_spec);
 
   /* Scan GSUB and GPOS tables.  */
   for (i = 0; i < 2; i++)

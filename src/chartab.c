@@ -844,10 +844,8 @@ map_char_table (c_function, function, table, arg)
      Lisp_Object function, table, arg;
 {
   Lisp_Object range, val;
-  struct gcpro gcpro1, gcpro2, gcpro3;
 
   range = Fcons (make_number (0), make_number (MAX_CHAR));
-  GCPRO3 (table, arg, range);
   val = XCHAR_TABLE (table)->ascii;
   if (SUB_CHAR_TABLE_P (val))
     val = XSUB_CHAR_TABLE (val)->contents[0];
@@ -891,7 +889,6 @@ map_char_table (c_function, function, table, arg)
 	}
     }
 
-  UNGCPRO;
 }
 
 DEFUN ("map-char-table", Fmap_char_table, Smap_char_table,
@@ -1008,10 +1005,8 @@ map_char_table_for_charset (c_function, function, table, arg,
 {
   Lisp_Object range;
   int c, i;
-  struct gcpro gcpro1;
 
   range = Fcons (Qnil, Qnil);
-  GCPRO1 (range);
 
   for (i = 0, c = 0; i < chartab_size[0]; i++, c += chartab_chars[0])
     {
@@ -1042,8 +1037,6 @@ map_char_table_for_charset (c_function, function, table, arg,
       else
 	call2 (function, range, arg);
     }
-
-  UNGCPRO;
 }
 
 

@@ -1677,7 +1677,6 @@ lookup_image (f, spec)
   struct image_cache *c;
   struct image *img;
   unsigned hash;
-  struct gcpro gcpro1;
   EMACS_TIME now;
 
   /* F must be a window-system frame, and SPEC must be a valid image
@@ -1686,8 +1685,6 @@ lookup_image (f, spec)
   xassert (valid_image_p (spec));
 
   c = FRAME_IMAGE_CACHE (f);
-
-  GCPRO1 (spec);
 
   /* Look up SPEC in the hash table of the image cache.  */
   hash = sxhash (spec, 0);
@@ -1781,8 +1778,6 @@ lookup_image (f, spec)
   /* We're using IMG, so set its timestamp to `now'.  */
   EMACS_GET_TIME (now);
   img->timestamp = EMACS_SECS (now);
-
-  UNGCPRO;
 
   /* Value is the image id.  */
   return img->id;
@@ -2135,7 +2130,6 @@ x_find_image_file (file)
      Lisp_Object file;
 {
   Lisp_Object file_found, search_path;
-  struct gcpro gcpro1, gcpro2;
   int fd;
 
   file_found = Qnil;
@@ -2144,7 +2138,6 @@ x_find_image_file (file)
   search_path = Fcons (Fexpand_file_name (build_string ("images"),
 					  Vdata_directory),
 		       Vx_bitmap_file_path);
-  GCPRO2 (file_found, search_path);
 
   /* Try to find FILE in data-directory/images, then x-bitmap-file-path.  */
   fd = openp (search_path, file, Qnil, &file_found, Qnil);
@@ -2157,7 +2150,6 @@ x_find_image_file (file)
       close (fd);
     }
 
-  UNGCPRO;
   return file_found;
 }
 
@@ -2846,14 +2838,11 @@ xbm_load (f, img)
       Lisp_Object file;
       unsigned char *contents;
       int size;
-      struct gcpro gcpro1;
 
       file = x_find_image_file (file_name);
-      GCPRO1 (file);
       if (!STRINGP (file))
 	{
 	  image_error ("Cannot find image file `%s'", file_name, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
 
@@ -2861,12 +2850,10 @@ xbm_load (f, img)
       if (contents == NULL)
 	{
 	  image_error ("Error loading XBM image `%s'", img->spec, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
 
       success_p = xbm_load_image (f, img, contents, contents + size);
-      UNGCPRO;
     }
   else
     {
@@ -4064,14 +4051,11 @@ xpm_load (f, img)
       Lisp_Object file;
       unsigned char *contents;
       int size;
-      struct gcpro gcpro1;
 
       file = x_find_image_file (file_name);
-      GCPRO1 (file);
       if (!STRINGP (file))
 	{
 	  image_error ("Cannot find image file `%s'", file_name, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
 
@@ -4079,13 +4063,11 @@ xpm_load (f, img)
       if (contents == NULL)
 	{
 	  image_error ("Error loading XPM image `%s'", img->spec, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
 
       success_p = xpm_load_image (f, img, contents, contents + size);
       xfree (contents);
-      UNGCPRO;
     }
   else
     {
@@ -4858,14 +4840,12 @@ pbm_load (f, img)
   XImagePtr ximg;
   Lisp_Object file, specified_file;
   enum {PBM_MONO, PBM_GRAY, PBM_COLOR} type;
-  struct gcpro gcpro1;
   unsigned char *contents = NULL;
   unsigned char *end, *p;
   int size;
 
   specified_file = image_spec_value (img->spec, QCfile, NULL);
   file = Qnil;
-  GCPRO1 (file);
 
   if (STRINGP (specified_file))
     {
@@ -4873,7 +4853,6 @@ pbm_load (f, img)
       if (!STRINGP (file))
 	{
 	  image_error ("Cannot find image file `%s'", specified_file, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
 
@@ -4881,7 +4860,6 @@ pbm_load (f, img)
       if (contents == NULL)
 	{
 	  image_error ("Error reading `%s'", file, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
 
@@ -4902,7 +4880,6 @@ pbm_load (f, img)
       image_error ("Not a PBM image: `%s'", img->spec, Qnil);
     error:
       xfree (contents);
-      UNGCPRO;
       return 0;
     }
 
@@ -5097,7 +5074,6 @@ pbm_load (f, img)
      img->width = width;
      img->height = height; */
 
-  UNGCPRO;
   xfree (contents);
   return 1;
 }
@@ -5356,7 +5332,6 @@ png_load (f, img)
   Lisp_Object specified_data;
   int x, y, i;
   XImagePtr ximg, mask_img = NULL;
-  struct gcpro gcpro1;
   png_struct *png_ptr = NULL;
   png_info *info_ptr = NULL, *end_info = NULL;
   FILE *volatile fp = NULL;
@@ -5374,7 +5349,6 @@ png_load (f, img)
   specified_file = image_spec_value (img->spec, QCfile, NULL);
   specified_data = image_spec_value (img->spec, QCdata, NULL);
   file = Qnil;
-  GCPRO1 (file);
 
   if (NILP (specified_data))
     {
@@ -5382,7 +5356,6 @@ png_load (f, img)
       if (!STRINGP (file))
 	{
 	  image_error ("Cannot find image file `%s'", specified_file, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
 
@@ -5391,7 +5364,6 @@ png_load (f, img)
       if (!fp)
 	{
 	  image_error ("Cannot open image file `%s'", file, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
 
@@ -5400,7 +5372,6 @@ png_load (f, img)
 	  || !fn_png_check_sig (sig, sizeof sig))
 	{
 	  image_error ("Not a PNG file: `%s'", file, Qnil);
-	  UNGCPRO;
 	  fclose (fp);
 	  return 0;
 	}
@@ -5417,7 +5388,6 @@ png_load (f, img)
 	  || !fn_png_check_sig (tbr.bytes, sizeof sig))
 	{
 	  image_error ("Not a PNG image: `%s'", img->spec, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
 
@@ -5433,7 +5403,6 @@ png_load (f, img)
   if (!png_ptr)
     {
       if (fp) fclose (fp);
-      UNGCPRO;
       return 0;
     }
 
@@ -5443,7 +5412,6 @@ png_load (f, img)
     {
       fn_png_destroy_read_struct (&png_ptr, NULL, NULL);
       if (fp) fclose (fp);
-      UNGCPRO;
       return 0;
     }
 
@@ -5453,7 +5421,6 @@ png_load (f, img)
     {
       fn_png_destroy_read_struct (&png_ptr, &info_ptr, NULL);
       if (fp) fclose (fp);
-      UNGCPRO;
       return 0;
     }
 
@@ -5467,7 +5434,6 @@ png_load (f, img)
       xfree (pixels);
       xfree (rows);
       if (fp) fclose (fp);
-      UNGCPRO;
       return 0;
     }
 
@@ -5692,7 +5658,6 @@ png_load (f, img)
       x_destroy_x_image (mask_img);
     }
 
-  UNGCPRO;
   return 1;
 }
 
@@ -6113,13 +6078,11 @@ jpeg_load (f, img)
   int rc;
   unsigned long *colors;
   int width, height;
-  struct gcpro gcpro1;
 
   /* Open the JPEG file.  */
   specified_file = image_spec_value (img->spec, QCfile, NULL);
   specified_data = image_spec_value (img->spec, QCdata, NULL);
   file = Qnil;
-  GCPRO1 (file);
 
   if (NILP (specified_data))
     {
@@ -6127,7 +6090,6 @@ jpeg_load (f, img)
       if (!STRINGP (file))
 	{
 	  image_error ("Cannot find image file `%s'", specified_file, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
 
@@ -6135,7 +6097,6 @@ jpeg_load (f, img)
       if (fp == NULL)
 	{
 	  image_error ("Cannot open `%s'", file, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
     }
@@ -6168,7 +6129,6 @@ jpeg_load (f, img)
       /* Free pixmap and colors.  */
       x_clear_image (f, img);
 
-      UNGCPRO;
       return 0;
     }
 
@@ -6266,7 +6226,6 @@ jpeg_load (f, img)
   /* Put the image into the pixmap.  */
   x_put_x_image (f, ximg, img->pixmap, width, height);
   x_destroy_x_image (ximg);
-  UNGCPRO;
   return 1;
 }
 
@@ -6565,14 +6524,12 @@ tiff_load (f, img)
   uint32 *buf;
   int rc, rc2;
   XImagePtr ximg;
-  struct gcpro gcpro1;
   tiff_memory_source memsrc;
   Lisp_Object image;
 
   specified_file = image_spec_value (img->spec, QCfile, NULL);
   specified_data = image_spec_value (img->spec, QCdata, NULL);
   file = Qnil;
-  GCPRO1 (file);
 
   fn_TIFFSetErrorHandler (tiff_error_handler);
   fn_TIFFSetWarningHandler (tiff_warning_handler);
@@ -6584,7 +6541,6 @@ tiff_load (f, img)
       if (!STRINGP (file))
 	{
 	  image_error ("Cannot find image file `%s'", specified_file, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
 
@@ -6594,7 +6550,6 @@ tiff_load (f, img)
       if (tiff == NULL)
 	{
 	  image_error ("Cannot open `%s'", file, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
     }
@@ -6618,7 +6573,6 @@ tiff_load (f, img)
       if (!tiff)
 	{
 	  image_error ("Cannot open memory source for `%s'", img->spec, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
     }
@@ -6632,7 +6586,6 @@ tiff_load (f, img)
 	  image_error ("Invalid image number `%s' in image `%s'",
 		       image, img->spec);
 	  fn_TIFFClose (tiff);
-	  UNGCPRO;
 	  return 0;
 	}
     }
@@ -6646,7 +6599,6 @@ tiff_load (f, img)
     {
       image_error ("Invalid image size (see `max-image-size')", Qnil, Qnil);
       fn_TIFFClose (tiff);
-      UNGCPRO;
       return 0;
     }
 
@@ -6668,7 +6620,6 @@ tiff_load (f, img)
     {
       image_error ("Error reading TIFF image `%s'", img->spec, Qnil);
       xfree (buf);
-      UNGCPRO;
       return 0;
     }
 
@@ -6676,7 +6627,6 @@ tiff_load (f, img)
   if (!x_create_x_image_and_pixmap (f, width, height, 0, &ximg, &img->pixmap))
     {
       xfree (buf);
-      UNGCPRO;
       return 0;
     }
 
@@ -6717,7 +6667,6 @@ tiff_load (f, img)
   x_destroy_x_image (ximg);
   xfree (buf);
 
-  UNGCPRO;
   return 1;
 }
 
@@ -6931,7 +6880,6 @@ gif_load (f, img)
   ColorMapObject *gif_color_map;
   unsigned long pixel_colors[256];
   GifFileType *gif;
-  struct gcpro gcpro1;
   Lisp_Object image;
   int ino, image_height, image_width;
   gif_memory_source memsrc;
@@ -6940,7 +6888,6 @@ gif_load (f, img)
   specified_file = image_spec_value (img->spec, QCfile, NULL);
   specified_data = image_spec_value (img->spec, QCdata, NULL);
   file = Qnil;
-  GCPRO1 (file);
 
   if (NILP (specified_data))
     {
@@ -6948,7 +6895,6 @@ gif_load (f, img)
       if (!STRINGP (file))
 	{
 	  image_error ("Cannot find image file `%s'", specified_file, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
 
@@ -6958,7 +6904,6 @@ gif_load (f, img)
       if (gif == NULL)
 	{
 	  image_error ("Cannot open `%s'", file, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
     }
@@ -6975,7 +6920,6 @@ gif_load (f, img)
       if (!gif)
 	{
 	  image_error ("Cannot open memory source `%s'", img->spec, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
     }
@@ -6985,7 +6929,6 @@ gif_load (f, img)
     {
       image_error ("Invalid image size (see `max-image-size')", Qnil, Qnil);
       fn_DGifCloseFile (gif);
-      UNGCPRO;
       return 0;
     }
 
@@ -6995,7 +6938,6 @@ gif_load (f, img)
     {
       image_error ("Error reading `%s'", img->spec, Qnil);
       fn_DGifCloseFile (gif);
-      UNGCPRO;
       return 0;
     }
 
@@ -7006,7 +6948,6 @@ gif_load (f, img)
       image_error ("Invalid image number `%s' in image `%s'",
 		   image, img->spec);
       fn_DGifCloseFile (gif);
-      UNGCPRO;
       return 0;
     }
 
@@ -7028,7 +6969,6 @@ gif_load (f, img)
     {
       image_error ("Invalid image size (see `max-image-size')", Qnil, Qnil);
       fn_DGifCloseFile (gif);
-      UNGCPRO;
       return 0;
     }
 
@@ -7036,7 +6976,6 @@ gif_load (f, img)
   if (!x_create_x_image_and_pixmap (f, width, height, 0, &ximg, &img->pixmap))
     {
       fn_DGifCloseFile (gif);
-      UNGCPRO;
       return 0;
     }
 
@@ -7153,7 +7092,6 @@ gif_load (f, img)
   x_put_x_image (f, ximg, img->pixmap, width, height);
   x_destroy_x_image (ximg);
 
-  UNGCPRO;
   return 1;
 }
 
@@ -7367,14 +7305,11 @@ svg_load (f, img)
       Lisp_Object file;
       unsigned char *contents;
       int size;
-      struct gcpro gcpro1;
 
       file = x_find_image_file (file_name);
-      GCPRO1 (file);
       if (!STRINGP (file))
 	{
 	  image_error ("Cannot find image file `%s'", file_name, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
 
@@ -7383,13 +7318,11 @@ svg_load (f, img)
       if (contents == NULL)
 	{
 	  image_error ("Error loading SVG image `%s'", img->spec, Qnil);
-	  UNGCPRO;
 	  return 0;
 	}
       /* If the file was slurped into memory properly, parse it.  */
       success_p = svg_load_image (f, img, contents, size);
       xfree (contents);
-      UNGCPRO;
     }
   /* Else its not a file, its a lisp object.  Load the image from a
      lisp object rather than a file.  */
@@ -7711,7 +7644,6 @@ gs_load (f, img)
 {
   char buffer[100];
   Lisp_Object window_and_pixmap_id = Qnil, loader, pt_height, pt_width;
-  struct gcpro gcpro1, gcpro2;
   Lisp_Object frame;
   double in_width, in_height;
   Lisp_Object pixel_colors = Qnil;
@@ -7753,7 +7685,6 @@ gs_load (f, img)
      if successful.  We do not record_unwind_protect here because
      other places in redisplay like calling window scroll functions
      don't either.  Let the Lisp loader use `unwind-protect' instead.  */
-  GCPRO2 (window_and_pixmap_id, pixel_colors);
 
   sprintf (buffer, "%lu %lu",
 	   (unsigned long) FRAME_X_WINDOW (f),
@@ -7775,7 +7706,6 @@ gs_load (f, img)
 			      make_number (img->height),
 			      window_and_pixmap_id,
 			      pixel_colors);
-  UNGCPRO;
   return PROCESSP (img->data.lisp_val);
 }
 

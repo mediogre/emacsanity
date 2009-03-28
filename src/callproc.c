@@ -339,11 +339,7 @@ usage: (call-process PROGRAM &optional INFILE BUFFER DISPLAY &rest ARGS)  */)
      protected by the caller, so all we really have to worry about is
      buffer.  */
   {
-    struct gcpro gcpro1, gcpro2, gcpro3, gcpro4;
-
     current_dir = current_buffer->directory;
-
-    GCPRO4 (infile, buffer, current_dir, error_file);
 
     current_dir = Funhandled_file_name_directory (current_dir);
     if (NILP (current_dir))
@@ -363,7 +359,6 @@ usage: (call-process PROGRAM &optional INFILE BUFFER DISPLAY &rest ARGS)  */)
       current_dir = ENCODE_FILE (current_dir);
     if (STRINGP (error_file) && STRING_MULTIBYTE (error_file))
       error_file = ENCODE_FILE (error_file);
-    UNGCPRO;
   }
 
   display_p = INTERACTIVE && nargs >= 4 && !NILP (args[3]);
@@ -376,11 +371,7 @@ usage: (call-process PROGRAM &optional INFILE BUFFER DISPLAY &rest ARGS)  */)
     }
   /* Search for program; barf if not found.  */
   {
-    struct gcpro gcpro1;
-
-    GCPRO1 (current_dir);
     openp (Vexec_path, args[0], Vexec_suffixes, &path, make_number (X_OK));
-    UNGCPRO;
   }
   if (NILP (path))
     {
@@ -399,9 +390,7 @@ usage: (call-process PROGRAM &optional INFILE BUFFER DISPLAY &rest ARGS)  */)
   if (nargs > 4)
     {
       register int i;
-      struct gcpro gcpro1, gcpro2, gcpro3;
 
-      GCPRO3 (infile, buffer, current_dir);
       argument_coding.dst_multibyte = 0;
       for (i = 4; i < nargs; i++)
 	{
@@ -410,7 +399,6 @@ usage: (call-process PROGRAM &optional INFILE BUFFER DISPLAY &rest ARGS)  */)
 	    /* We must encode this argument.  */
 	    args[i] = encode_coding_string (&argument_coding, args[i], 1);
 	}
-      UNGCPRO;
       for (i = 4; i < nargs; i++)
 	new_argv[i - 3] = SDATA (args[i]);
       new_argv[i - 3] = 0;
@@ -772,7 +760,6 @@ usage: (call-process-region START END PROGRAM &optional DELETE BUFFER DISPLAY &r
      int nargs;
      register Lisp_Object *args;
 {
-  struct gcpro gcpro1;
   Lisp_Object filename_string;
   register Lisp_Object start, end;
   int count = SPECPDL_INDEX ();
@@ -826,7 +813,6 @@ usage: (call-process-region START END PROGRAM &optional DELETE BUFFER DISPLAY &r
 #endif
 
   filename_string = build_string (tempfile);
-  GCPRO1 (filename_string);
   start = args[0];
   end = args[1];
   /* Decide coding-system of the contents of the temporary file.  */
@@ -880,7 +866,7 @@ usage: (call-process-region START END PROGRAM &optional DELETE BUFFER DISPLAY &r
     }
   args[1] = filename_string;
 
-  RETURN_UNGCPRO (unbind_to (count, Fcall_process (nargs, args)));
+  return (unbind_to (count, Fcall_process (nargs, args)));
 }
 
 static int relocate_fd ();
