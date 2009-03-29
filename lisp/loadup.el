@@ -41,6 +41,7 @@
       ;; We'll probably overflow the pure space.
       (setq purify-flag nil)
       (setq load-path (list dir
+			    (expand-file-name "../leim" dir)
 			    (expand-file-name "emacs-lisp" dir)
 			    (expand-file-name "language" dir)
 			    (expand-file-name "international" dir)
