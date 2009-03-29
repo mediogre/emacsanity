@@ -88,6 +88,8 @@ check_memory_limits ()
     cp = (char *) (*real_morecore) (0);
   else
 #endif
+  return;
+#if 0
   cp = (char *) (*__morecore) (0);
   data_size = (char *) cp - (char *) data_space_start;
 
@@ -138,6 +140,7 @@ check_memory_limits ()
 
   if (EXCEEDS_LISP_PTR (cp))
     (*warn_function) ("Warning: memory in use exceeds lisp pointer size");
+#endif
 }
 
 /* Enable memory usage warnings.
@@ -149,6 +152,7 @@ memory_warnings (start, warnfun)
      POINTER start;
      void (*warnfun) ();
 {
+#if 0
   extern void (* __after_morecore_hook) ();     /* From gmalloc.c */
 
   if (start)
@@ -161,6 +165,7 @@ memory_warnings (start, warnfun)
 
   /* Force data limit to be recalculated on each run.  */
   lim_data = 0;
+#endif
 }
 
 /* arch-tag: eab04eda-1f69-447a-8d9f-95f0a3983ca5

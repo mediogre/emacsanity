@@ -20,7 +20,7 @@
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
 			IntermediateDirectory="$(ConfigurationName)"
-			ConfigurationType="4"
+			ConfigurationType="1"
 			CharacterSet="0"
 			>
 			<Tool
@@ -42,7 +42,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="0"
 				AdditionalIncludeDirectories="$(SolutionDir)..\src;$(SolutionDir)..\nt\inc"
-				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;emacs=1;HAVE_CONFIG_H;HAVE_NTGUI=1;_CRT_SECURE_NO_WARNINGS;EMACSDEBUG;PURESIZE=5000000"
+				PreprocessorDefinitions="WIN32;_DEBUG;_LIB;emacs=1;HAVE_CONFIG_H;HAVE_NTGUI=1;_CRT_SECURE_NO_WARNINGS;EMACSDEBUG;PURESIZE=50000000"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -60,11 +60,16 @@
 				Name="VCPreLinkEventTool"
 			/>
 			<Tool
-				Name="VCLibrarianTool"
-				IgnoreAllDefaultLibraries="true"
+				Name="VCLinkerTool"
+				AdditionalDependencies="winmm.lib usp10.lib comctl32.lib wsock32.lib mpr.lib"
+				GenerateDebugInformation="true"
+				StackReserveSize="8388608"
 			/>
 			<Tool
 				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -74,6 +79,9 @@
 			/>
 			<Tool
 				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
@@ -285,10 +293,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\src\gmalloc.c"
-				>
-			</File>
-			<File
 				RelativePath="..\..\src\image.c"
 				>
 			</File>
@@ -342,10 +346,6 @@
 			</File>
 			<File
 				RelativePath="..\..\src\process.c"
-				>
-			</File>
-			<File
-				RelativePath="..\..\src\ralloc.c"
 				>
 			</File>
 			<File

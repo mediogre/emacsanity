@@ -546,10 +546,8 @@ make_initial_frame (void)
   FRAME_CAN_HAVE_SCROLL_BARS (f) = 0;
   FRAME_VERTICAL_SCROLL_BAR_TYPE (f) = vertical_scroll_bar_none;
 
-#ifdef CANNOT_DUMP
   if (!noninteractive)
     init_frame_faces (f);
-#endif
 
   return f;
 }

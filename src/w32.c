@@ -1392,19 +1392,20 @@ init_environment (char ** argv)
     {
       char * name;
       char * def_value;
-    } dflt_envvars[] =
+    } dflt_envvars[] = 
     {
       {"HOME", "C:/"},
       {"PRELOAD_WINSOCK", NULL},
-      {"emacs_dir", "C:/emacs"},
-      {"EMACSLOADPATH", "%emacs_dir%/site-lisp;%emacs_dir%/../site-lisp;%emacs_dir%/lisp;%emacs_dir%/leim"},
-      {"SHELL", "%emacs_dir%/bin/cmdproxy.exe"},
-      {"EMACSDATA", "%emacs_dir%/etc"},
-      {"EMACSPATH", "%emacs_dir%/bin"},
+//      {"emacs_dir", "S:/code/e/emacsanity.git"},
+//      {"EMACSLOADPATH", "%emacs_dir%/site-lisp;%emacs_dir%/../site-lisp;%emacs_dir%/lisp;%emacs_dir%/leim"},
+//      {"SHELL", "%emacs_dir%/bin/cmdproxy.exe"},
+      {"SHELL", "cmd.exe"},
+//      {"EMACSDATA", "%emacs_dir%/etc"},
+//      {"EMACSPATH", "%emacs_dir%/bin"},
       /* We no longer set INFOPATH because Info-default-directory-list
 	 is then ignored.  */
       /*  {"INFOPATH", "%emacs_dir%/info"},  */
-      {"EMACSDOC", "%emacs_dir%/etc"},
+//      {"EMACSDOC", "%emacs_dir%/etc"},
       {"TERM", "cmd"},
       {"LANG", NULL},
     };

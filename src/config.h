@@ -31,15 +31,17 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
    numbers. */
 #undef LISP_FLOAT_TYPE
 
+#define SYSTEM_MALLOC
+
 /* Define GNU_MALLOC if you want to use the GNU memory allocator. */
-#define GNU_MALLOC
+#undef GNU_MALLOC
 
 /* Define if you are using the GNU C Library. */
 #undef DOUG_LEA_MALLOC
 
 /* Define REL_ALLOC if you want to use the relocating allocator for
    buffer space. */
-#define REL_ALLOC
+#undef REL_ALLOC
 
 /* Enable conservative stack marking for GC.  */
 #define GC_MARK_STACK 1
@@ -310,6 +312,8 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #ifdef NO_REMAP
 #undef static
 #endif
+
+#define CANNOT_DUMP
 
 /* Define `subprocesses' should be defined if you want to
    have code for asynchronous subprocesses

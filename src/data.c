@@ -1863,51 +1863,6 @@ If the current binding is global (the default), the value is nil.  */)
 
   return Qnil;
 }
-
-/* This code is disabled now that we use the selected frame to return
-   keyboard-local-values. */
-#if 0
-extern struct terminal *get_terminal P_ ((Lisp_Object display, int));
-
-DEFUN ("terminal-local-value", Fterminal_local_value, Sterminal_local_value, 2, 2, 0,
-       doc: /* Return the terminal-local value of SYMBOL on TERMINAL.
-If SYMBOL is not a terminal-local variable, then return its normal
-value, like `symbol-value'.
-
-TERMINAL may be a terminal id, a frame, or nil (meaning the
-selected frame's terminal device).  */)
-  (symbol, terminal)
-     Lisp_Object symbol;
-     Lisp_Object terminal;
-{
-  Lisp_Object result;
-  struct terminal *t = get_terminal (terminal, 1);
-  push_kboard (t->kboard);
-  result = Fsymbol_value (symbol);
-  pop_kboard ();
-  return result;
-}
-
-DEFUN ("set-terminal-local-value", Fset_terminal_local_value, Sset_terminal_local_value, 3, 3, 0,
-       doc: /* Set the terminal-local binding of SYMBOL on TERMINAL to VALUE.
-If VARIABLE is not a terminal-local variable, then set its normal
-binding, like `set'.
-
-TERMINAL may be a terminal id, a frame, or nil (meaning the
-selected frame's terminal device).  */)
-  (symbol, terminal, value)
-     Lisp_Object symbol;
-     Lisp_Object terminal;
-     Lisp_Object value;
-{
-  Lisp_Object result;
-  struct terminal *t = get_terminal (terminal, 1);
-  push_kboard (d->kboard);
-  result = Fset (symbol, value);
-  pop_kboard ();
-  return result;
-}
-#endif
 
 /* Find the function at the end of a chain of symbol function indirections.  */
 
@@ -2638,29 +2593,6 @@ Both must be integers or markers.  */)
   return val;
 }
 
-#ifndef HAVE_FMOD
-double
-fmod (f1, f2)
-     double f1, f2;
-{
-  double r = f1;
-
-  if (f2 < 0.0)
-    f2 = -f2;
-
-  /* If the magnitude of the result exceeds that of the divisor, or
-     the sign of the result does not agree with that of the dividend,
-     iterate with the reduced value.  This does not yield a
-     particularly accurate result, but at least it will be in the
-     range promised by fmod.  */
-  do
-    r -= f2 * floor (r / f2);
-  while (f2 <= (r < 0 ? -r : r) || ((r < 0) != (f1 < 0) && ! isnan (r)));
-
-  return r;
-}
-#endif /* ! HAVE_FMOD */
-
 DEFUN ("mod", Fmod, Smod, 2, 2, 0,
        doc: /* Return X modulo Y.
 The result falls between zero (inclusive) and Y (exclusive).
@@ -2845,8 +2777,6 @@ lowercase l) for small endian machines.  */)
 
   return make_number (order);
 }
-
-
 
 void
 syms_of_data ()
@@ -3229,10 +3159,6 @@ syms_of_data ()
   defsubr (&Slocal_variable_p);
   defsubr (&Slocal_variable_if_set_p);
   defsubr (&Svariable_binding_locus);
-#if 0                           /* XXX Remove this. --lorentey */
-  defsubr (&Sterminal_local_value);
-  defsubr (&Sset_terminal_local_value);
-#endif
   defsubr (&Saref);
   defsubr (&Saset);
   defsubr (&Snumber_to_string);
@@ -3281,11 +3207,6 @@ SIGTYPE
 arith_error (signo)
      int signo;
 {
-#if defined(USG) && !defined(POSIX_SIGNALS)
-  /* USG systems forget handlers when they are used;
-     must reestablish each time */
-  signal (signo, arith_error);
-#endif /* USG */
   sigsetmask (SIGEMPTYMASK);
 
   SIGNAL_THREAD_CHECK (signo);
@@ -3295,19 +3216,7 @@ arith_error (signo)
 void
 init_data ()
 {
-  /* Don't do this if just dumping out.
-     We don't want to call `signal' in this case
-     so that we don't have trouble with dumping
-     signal-delivering routines in an inconsistent state.  */
-#ifndef CANNOT_DUMP
-  if (!initialized)
-    return;
-#endif /* CANNOT_DUMP */
   signal (SIGFPE, arith_error);
-
-#ifdef uts
-  signal (SIGEMT, arith_error);
-#endif /* uts */
 }
 
 /* arch-tag: 25879798-b84d-479a-9c89-7d148e2109f7

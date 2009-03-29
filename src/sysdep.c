@@ -1066,9 +1066,6 @@ init_system_name ()
   /* Turn the hostname into the official, fully-qualified hostname.
      Don't do this if we're going to dump; this can confuse system
      libraries on some machines and make the dumped emacs core dump. */
-#ifndef CANNOT_DUMP
-  if (initialized)
-#endif /* not CANNOT_DUMP */
     if (! index (hostname, '.'))
       {
 	int count;

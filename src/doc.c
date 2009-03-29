@@ -156,17 +156,6 @@ get_doc_string (filepos, unibyte, definition)
   fd = emacs_open (name, O_RDONLY, 0);
   if (fd < 0)
     {
-#ifndef CANNOT_DUMP
-      if (!NILP (Vpurify_flag))
-	{
-	  /* Preparing to dump; DOC file is probably not installed.
-	     So check in ../etc. */
-	  strcpy (name, "../etc/");
-	  strcat (name, SDATA (file));
-
-	  fd = emacs_open (name, O_RDONLY, 0);
-	}
-#endif
       if (fd < 0)
 	error ("Cannot open doc string file \"%s\"", name);
     }
@@ -558,11 +547,7 @@ the same file name is found in the `doc-directory'.  */)
   CHECK_STRING (filename);
 
   if
-#ifndef CANNOT_DUMP
-    (!NILP (Vpurify_flag))
-#else /* CANNOT_DUMP */
       (0)
-#endif /* CANNOT_DUMP */
     {
       name = (char *) alloca (SCHARS (filename) + 14);
       strcpy (name, "../etc/");

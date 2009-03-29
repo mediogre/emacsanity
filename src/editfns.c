@@ -149,12 +149,6 @@ init_editfns ()
   /* Set up system_name even when dumping.  */
   init_system_name ();
 
-#ifndef CANNOT_DUMP
-  /* Don't bother with this on initial start when just dumping out */
-  if (!initialized)
-    return;
-#endif /* not CANNOT_DUMP */
-
   pw = (struct passwd *) getpwuid (getuid ());
 
   Vuser_real_login_name = build_string (pw ? pw->pw_name : "unknown");

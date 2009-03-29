@@ -7100,9 +7100,6 @@ init_process ()
   inhibit_sentinels = 0;
 
 #ifdef SIGCHLD
-#ifndef CANNOT_DUMP
-  if (! noninteractive || initialized)
-#endif
     signal (SIGCHLD, sigchld_handler);
 #endif
 

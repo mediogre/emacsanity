@@ -30,7 +30,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <fcntl.h>
 #include <windows.h> /* just for w32.h */
 #include "w32.h"
-#include "w32heap.h" /* for prototype of sbrk */
 #endif
 
 #include "lisp.h"
@@ -586,16 +585,7 @@ main (int argc, char **argv)
   extern Lisp_Object *stack_base;
   stack_base = &dummy;
 
-  if (!initialized)
-    {
-      extern char my_endbss[];
-      extern char *my_endbss_static;
-
-      if (my_heap_start == 0)
-        my_heap_start = sbrk (0);
-
-      heap_bss_diff = (char *)my_heap_start - max (my_endbss, my_endbss_static);
-    }
+  cache_system_info();
 
   sort_args (argc, argv);
   argc = 0;
@@ -647,7 +637,7 @@ main (int argc, char **argv)
 
 # ifndef SYNC_INPUT
   /* Arrange to disable interrupt input inside malloc etc.  */
-  uninterrupt_malloc ();
+//  uninterrupt_malloc ();
 # endif /* not SYNC_INPUT */
 #endif	/* not SYSTEM_MALLOC */
 
@@ -709,9 +699,6 @@ main (int argc, char **argv)
 
   /* Don't catch SIGHUP if dumping.  */
   if (1
-#ifndef CANNOT_DUMP
-      && initialized
-#endif
       )
     {
       sigblock (sigmask (SIGHUP));
@@ -724,11 +711,7 @@ main (int argc, char **argv)
     }
 
   if (
-#ifndef CANNOT_DUMP
-      ! noninteractive || initialized
-#else
       1
-#endif
       )
     {
       /* Don't catch these signals in batch mode if dumping.
@@ -1414,62 +1397,6 @@ shut_down_emacs (sig, no_x, stuff)
       check_message_stack ();
     }
 }
-
-
-
-#ifndef CANNOT_DUMP
-DEFUN ("dump-emacs", Fdump_emacs, Sdump_emacs, 2, 2, 0,
-       doc: /* Dump current state of Emacs into executable file FILENAME.
-Take symbols from SYMFILE (presumably the file you executed to run Emacs).
-This is used in the file `loadup.el' when building Emacs.
-
-You must run Emacs in batch mode in order to dump it.  */)
-     (filename, symfile)
-     Lisp_Object filename, symfile;
-{
-  extern char my_edata[];
-  Lisp_Object tem;
-  Lisp_Object symbol;
-  int count = SPECPDL_INDEX ();
-
-  check_pure_size ();
-
-  if (! noninteractive)
-    error ("Dumping Emacs works only in batch mode");
-
-  /* Bind `command-line-processed' to nil before dumping,
-     so that the dumped Emacs will process its command line
-     and set up to work with X windows if appropriate.  */
-  symbol = intern ("command-line-processed");
-  specbind (symbol, Qnil);
-
-  CHECK_STRING (filename);
-  filename = Fexpand_file_name (filename, Qnil);
-  if (!NILP (symfile))
-    {
-      CHECK_STRING (symfile);
-      if (SCHARS (symfile))
-	symfile = Fexpand_file_name (symfile, Qnil);
-    }
-
-  tem = Vpurify_flag;
-  Vpurify_flag = Qnil;
-
-#ifdef HAVE_TZSET
-  set_time_zone_rule (dump_tz);
-#endif
-
-  fflush (stdout);
-
-  unexec (SDATA (filename),
-	  !NILP (symfile) ? SDATA (symfile) : 0, my_edata, 0, 0);
-
-  Vpurify_flag = tem;
-
-  return unbind_to (count, Qnil);
-}
-
-#endif /* not CANNOT_DUMP */
 
 #if HAVE_SETLOCALE
 /* Recover from setlocale (LC_ALL, "").  */
@@ -1591,10 +1518,6 @@ syms_of_emacs ()
 {
   Qfile_name_handler_alist = intern ("file-name-handler-alist");
   staticpro (&Qfile_name_handler_alist);
-
-#ifndef CANNOT_DUMP
-  defsubr (&Sdump_emacs);
-#endif
 
   defsubr (&Skill_emacs);
 

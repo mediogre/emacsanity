@@ -64,7 +64,7 @@
 				LinkLibraryDependencies="false"
 				UseLibraryDependencyInputs="false"
 				AdditionalDependencies="emacs_mid.lib emacs_last.lib winmm.lib usp10.lib comctl32.lib wsock32.lib mpr.lib libcmtd.lib"
-				OutputFile="$(OutDir)\temacs.bin"
+				OutputFile="$(OutDir)\semacs.exe"
 				LinkIncremental="0"
 				AdditionalLibraryDirectories="$(SolutionDir)$(ConfigurationName)"
 				GenerateManifest="false"
@@ -76,7 +76,7 @@
 				StackReserveSize="8388608"
 				SwapRunFromCD="true"
 				SwapRunFromNet="true"
-				EntryPointSymbol="_start"
+				EntryPointSymbol=""
 				BaseAddress="0x01000000"
 				RandomizedBaseAddress="0"
 				DataExecutionPrevention="0"
@@ -103,7 +103,7 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
-				CommandLine="$(SolutionDir)add_section_debug.bat"
+				CommandLine=""
 			/>
 		</Configuration>
 		<Configuration

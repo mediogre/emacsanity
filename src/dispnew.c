@@ -6326,9 +6326,7 @@ If nil, never pre-empt redisplay.  */);
   Vredisplay_preemption_period = make_float (0.10);
 #endif
 
-#ifdef CANNOT_DUMP
   if (noninteractive)
-#endif
     {
       Vinitial_window_system = Qnil;
       Vwindow_system_version = Qnil;

@@ -829,11 +829,11 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 
   int tlen;
   struct passwd *pw;
-#ifdef DOS_NT
+
   int drive = 0;
   int collapse_newdir = 1;
   int is_escaped = 0;
-#endif /* DOS_NT */
+
   int length;
   Lisp_Object handler, result;
   int multibyte;
@@ -852,7 +852,6 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
     default_directory = current_buffer->directory;
   if (! STRINGP (default_directory))
     {
-#ifdef DOS_NT
       /* "/" is not considered a root directory on DOS_NT, so using "/"
 	 here causes an infinite recursion in, e.g., the following:
 
@@ -864,9 +863,6 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
       extern char *emacs_root_dir (void);
 
       default_directory = build_string (emacs_root_dir ());
-#else
-      default_directory = build_string ("/");
-#endif
     }
 
   if (!NILP (default_directory))
@@ -893,19 +889,12 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 	/* Save time in some common cases - as long as default_directory
 	   is not relative, it can be canonicalized with name below (if it
 	   is needed at all) without requiring it to be expanded now.  */
-#ifdef DOS_NT
+
 	/* Detect MSDOS file names with drive specifiers.  */
 	&& ! (IS_DRIVE (o[0]) && IS_DEVICE_SEP (o[1])
 	      && IS_DIRECTORY_SEP (o[2]))
-#ifdef WINDOWSNT
 	/* Detect Windows file names in UNC format.  */
 	&& ! (IS_DIRECTORY_SEP (o[0]) && IS_DIRECTORY_SEP (o[1]))
-#endif
-#else /* not DOS_NT */
-      /* Detect Unix absolute file names (/... alone is not absolute on
-	 DOS or Windows).  */
-	&& ! (IS_DIRECTORY_SEP (o[0]))
-#endif /* not DOS_NT */
 	)
       {
 	default_directory = Fexpand_file_name (default_directory, Qnil);
@@ -929,7 +918,6 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
   /* Make a local copy of nm[] to protect it from GC in DECODE_FILE below. */
   nm = strcpy (alloca (strlen (nm) + 1), nm);
 
-#ifdef DOS_NT
   /* Note if special escape prefix is present, but remove for now.  */
   if (nm[0] == '/' && nm[1] == ':')
     {
@@ -946,7 +934,6 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
       nm += 2;
     }
 
-#ifdef WINDOWSNT
   /* If we see "c://somedir", we want to strip the first slash after the
      colon when stripping the drive letter.  Otherwise, this expands to
      "//somedir".  */
@@ -958,17 +945,13 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
     {
       drive = 0;
     }
-#endif /* WINDOWSNT */
-#endif /* DOS_NT */
 
   /* If nm is absolute, look for `/./' or `/../' or `//''sequences; if
      none are found, we can probably return right away.  We will avoid
      allocating a new string if name is already fully expanded.  */
   if (
       IS_DIRECTORY_SEP (nm[0])
-#ifdef WINDOWSNT
       && (drive || IS_DIRECTORY_SEP (nm[1])) && !is_escaped
-#endif
       )
     {
       /* If it turns out that the filename we want to return is just a
@@ -1003,19 +986,16 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 	}
       if (!lose)
 	{
-#ifdef DOS_NT
 	  /* Make sure directories are all separated with / or \ as
 	     desired, but avoid allocation of a new string when not
 	     required. */
 	  CORRECT_DIR_SEPS (nm);
-#ifdef WINDOWSNT
 	  if (IS_DIRECTORY_SEP (nm[1]))
 	    {
 	      if (strcmp (nm, SDATA (name)) != 0)
 		name = make_specified_string (nm, -1, strlen (nm), multibyte);
 	    }
 	  else
-#endif
 	  /* drive must be set, so this is okay */
 	  if (strcmp (nm - 2, SDATA (name)) != 0)
 	    {
@@ -1026,11 +1006,6 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 	      name = concat2 (build_string (temp), name);
 	    }
 	  return name;
-#else /* not DOS_NT */
-	  if (strcmp (nm, SDATA (name)) == 0)
-	    return name;
-	  return make_specified_string (nm, -1, strlen (nm), multibyte);
-#endif /* not DOS_NT */
 	}
     }
 
@@ -1070,9 +1045,7 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 	      hdir = DECODE_FILE (tem);
 	      newdir = SDATA (hdir);
 	    }
-#ifdef DOS_NT
 	  collapse_newdir = 0;
-#endif
 	}
       else			/* ~user/filename */
 	{
@@ -1089,9 +1062,7 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 	    {
 	      newdir = (unsigned char *) pw -> pw_dir;
 	      nm = p;
-#ifdef DOS_NT
 	      collapse_newdir = 0;
-#endif
 	    }
 
 	  /* If we don't find a user of that name, leave the name
@@ -1099,7 +1070,6 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 	}
     }
 
-#ifdef DOS_NT
   /* On DOS and Windows, nm is absolute if a drive name was specified;
      use the drive's current directory as the prefix if needed.  */
   if (!newdir && drive)
@@ -1121,33 +1091,23 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 	  newdir[3] = 0;
 	}
     }
-#endif /* DOS_NT */
 
   /* Finally, if no prefix has been specified and nm is not absolute,
      then it must be expanded relative to default_directory. */
 
   if (1
-#ifndef DOS_NT
-      /* /... alone is not absolute on DOS and Windows. */
-      && !IS_DIRECTORY_SEP (nm[0])
-#endif
-#ifdef WINDOWSNT
       && !(IS_DIRECTORY_SEP (nm[0]) && IS_DIRECTORY_SEP (nm[1]))
-#endif
       && !newdir)
     {
       newdir = SDATA (default_directory);
-#ifdef DOS_NT
       /* Note if special escape prefix is present, but remove for now.  */
       if (newdir[0] == '/' && newdir[1] == ':')
 	{
 	  is_escaped = 1;
 	  newdir += 2;
 	}
-#endif
     }
 
-#ifdef DOS_NT
   if (newdir)
     {
       /* First ensure newdir is an absolute name. */
@@ -1155,10 +1115,8 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 	  /* Detect MSDOS file names with drive specifiers.  */
 	  ! (IS_DRIVE (newdir[0])
 	     && IS_DEVICE_SEP (newdir[1]) && IS_DIRECTORY_SEP (newdir[2]))
-#ifdef WINDOWSNT
 	  /* Detect Windows file names in UNC format.  */
 	  && ! (IS_DIRECTORY_SEP (newdir[0]) && IS_DIRECTORY_SEP (newdir[1]))
-#endif
 	  )
 	{
 	  /* Effectively, let newdir be (expand-file-name newdir cwd).
@@ -1174,7 +1132,7 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 	    }
 	  if (!IS_DIRECTORY_SEP (nm[0]))
 	    {
-	      char * tmp = alloca (strlen (newdir) + strlen (nm) + 2);
+	      char * tmp = alloca (strlen (newdir) + strlen (nm) + 3);
 	      file_name_as_directory (tmp, newdir);
 	      strcat (tmp, nm);
 	      nm = tmp;
@@ -1200,7 +1158,6 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
          (//server/share for UNC, nothing otherwise).  */
       if (IS_DIRECTORY_SEP (nm[0]) && collapse_newdir)
 	{
-#ifdef WINDOWSNT
 	  if (IS_DIRECTORY_SEP (newdir[0]) && IS_DIRECTORY_SEP (newdir[1]))
 	    {
 	      unsigned char *p;
@@ -1212,11 +1169,9 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 	      *p = 0;
 	    }
 	  else
-#endif
 	    newdir = "";
 	}
     }
-#endif /* DOS_NT */
 
   if (newdir)
     {
@@ -1224,9 +1179,7 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 	 just / or // (an incomplete UNC name).  */
       length = strlen (newdir);
       if (length > 1 && IS_DIRECTORY_SEP (newdir[length - 1])
-#ifdef WINDOWSNT
 	  && !(length == 2 && IS_DIRECTORY_SEP (newdir[0]))
-#endif
 	  )
 	{
 	  unsigned char *temp = (unsigned char *) alloca (length);
@@ -1241,22 +1194,17 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 
   /* Now concatenate the directory and name to new space in the stack frame */
   tlen += strlen (nm) + 1;
-#ifdef DOS_NT
   /* Reserve space for drive specifier and escape prefix, since either
      or both may need to be inserted.  (The Microsoft x86 compiler
      produces incorrect code if the following two lines are combined.)  */
   target = (unsigned char *) alloca (tlen + 4);
   target += 4;
-#else  /* not DOS_NT */
-  target = (unsigned char *) alloca (tlen);
-#endif /* not DOS_NT */
   *target = 0;
 
   if (newdir)
     {
       if (nm[0] == 0 || IS_DIRECTORY_SEP (nm[0]))
 	{
-#ifdef DOS_NT
 	  /* If newdir is effectively "C:/", then the drive letter will have
 	     been stripped and newdir will be "/".  Concatenating with an
 	     absolute directory in nm produces "//", which will then be
@@ -1264,7 +1212,6 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 	     this case (keeping the drive letter).  */
 	  if (!(drive && nm[0] && IS_DIRECTORY_SEP (newdir[0])
 		&& newdir[1] == '\0'))
-#endif
 	    strcpy (target, newdir);
 	}
       else
@@ -1303,23 +1250,17 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 		    functions of the underlying OS.  (To reproduce, try a
 		    long series of "../../" in default_directory, longer
 		    than the number of levels from the root.)  */
-#ifndef DOS_NT
 		 && o != target
-#endif
 		 && (IS_DIRECTORY_SEP (p[3]) || p[3] == 0))
 	  {
-#ifdef WINDOWSNT
 	    unsigned char *prev_o = o;
-#endif
 	    while (o != target && (--o) && !IS_DIRECTORY_SEP (*o))
 	      ;
-#ifdef WINDOWSNT
 	    /* Don't go below server level in UNC filenames.  */
 	    if (o == target + 1 && IS_DIRECTORY_SEP (*o)
 		&& IS_DIRECTORY_SEP (*target))
 	      o = prev_o;
 	    else
-#endif
 	    /* Keep initial / only if this is the whole name.  */
 	    if (o == target && IS_ANY_SEP (*o) && p[3] == 0)
 	      ++o;
@@ -1334,12 +1275,9 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 	  }
       }
 
-#ifdef DOS_NT
     /* At last, set drive name. */
-#ifdef WINDOWSNT
     /* Except for network file name.  */
     if (!(IS_DIRECTORY_SEP (target[0]) && IS_DIRECTORY_SEP (target[1])))
-#endif /* WINDOWSNT */
       {
 	if (!drive) abort ();
 	target -= 2;
@@ -1354,7 +1292,6 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 	target[1] = ':';
       }
     CORRECT_DIR_SEPS (target);
-#endif /* DOS_NT */
 
     result = make_specified_string (target, -1, o - target, multibyte);
   }
@@ -1370,168 +1307,6 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 
   return result;
 }
-
-#if 0
-/* PLEASE DO NOT DELETE THIS COMMENTED-OUT VERSION!
-   This is the old version of expand-file-name, before it was thoroughly
-   rewritten for Emacs 10.31.  We leave this version here commented-out,
-   because the code is very complex and likely to have subtle bugs.  If
-   bugs _are_ found, it might be of interest to look at the old code and
-   see what did it do in the relevant situation.
-
-   Don't remove this code: it's true that it will be accessible via CVS,
-   but a few years from deletion, people will forget it is there.  */
-
-/* Changed this DEFUN to a DEAFUN, so as not to confuse `make-docfile'.  */
-DEAFUN ("expand-file-name", Fexpand_file_name, Sexpand_file_name, 1, 2, 0,
-  "Convert FILENAME to absolute, and canonicalize it.\n\
-Second arg DEFAULT is directory to start with if FILENAME is relative\n\
-\(does not start with slash); if DEFAULT is nil or missing,\n\
-the current buffer's value of default-directory is used.\n\
-Filenames containing `.' or `..' as components are simplified;\n\
-initial `~/' expands to your home directory.\n\
-See also the function `substitute-in-file-name'.")
-     (name, defalt)
-     Lisp_Object name, defalt;
-{
-  unsigned char *nm;
-
-  register unsigned char *newdir, *p, *o;
-  int tlen;
-  unsigned char *target;
-  struct passwd *pw;
-  int lose;
-
-  CHECK_STRING (name);
-  nm = SDATA (name);
-
-  /* If nm is absolute, flush ...// and detect /./ and /../.
-     If no /./ or /../ we can return right away.  */
-  if (nm[0] == '/')
-    {
-      p = nm;
-      lose = 0;
-      while (*p)
-	{
-	  if (p[0] == '/' && p[1] == '/'
-	      )
-	    nm = p + 1;
-	  if (p[0] == '/' && p[1] == '~')
-	    nm = p + 1, lose = 1;
-	  if (p[0] == '/' && p[1] == '.'
-	      && (p[2] == '/' || p[2] == 0
-		  || (p[2] == '.' && (p[3] == '/' || p[3] == 0))))
-	    lose = 1;
-	  p++;
-	}
-      if (!lose)
-	{
-	  if (nm == SDATA (name))
-	    return name;
-	  return build_string (nm);
-	}
-    }
-
-  /* Now determine directory to start with and put it in NEWDIR */
-
-  newdir = 0;
-
-  if (nm[0] == '~')             /* prefix ~ */
-    if (nm[1] == '/' || nm[1] == 0)/* ~/filename */
-      {
-	if (!(newdir = (unsigned char *) egetenv ("HOME")))
-	  newdir = (unsigned char *) "";
-	nm++;
-      }
-    else  /* ~user/filename */
-      {
-	/* Get past ~ to user */
-	unsigned char *user = nm + 1;
-	/* Find end of name. */
-	unsigned char *ptr = (unsigned char *) index (user, '/');
-	int len = ptr ? ptr - user : strlen (user);
-	/* Copy the user name into temp storage. */
-	o = (unsigned char *) alloca (len + 1);
-	bcopy ((char *) user, o, len);
-	o[len] = 0;
-
-	/* Look up the user name. */
-	BLOCK_INPUT;
-	pw = (struct passwd *) getpwnam (o + 1);
-	UNBLOCK_INPUT;
-	if (!pw)
-	  error ("\"%s\" isn't a registered user", o + 1);
-
-	newdir = (unsigned char *) pw->pw_dir;
-
-	/* Discard the user name from NM.  */
-	nm += len;
-      }
-
-  if (nm[0] != '/' && !newdir)
-    {
-      if (NILP (defalt))
-	defalt = current_buffer->directory;
-      CHECK_STRING (defalt);
-      newdir = SDATA (defalt);
-    }
-
-  /* Now concatenate the directory and name to new space in the stack frame */
-
-  tlen = (newdir ? strlen (newdir) + 1 : 0) + strlen (nm) + 1;
-  target = (unsigned char *) alloca (tlen);
-  *target = 0;
-
-  if (newdir)
-    {
-      if (nm[0] == 0 || nm[0] == '/')
-	strcpy (target, newdir);
-      else
-      file_name_as_directory (target, newdir);
-    }
-
-  strcat (target, nm);
-
-  /* Now canonicalize by removing /. and /foo/.. if they appear */
-
-  p = target;
-  o = target;
-
-  while (*p)
-    {
-      if (*p != '/')
-	{
-	  *o++ = *p++;
-	}
-      else if (!strncmp (p, "//", 2)
-	       )
-	{
-	  o = target;
-	  p++;
-	}
-      else if (p[0] == '/' && p[1] == '.'
-	       && (p[2] == '/' || p[2] == 0))
-	p += 2;
-      else if (!strncmp (p, "/..", 3)
-	       /* `/../' is the "superroot" on certain file systems.  */
-	       && o != target
-	       && (p[3] == '/' || p[3] == 0))
-	{
-	  while (o != target && *--o != '/')
-	    ;
-	  if (o == target && *o == '/')
-	    ++o;
-	  p += 3;
-	}
-      else
-	{
-	  *o++ = *p++;
-	}
-    }
-
-  return make_string (target, o - target);
-}
-#endif
 
 /* If /~ or // appears, discard everything through first slash.  */
 static int

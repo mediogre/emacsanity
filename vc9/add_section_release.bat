@@ -1,2 +1,2 @@
 s:\code\e\emacsanity.git\vc9\addsection.exe s:\code\e\emacsanity.git\vc9\Release\temacs.bin s:\code\e\emacsanity.git\vc9\Release\temacs.exe EMHEAP 21
-s:\code\e\emacsanity.git\vc9\Release\temacs.exe -batch -l loadup bootstrap
+rem s:\code\e\emacsanity.git\vc9\Release\temacs.exe -batch -l loadup bootstrap

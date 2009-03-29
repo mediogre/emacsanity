@@ -29,12 +29,14 @@
 
 ;; add subdirectories to the load-path for files that might
 ;; get autoloaded when bootstrapping
-(if (or (equal (nth 3 command-line-args) "bootstrap")
-	(equal (nth 4 command-line-args) "bootstrap")
-	(equal (nth 3 command-line-args) "unidata-gen.el")
-	(equal (nth 4 command-line-args) "unidata-gen-files")
-	;; in case CANNOT_DUMP
-	(equal (nth 0 command-line-args) "../src/bootstrap-emacs"))
+
+(if t
+;;  (or (equal (nth 3 command-line-args) "bootstrap")
+;; 	(equal (nth 4 command-line-args) "bootstrap")
+;; 	(equal (nth 3 command-line-args) "unidata-gen.el")
+;; 	(equal (nth 4 command-line-args) "unidata-gen-files")
+;; 	;; in case CANNOT_DUMP
+;; 	(equal (nth 0 command-line-args) "../src/bootstrap-emacs"))
     (let ((dir (car load-path)))
       ;; We'll probably overflow the pure space.
       (setq purify-flag nil)
@@ -261,7 +263,7 @@
 ;; must be among the ones parsed by make-docfile
 ;; to construct DOC.  Any that are not processed
 ;; for DOC will not have doc strings in the dumped Emacs.
-
+(message "Damn it!")
 (message "Finding pointers to doc strings...")
 (if (or (equal (nth 3 command-line-args) "dump")
 	(equal (nth 4 command-line-args) "dump"))
@@ -289,6 +291,7 @@
 (load "site-init" t)
 (setq current-load-list nil)
 
+(message "got here!")
 ;; Write the value of load-history into fns-VERSION.el,
 ;; then clear out load-history.
 ;; (if (or (equal (nth 3 command-line-args) "dump")
@@ -382,6 +385,7 @@
 	 (equal (nth 2 command-line-args) "loadup"))
     (setcdr command-line-args (nthcdr 3 command-line-args)))
 
+(message "Going for the top-level, baby!")
 (eval top-level)
 
 

@@ -885,6 +885,7 @@ allocate_buffer ()
    using GNU malloc.  Fortunately, most of the major operating systems
    can use GNU malloc.  */
 
+#if 0
 #ifndef SYNC_INPUT
 /* When using SYNC_INPUT, we don't call malloc from a signal handler, so
    there's no need to block input around malloc.  */
@@ -989,7 +990,7 @@ uninterrupt_malloc ()
 
 #endif /* not SYNC_INPUT */
 #endif /* not SYSTEM_MALLOC */
-
+#endif
 
 
 /***********************************************************************
@@ -5364,7 +5365,7 @@ We divide the value by 1024 to make sure it fits in a Lisp integer.  */)
 {
   Lisp_Object end;
 
-  XSETINT (end, (EMACS_INT) sbrk (0) / 1024);
+  XSETINT (end, 0); // (EMACS_INT) sbrk (0) / 1024);
 
   return end;
 }
