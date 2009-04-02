@@ -30,7 +30,7 @@
             // init read buffer?
         }
 
-        internal static LispSymbol oblookup(LispHash obarray, string str)
+        static LispSymbol oblookup(LispHash obarray, string str)
         {
             return obarray[str];
         }
@@ -50,19 +50,31 @@
 
         internal static LispHash check_obarray(LispObject obarray)
         {
-/* need to check if V.obarray is invalid and set it ot initial obarray
-            if (h.Size == 0)
-            {
-                if (ReferenceEquals(h, V.obarray))
-                {
-                    V.obarray = initial_obarray;
-                }
-            }
-*/
+            /* need to check if V.obarray is invalid and set it ot initial obarray
+                        if (h.Size == 0)
+                        {
+                            if (ReferenceEquals(h, V.obarray))
+                            {
+                                V.obarray = initial_obarray;
+                            }
+                        }
+            */
 
             return obarray as LispHash;
         }
+
+        public static void defsubr(string name, subr2 fn)
+        {
+            LispSubr subr = new LispSubr();
+            subr.symbol_name = name;
+            subr.max_args = 2;
+            subr.function2 = fn;
+
+            LispSymbol sym = intern(name);
+            sym.Function = subr;
+        }
     }
+
 
     partial class V
     {

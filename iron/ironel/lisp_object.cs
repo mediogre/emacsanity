@@ -1,6 +1,6 @@
 ﻿namespace IronElisp
 {
-    class LispObject
+    internal class LispObject
     {
     }
 
@@ -105,15 +105,27 @@
     {
     }
 
+    internal delegate LispObject subr0();
+    internal delegate LispObject subr1(LispObject a1);
+    internal delegate LispObject subr2(LispObject a1, LispObject a2);
+    internal delegate LispObject subr3(LispObject a1, LispObject a2, LispObject a3);
+    internal delegate LispObject subr4(LispObject a1, LispObject a2, LispObject a3, LispObject a4);
+
     class LispSubr : LispVectorLike
     {
         // do we need this???
        int size;
-       delegate LispObject function();
-       int min_args, max_args;
-       string symbol_name;
-       string intspec;
-       string doc;
+
+       internal int min_args, max_args;
+       internal string symbol_name;
+       internal string intspec;
+       internal string doc;
+
+       internal subr0 function0;
+       internal subr1 function1;
+       internal subr2 function2;
+       internal subr3 function3;
+       internal subr4 function4;
     }
     
     class LispCons : LispObject
