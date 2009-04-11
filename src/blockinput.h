@@ -20,8 +20,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #ifndef EMACS_BLOCKINPUT_H
 #define EMACS_BLOCKINPUT_H
 
-#include "atimer.h"
-
 /* When Emacs is using signal-driven input, the processing of those
    input signals can get pretty hairy.  For example, when Emacs is
    running under X windows, handling an input signal can entail

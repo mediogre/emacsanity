@@ -786,7 +786,6 @@ main (int argc, char **argv)
 #ifdef CLASH_DETECTION
   init_filelock ();
 #endif
-  init_atimer ();
   running_asynch_code = 0;
 
   /* Handle --unibyte and the EMACS_UNIBYTE envvar,

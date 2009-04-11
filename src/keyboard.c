@@ -40,7 +40,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "blockinput.h"
 #include "puresize.h"
 #include "systime.h"
-#include "atimer.h"
 #include <setjmp.h>
 #include <errno.h>
 
@@ -2163,15 +2162,6 @@ safe_run_hooks (hook)
 
 EMACS_INT polling_period;
 
-/* Nonzero means polling for input is temporarily suppressed.  */
-
-int poll_suppress_count;
-
-/* Asynchronous timer for polling.  */
-
-struct atimer *poll_timer;
-
-
 #ifdef POLL_FOR_INPUT
 
 /* Poll for input, so that we catch a C-g if it comes in.  This
@@ -2185,54 +2175,7 @@ poll_for_input_1 ()
     read_avail_input (0);
 }
 
-/* Timer callback function for poll_timer.  TIMER is equal to
-   poll_timer.  */
-
-void
-poll_for_input (timer)
-     struct atimer *timer;
-{
-  if (poll_suppress_count == 0)
-    {
-      poll_for_input_1 ();
-    }
-}
-
 #endif /* POLL_FOR_INPUT */
-
-/* Begin signals to poll for input, if they are appropriate.
-   This function is called unconditionally from various places.  */
-
-void
-start_polling ()
-{
-#ifdef POLL_FOR_INPUT
-  /* XXX This condition was (read_socket_hook && !interrupt_input),
-     but read_socket_hook is not global anymore.  Let's pretend that
-     it's always set. */
-  if (!interrupt_input)
-    {
-      /* If poll timer doesn't exist, are we need one with
-	 a different interval, start a new one.  */
-      if (poll_timer == NULL
-	  || EMACS_SECS (poll_timer->interval) != polling_period)
-	{
-	  EMACS_TIME interval;
-
-	  if (poll_timer)
-	    cancel_atimer (poll_timer);
-
-	  EMACS_SET_SECS_USECS (interval, polling_period, 0);
-	  poll_timer = start_atimer (ATIMER_CONTINUOUS, interval,
-				     poll_for_input, NULL);
-	}
-
-      /* Let the timer's callback function poll for input
-	 if this becomes zero.  */
-      --poll_suppress_count;
-    }
-#endif
-}
 
 /* Nonzero if we are using polling to handle input asynchronously.  */
 
@@ -2246,62 +2189,6 @@ input_polling_used ()
   return !interrupt_input;
 #else
   return 0;
-#endif
-}
-
-/* Turn off polling.  */
-
-void
-stop_polling ()
-{
-#ifdef POLL_FOR_INPUT
-  /* XXX This condition was (read_socket_hook && !interrupt_input),
-     but read_socket_hook is not global anymore.  Let's pretend that
-     it's always set. */
-  if (!interrupt_input)
-    ++poll_suppress_count;
-#endif
-}
-
-/* Set the value of poll_suppress_count to COUNT
-   and start or stop polling accordingly.  */
-
-void
-set_poll_suppress_count (count)
-     int count;
-{
-#ifdef POLL_FOR_INPUT
-  if (count == 0 && poll_suppress_count != 0)
-    {
-      poll_suppress_count = 1;
-      start_polling ();
-    }
-  else if (count != 0 && poll_suppress_count == 0)
-    {
-      stop_polling ();
-    }
-  poll_suppress_count = count;
-#endif
-}
-
-/* Bind polling_period to a value at least N.
-   But don't decrease it.  */
-
-void
-bind_polling_period (n)
-     int n;
-{
-#ifdef POLL_FOR_INPUT
-  int new = polling_period;
-
-  if (n > new)
-    new = n;
-
-  stop_other_atimers (poll_timer);
-  stop_polling ();
-  specbind (Qpolling_period, make_number (new));
-  /* Start a new alarm with the new period.  */
-  start_polling ();
 #endif
 }
 
@@ -2442,14 +2329,6 @@ read_char_help_form_unwind (Lisp_Object arg)
   return Qnil;
 }
 
-#define STOP_POLLING					\
-do { if (! polling_stopped_here) stop_polling ();	\
-       polling_stopped_here = 1; } while (0)
-
-#define RESUME_POLLING					\
-do { if (polling_stopped_here) start_polling ();	\
-       polling_stopped_here = 0; } while (0)
-
 /* read a character from the keyboard; call the redisplay if needed */
 /* commandflag 0 means do not do auto-saving, but do do redisplay.
    -1 means do not do redisplay, but do do autosaving.
@@ -2495,7 +2374,6 @@ read_char (commandflag, nmaps, maps, prev_event, used_mouse_menu, end_time)
   volatile Lisp_Object previous_echo_area_message;
   volatile Lisp_Object also_record;
   volatile int reread;
-  int polling_stopped_here = 0;
   struct kboard *orig_kboard = current_kboard;
 
   also_record = Qnil;
@@ -2976,8 +2854,6 @@ read_char (commandflag, nmaps, maps, prev_event, used_mouse_menu, end_time)
 
  wrong_kboard:
 
-  STOP_POLLING;
-
   /* Finally, we read from the main queue,
      and if that gives us something we can't use yet, we put it on the
      appropriate side queue and try again.  */
@@ -3049,7 +2925,6 @@ read_char (commandflag, nmaps, maps, prev_event, used_mouse_menu, end_time)
 
   if (!end_time)
     timer_stop_idle ();
-  RESUME_POLLING;
 
   if (NILP (c))
     {
@@ -3362,7 +3237,6 @@ read_char (commandflag, nmaps, maps, prev_event, used_mouse_menu, end_time)
     }
 
  exit:
-  RESUME_POLLING;
   return (c);
 }
 
@@ -6924,7 +6798,6 @@ record_asynch_buffer_change ()
   event.frame_or_window = Qnil;
   event.arg = Qnil;
 
-#ifdef subprocesses
   /* We don't need a buffer-switch event unless Emacs is waiting for input.
      The purpose of the event is to make read_key_sequence look up the
      keymaps again.  If we aren't in read_key_sequence, we don't need one,
@@ -6932,16 +6805,8 @@ record_asynch_buffer_change ()
   tem = Fwaiting_for_user_input_p ();
   if (NILP (tem))
     return;
-#else
-  /* We never need these events if we have no asynchronous subprocesses.  */
-  return;
-#endif
 
-    {
-      stop_polling ();
-      kbd_buffer_store_event (&event);
-      start_polling ();
-    }
+  kbd_buffer_store_event (&event);
 }
 
 /* Read any terminal input already buffered up by the system
@@ -10788,44 +10653,11 @@ See also `current-input-mode'.  */)
      Lisp_Object interrupt;
 {
   int new_interrupt_input;
-#ifdef SIGIO
-/* Note SIGIO has been undef'd if FIONREAD is missing.  */
-#ifdef HAVE_X_WINDOWS
-  if (x_display_list != NULL)
-    {
-      /* When using X, don't give the user a real choice,
-	 because we haven't implemented the mechanisms to support it.  */
-#ifdef NO_SOCK_SIGIO
-      new_interrupt_input = 0;
-#else /* not NO_SOCK_SIGIO */
-      new_interrupt_input = 1;
-#endif /* NO_SOCK_SIGIO */
-    }
-  else
-#endif /* HAVE_X_WINDOWS */
-    new_interrupt_input = !NILP (interrupt);
-#else /* not SIGIO */
   new_interrupt_input = 0;
-#endif /* not SIGIO */
 
   if (new_interrupt_input != interrupt_input)
     {
-#ifdef POLL_FOR_INPUT
-      stop_polling ();
-#endif
-#ifndef DOS_NT
-      /* this causes startup screen to be restored and messes with the mouse */
-      reset_all_sys_modes ();
-#endif
       interrupt_input = new_interrupt_input;
-#ifndef DOS_NT
-      init_all_sys_modes ();
-#endif
-
-#ifdef POLL_FOR_INPUT
-      poll_suppress_count = 1;
-      start_polling ();
-#endif
     }
   return Qnil;
 }
@@ -11155,11 +10987,6 @@ init_keyboard ()
 
   if (keyboard_init_hook)
     (*keyboard_init_hook) ();
-
-#ifdef POLL_FOR_INPUT
-  poll_suppress_count = 1;
-  start_polling ();
-#endif
 }
 
 /* This type's only use is in syms_of_keyboard, to initialize the

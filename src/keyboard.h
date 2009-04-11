@@ -194,9 +194,6 @@ extern int num_input_events;
 /* Total number of times read_char has returned, outside of macros.  */
 extern EMACS_INT num_nonmacro_input_events;
 
-/* Nonzero means polling for input is temporarily suppressed.  */
-extern int poll_suppress_count;
-
 /* Vector holding the key sequence that invoked the current command.
    It is reused for each command, and it may be longer than the current
    sequence; this_command_key_count indicates how many elements
@@ -441,14 +438,10 @@ extern void pop_kboard P_ ((void));
 extern void temporarily_switch_to_single_kboard P_ ((struct frame *));
 extern void record_asynch_buffer_change P_ ((void));
 extern SIGTYPE input_poll_signal P_ ((int));
-extern void start_polling P_ ((void));
-extern void stop_polling P_ ((void));
-extern void set_poll_suppress_count P_ ((int));
 extern void gobble_input P_ ((int));
 extern int input_polling_used P_ ((void));
 extern void clear_input_pending P_ ((void));
 extern int requeued_events_pending_p P_ ((void));
-extern void bind_polling_period P_ ((int));
 extern void stuff_buffered_input P_ ((Lisp_Object));
 extern void clear_waiting_for_input P_ ((void));
 extern void swallow_events P_ ((int));

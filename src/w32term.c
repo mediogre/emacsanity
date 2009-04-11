@@ -49,7 +49,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "keyboard.h"
 #include "intervals.h"
 #include "process.h"
-#include "atimer.h"
 #include "keymap.h"
 
 #include "w32heap.h"
@@ -5763,12 +5762,7 @@ x_make_frame_visible (f)
 	   isn't always enabled here.  This is probably a bug.  */
 	if (input_polling_used ())
 	  {
-	    /* It could be confusing if a real alarm arrives while processing
-	       the fake one.  Turn it off and let the handler reset it.  */
-	    int old_poll_suppress_count = poll_suppress_count;
-	    poll_suppress_count = 1;
 	    poll_for_input_1 ();
-	    poll_suppress_count = old_poll_suppress_count;
 	  }
       }
     FRAME_SAMPLE_VISIBILITY (f);

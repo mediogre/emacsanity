@@ -5171,9 +5171,6 @@ value.  */)
 extern Lisp_Object Vhourglass_delay;
 
 /* Return non-zero if houglass timer has been started or hourglass is shown.  */
-/* PENDING: if W32 can use atimers (atimer.[hc]) then the common impl in
-   	    xdisp.c could be used. */
-
 int
 hourglass_started ()
 {

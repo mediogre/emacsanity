@@ -246,17 +246,6 @@ run_all_atimers ()
     }
 }
 
-
-/* A version of run_all_timers suitable for a record_unwind_protect.  */
-
-Lisp_Object
-unwind_stop_other_atimers (dummy)
-     Lisp_Object dummy;
-{
-  run_all_atimers ();
-  return Qnil;
-}
-
 /* Insert timer T into the list of active atimers `atimers', keeping
    the list sorted by expiration time.  T must not be in this list
    already.  */

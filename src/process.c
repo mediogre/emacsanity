@@ -107,7 +107,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include "blockinput.h"
 #include "dispextern.h"
 #include "composite.h"
-#include "atimer.h"
 
 Lisp_Object Qprocessp;
 Lisp_Object Qrun, Qstop, Qsignal;
@@ -1755,13 +1754,6 @@ start_process_unwind (proc)
   return Qnil;
 }
 
-static void
-create_process_1 (timer)
-     struct atimer *timer;
-{
-  /* Nothing to do.  */
-}
-
 void
 create_process (process, new_argv, current_dir)
      Lisp_Object process;
@@ -1883,18 +1875,8 @@ create_process (process, new_argv, current_dir)
 	 this close hangs.  I don't know why.
 	 So have an interrupt jar it loose.  */
       {
-	struct atimer *timer;
-	EMACS_TIME offset;
-
-	stop_polling ();
-	EMACS_SET_SECS_USECS (offset, 1, 0);
-	timer = start_atimer (ATIMER_RELATIVE, offset, create_process_1, 0);
-
 	if (forkin >= 0)
 	  emacs_close (forkin);
-
-	cancel_atimer (timer);
-	start_polling ();
       }
 
       if (forkin != forkout && forkout >= 0)
@@ -2941,17 +2923,6 @@ usage: (make-network-process &rest ARGS)  */)
 	host = build_string ("localhost");
       CHECK_STRING (host);
     }
-
-  /* Slow down polling to every ten seconds.
-     Some kernels have a bug which causes retrying connect to fail
-     after a connect.  Polling can interfere with gethostbyname too.  */
-#ifdef POLL_FOR_INPUT
-  if (socktype == SOCK_STREAM)
-    {
-      record_unwind_protect (unwind_stop_other_atimers, Qnil);
-      bind_polling_period (10);
-    }
-#endif
 
 #ifdef HAVE_GETADDRINFO
   /* If we have a host, use getaddrinfo to resolve both host and service.

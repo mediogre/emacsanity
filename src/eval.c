@@ -78,7 +78,6 @@ struct catchtag
   struct handler *handlerlist;
   int lisp_eval_depth;
   int pdlcount;
-  int poll_suppress_count;
   int interrupt_input_blocked;
   struct byte_stack *byte_stack;
 };
@@ -1177,7 +1176,6 @@ internal_catch (tag, func, arg)
   c.handlerlist = handlerlist;
   c.lisp_eval_depth = lisp_eval_depth;
   c.pdlcount = SPECPDL_INDEX ();
-  c.poll_suppress_count = poll_suppress_count;
   c.interrupt_input_blocked = interrupt_input_blocked;
   c.byte_stack = byte_stack_list;
   catchlist = &c;
@@ -1218,7 +1216,6 @@ unwind_to_catch (catch, value)
   catch->val = value;
 
   /* Restore certain special C variables.  */
-  set_poll_suppress_count (catch->poll_suppress_count);
   UNBLOCK_INPUT_TO (catch->interrupt_input_blocked);
   handling_signal = 0;
   immediate_quit = 0;
@@ -1352,7 +1349,6 @@ internal_lisp_condition_case (var, bodyform, handlers)
   c.handlerlist = handlerlist;
   c.lisp_eval_depth = lisp_eval_depth;
   c.pdlcount = SPECPDL_INDEX ();
-  c.poll_suppress_count = poll_suppress_count;
   c.interrupt_input_blocked = interrupt_input_blocked;
   c.byte_stack = byte_stack_list;
   if (_setjmp (c.jmp))
@@ -1415,7 +1411,6 @@ internal_condition_case (bfun, handlers, hfun)
   c.handlerlist = handlerlist;
   c.lisp_eval_depth = lisp_eval_depth;
   c.pdlcount = SPECPDL_INDEX ();
-  c.poll_suppress_count = poll_suppress_count;
   c.interrupt_input_blocked = interrupt_input_blocked;
   c.byte_stack = byte_stack_list;
   if (_setjmp (c.jmp))
@@ -1462,7 +1457,6 @@ internal_condition_case_1 (bfun, arg, handlers, hfun)
   c.handlerlist = handlerlist;
   c.lisp_eval_depth = lisp_eval_depth;
   c.pdlcount = SPECPDL_INDEX ();
-  c.poll_suppress_count = poll_suppress_count;
   c.interrupt_input_blocked = interrupt_input_blocked;
   c.byte_stack = byte_stack_list;
   if (_setjmp (c.jmp))
@@ -1512,7 +1506,6 @@ internal_condition_case_2 (bfun, nargs, args, handlers, hfun)
   c.handlerlist = handlerlist;
   c.lisp_eval_depth = lisp_eval_depth;
   c.pdlcount = SPECPDL_INDEX ();
-  c.poll_suppress_count = poll_suppress_count;
   c.interrupt_input_blocked = interrupt_input_blocked;
   c.byte_stack = byte_stack_list;
   if (_setjmp (c.jmp))

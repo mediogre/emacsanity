@@ -840,10 +840,6 @@ int display_hourglass_p;
 /* Non-zero means an hourglass cursor is currently shown.  */
 int hourglass_shown_p;
 
-/* If non-null, an asynchronous timer that, when it expires, displays
-   an hourglass cursor on all frames.  */
-struct atimer *hourglass_atimer;
-
 /* Number of seconds to wait before displaying an hourglass cursor.  */
 Lisp_Object Vhourglass_delay;
 
@@ -11134,16 +11130,6 @@ select_frame_for_redisplay (frame)
     } while (!EQ (frame, old) && (frame = old, 1));
 }
 
-
-#define STOP_POLLING					\
-do { if (! polling_stopped_here) stop_polling ();	\
-       polling_stopped_here = 1; } while (0)
-
-#define RESUME_POLLING					\
-do { if (polling_stopped_here) start_polling ();	\
-       polling_stopped_here = 0; } while (0)
-
-
 /* If PRESERVE_ECHO_AREA is nonzero, it means this redisplay is not in
    response to any user action; therefore, we should preserve the echo
    area.  (Actually, our caller does that job.)  Perhaps in the future
@@ -11162,7 +11148,6 @@ redisplay_internal (preserve_echo_area)
   int number_of_visible_frames;
   int count, count1;
   struct frame *sf;
-  int polling_stopped_here = 0;
   Lisp_Object old_frame = selected_frame;
 
   /* Non-zero means redisplay has to consider all windows on all
@@ -11673,7 +11658,6 @@ redisplay_internal (preserve_echo_area)
 		     error.  */
 		  if (interrupt_input)
 		    unrequest_sigio ();
-		  STOP_POLLING;
 
 		  /* Update the display.  */
 		  set_window_update_flags (XWINDOW (f->root_window), 1);
@@ -11732,7 +11716,6 @@ redisplay_internal (preserve_echo_area)
 	 which can cause an apparent I/O error.  */
       if (interrupt_input)
 	unrequest_sigio ();
-      STOP_POLLING;
 
       if (FRAME_VISIBLE_P (sf) && !FRAME_OBSCURED_P (sf))
 	{
@@ -11804,7 +11787,6 @@ redisplay_internal (preserve_echo_area)
      But it is much hairier to try to do anything about that.  */
   if (interrupt_input)
     request_sigio ();
-  RESUME_POLLING;
 
   /* If a frame has become visible which was not before, redisplay
      again, so that we display it.  Expose events for such a frame
@@ -11862,7 +11844,6 @@ redisplay_internal (preserve_echo_area)
 
  end_of_redisplay:
   unbind_to (count, Qnil);
-  RESUME_POLLING;
 }
 
 
@@ -24679,7 +24660,6 @@ baseline.  The default value is 1.  */);
 Value must be an integer or float.  */);
   Vhourglass_delay = make_number (DEFAULT_HOURGLASS_DELAY);
 
-  hourglass_atimer = NULL;
   hourglass_shown_p = 0;
 }
 
@@ -24735,68 +24715,6 @@ init_xdisp ()
 
   help_echo_showing_p = 0;
 }
-
-/* Since w32 does not support atimers, it defines its own implementation of
-   the following three functions in w32fns.c.  */
-#ifndef WINDOWSNT
-
-/* Platform-independent portion of hourglass implementation. */
-
-/* Return non-zero if houglass timer has been started or hourglass is shown.  */
-int
-hourglass_started ()
-{
-  return hourglass_shown_p || hourglass_atimer != NULL;
-}
-
-/* Cancel a currently active hourglass timer, and start a new one.  */
-void
-start_hourglass ()
-{
-#if defined (HAVE_WINDOW_SYSTEM)
-  EMACS_TIME delay;
-  int secs, usecs = 0;
-
-  cancel_hourglass ();
-
-  if (INTEGERP (Vhourglass_delay)
-      && XINT (Vhourglass_delay) > 0)
-    secs = XFASTINT (Vhourglass_delay);
-  else if (FLOATP (Vhourglass_delay)
-	   && XFLOAT_DATA (Vhourglass_delay) > 0)
-    {
-      Lisp_Object tem;
-      tem = Ftruncate (Vhourglass_delay, Qnil);
-      secs = XFASTINT (tem);
-      usecs = (XFLOAT_DATA (Vhourglass_delay) - secs) * 1000000;
-    }
-  else
-    secs = DEFAULT_HOURGLASS_DELAY;
-
-  EMACS_SET_SECS_USECS (delay, secs, usecs);
-  hourglass_atimer = start_atimer (ATIMER_RELATIVE, delay,
-				   show_hourglass, NULL);
-#endif
-}
-
-
-/* Cancel the hourglass cursor timer if active, hide a busy cursor if
-   shown.  */
-void
-cancel_hourglass ()
-{
-#if defined (HAVE_WINDOW_SYSTEM)
-  if (hourglass_atimer)
-    {
-      cancel_atimer (hourglass_atimer);
-      hourglass_atimer = NULL;
-    }
-
-  if (hourglass_shown_p)
-    hide_hourglass ();
-#endif
-}
-#endif /* ! WINDOWSNT  */
 
 /* arch-tag: eacc864d-bb6a-4b74-894a-1a4399a1358b
    (do not change this comment) */
