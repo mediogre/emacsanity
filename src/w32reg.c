@@ -90,8 +90,6 @@ w32_get_string_resource (name, class, dwexptype)
 
  trykey:
 
-  BLOCK_INPUT;
-
   /* Check both the current user and the local machine to see if we have
      any resources */
 
@@ -120,8 +118,6 @@ w32_get_string_resource (name, class, dwexptype)
 
       RegCloseKey (hrootkey);
     }
-
-  UNBLOCK_INPUT;
 
   if (!ok)
     {

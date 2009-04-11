@@ -9720,11 +9720,9 @@ x_cursor_to (vpos, hpos, y, x)
      This will also set the cursor position of W.  */
   if (updated_window == NULL)
     {
-      BLOCK_INPUT;
       display_and_set_cursor (w, 1, hpos, vpos, x, y);
       if (FRAME_RIF (SELECTED_FRAME ())->flush_display_optional)
 	FRAME_RIF (SELECTED_FRAME ())->flush_display_optional (SELECTED_FRAME ());
-      UNBLOCK_INPUT;
     }
 }
 
@@ -9830,14 +9828,9 @@ update_tool_bar (f, save_match_data)
 	  if (new_n_tool_bar != f->n_tool_bar_items
 	      || NILP (Fequal (new_tool_bar, f->tool_bar_items)))
             {
-              /* Redisplay that happens asynchronously due to an expose event
-                 may access f->tool_bar_items.  Make sure we update both
-                 variables within BLOCK_INPUT so no such event interrupts.  */
-              BLOCK_INPUT;
               f->tool_bar_items = new_tool_bar;
               f->n_tool_bar_items = new_n_tool_bar;
               w->update_mode_line = Qt;
-              UNBLOCK_INPUT;
             }
 
 	  unbind_to (count, Qnil);
@@ -13743,10 +13736,8 @@ redisplay_window (window, just_this_one_p)
 				    || w->pseudo_window_p)))
     {
       update_begin (f);
-      BLOCK_INPUT;
       if (draw_window_fringes (w, 1))
 	x_draw_vertical_border (w);
-      UNBLOCK_INPUT;
       update_end (f);
     }
 #endif /* HAVE_WINDOW_SYSTEM */
@@ -21289,7 +21280,6 @@ x_write_glyphs (start, len)
   int x, hpos;
 
   xassert (updated_window && updated_row);
-  BLOCK_INPUT;
 
   /* Write glyphs.  */
 
@@ -21306,8 +21296,6 @@ x_write_glyphs (start, len)
       && updated_window->phys_cursor.hpos >= hpos
       && updated_window->phys_cursor.hpos < hpos + len)
     updated_window->phys_cursor_on_p = 0;
-
-  UNBLOCK_INPUT;
 
   /* Advance the output cursor.  */
   output_cursor.hpos += len;
@@ -21332,7 +21320,6 @@ x_insert_glyphs (start, len)
   EMACS_INT hpos;
 
   xassert (updated_window && updated_row);
-  BLOCK_INPUT;
   w = updated_window;
   f = XFRAME (WINDOW_FRAME (w));
 
@@ -21366,7 +21353,6 @@ x_insert_glyphs (start, len)
   /* Advance the output cursor.  */
   output_cursor.hpos += len;
   output_cursor.x += shift_by_width;
-  UNBLOCK_INPUT;
 }
 
 
@@ -21436,10 +21422,8 @@ x_clear_end_of_line (to_x)
   /* Prevent inadvertently clearing to end of the X window.  */
   if (to_x > from_x && to_y > from_y)
     {
-      BLOCK_INPUT;
       FRAME_RIF (f)->clear_frame_area (f, from_x, from_y,
                                        to_x - from_x, to_y - from_y);
-      UNBLOCK_INPUT;
     }
 }
 
@@ -21785,8 +21769,6 @@ x_fix_overlapping_area (w, row, area, overlaps)
 {
   int i, x;
 
-  BLOCK_INPUT;
-
   x = 0;
   for (i = 0; i < row->used[area];)
     {
@@ -21812,8 +21794,6 @@ x_fix_overlapping_area (w, row, area, overlaps)
 	  ++i;
 	}
     }
-
-  UNBLOCK_INPUT;
 }
 
 
@@ -22077,10 +22057,8 @@ update_window_cursor (w, on)
      of being deleted.  */
   if (w->current_matrix)
     {
-      BLOCK_INPUT;
       display_and_set_cursor (w, on, w->phys_cursor.hpos, w->phys_cursor.vpos,
 			      w->phys_cursor.x, w->phys_cursor.y);
-      UNBLOCK_INPUT;
     }
 }
 
@@ -22200,11 +22178,9 @@ show_mouse_face (dpyinfo, draw)
 	 be displayed again.  */
       if (phys_cursor_on_p && !w->phys_cursor_on_p)
 	{
-	  BLOCK_INPUT;
 	  display_and_set_cursor (w, 1,
 				  w->phys_cursor.hpos, w->phys_cursor.vpos,
 				  w->phys_cursor.x, w->phys_cursor.y);
-	  UNBLOCK_INPUT;
 	}
     }
 
@@ -23513,11 +23489,9 @@ x_clear_window_mouse_face (w)
   Display_Info *dpyinfo = FRAME_X_DISPLAY_INFO (XFRAME (w->frame));
   Lisp_Object window;
 
-  BLOCK_INPUT;
   XSETWINDOW (window, w);
   if (EQ (window, dpyinfo->mouse_face_window))
     clear_mouse_face (dpyinfo);
-  UNBLOCK_INPUT;
 }
 
 

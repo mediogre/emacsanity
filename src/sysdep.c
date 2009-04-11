@@ -1431,11 +1431,6 @@ emacs_write (fildes, buf, nbyte)
 	{
 	  if (errno == EINTR)
 	    {
-#ifdef SYNC_INPUT
-	      /* I originally used `QUIT' but that might causes files to
-		 be truncated if you hit C-g in the middle of it.  --Stef  */
-	      process_pending_signals ();
-#endif
 	      continue;
 	    }
 	  else

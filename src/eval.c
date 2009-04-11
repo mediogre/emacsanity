@@ -1176,7 +1176,6 @@ internal_catch (tag, func, arg)
   c.handlerlist = handlerlist;
   c.lisp_eval_depth = lisp_eval_depth;
   c.pdlcount = SPECPDL_INDEX ();
-  c.interrupt_input_blocked = interrupt_input_blocked;
   c.byte_stack = byte_stack_list;
   catchlist = &c;
 
@@ -1216,7 +1215,6 @@ unwind_to_catch (catch, value)
   catch->val = value;
 
   /* Restore certain special C variables.  */
-  UNBLOCK_INPUT_TO (catch->interrupt_input_blocked);
   handling_signal = 0;
   immediate_quit = 0;
 
@@ -1349,7 +1347,6 @@ internal_lisp_condition_case (var, bodyform, handlers)
   c.handlerlist = handlerlist;
   c.lisp_eval_depth = lisp_eval_depth;
   c.pdlcount = SPECPDL_INDEX ();
-  c.interrupt_input_blocked = interrupt_input_blocked;
   c.byte_stack = byte_stack_list;
   if (_setjmp (c.jmp))
     {
@@ -1411,7 +1408,6 @@ internal_condition_case (bfun, handlers, hfun)
   c.handlerlist = handlerlist;
   c.lisp_eval_depth = lisp_eval_depth;
   c.pdlcount = SPECPDL_INDEX ();
-  c.interrupt_input_blocked = interrupt_input_blocked;
   c.byte_stack = byte_stack_list;
   if (_setjmp (c.jmp))
     {
@@ -1457,7 +1453,6 @@ internal_condition_case_1 (bfun, arg, handlers, hfun)
   c.handlerlist = handlerlist;
   c.lisp_eval_depth = lisp_eval_depth;
   c.pdlcount = SPECPDL_INDEX ();
-  c.interrupt_input_blocked = interrupt_input_blocked;
   c.byte_stack = byte_stack_list;
   if (_setjmp (c.jmp))
     {
@@ -1506,7 +1501,6 @@ internal_condition_case_2 (bfun, nargs, args, handlers, hfun)
   c.handlerlist = handlerlist;
   c.lisp_eval_depth = lisp_eval_depth;
   c.pdlcount = SPECPDL_INDEX ();
-  c.interrupt_input_blocked = interrupt_input_blocked;
   c.byte_stack = byte_stack_list;
   if (_setjmp (c.jmp))
     {
@@ -1802,9 +1796,10 @@ maybe_call_debugger (conditions, sig, data)
   if (
       /* Don't try to run the debugger with interrupts blocked.
 	 The editing loop would return anyway.  */
-      ! INPUT_BLOCKED_P
+//      ! INPUT_BLOCKED_P
       /* Does user want to enter debugger for this kind of error?  */
-      && (EQ (sig, Qquit)
+//      && 
+      (EQ (sig, Qquit)
 	  ? debug_on_quit
 	  : wants_debugger (Vdebug_on_error, conditions))
       && ! skip_debugger (conditions, combined_data)

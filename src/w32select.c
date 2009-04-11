@@ -400,8 +400,6 @@ run_protected (Lisp_Object (*code) (), Lisp_Object arg)
   extern int waiting_for_input;
   int owfi;
 
-  BLOCK_INPUT;
-
   /* Fsignal calls abort() if it sees that waiting_for_input is
      set.  */
   owfi = waiting_for_input;
@@ -410,8 +408,6 @@ run_protected (Lisp_Object (*code) (), Lisp_Object arg)
   internal_condition_case_1 (code, arg, Qt, lisp_error_handler);
 
   waiting_for_input = owfi;
-
-  UNBLOCK_INPUT;
 }
 
 static Lisp_Object
@@ -704,8 +700,6 @@ DEFUN ("w32-set-clipboard-data", Fw32_set_clipboard_data,
   current_num_nls = 0;
   current_requires_encoding = 0;
   
-  BLOCK_INPUT;
-
   /* Check for non-ASCII characters.  While we are at it, count the
      number of LFs, so we know how many CRs we will have to add later
      (just in the case where we can use our internal ASCII rendering,
@@ -792,7 +786,6 @@ DEFUN ("w32-set-clipboard-data", Fw32_set_clipboard_data,
   current_coding_system = Qnil;
 
  done:
-  UNBLOCK_INPUT;
 
   return (ok ? string : Qnil);
 }
@@ -820,8 +813,6 @@ DEFUN ("w32-get-clipboard-data", Fw32_get_clipboard_data,
 
   setup_config ();
   actual_clipboard_type = cfg_clipboard_type;
-
-  BLOCK_INPUT;
 
   if (!OpenClipboard (clipboard_owner))
     goto done;
@@ -1011,8 +1002,6 @@ DEFUN ("w32-get-clipboard-data", Fw32_get_clipboard_data,
   CloseClipboard ();
 
  done:
-  UNBLOCK_INPUT;
-
   return (ret);
 }
 

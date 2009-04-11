@@ -1620,7 +1620,6 @@ delete_window (window)
      again when ADJUST_GLYPHS is called.  Block input so that expose
      events and other events that access glyph matrices are not
      processed while we are changing them.  */
-  BLOCK_INPUT;
   free_window_matrices (XWINDOW (FRAME_ROOT_WINDOW (f)));
 
   tem = p->next;
@@ -1726,7 +1725,6 @@ delete_window (window)
 
   /* Adjust glyph matrices. */
   adjust_glyphs (f);
-  UNBLOCK_INPUT;
 }
 
 
@@ -6020,7 +6018,6 @@ the return value is nil.  Otherwise the value is t.  */)
 
       /* The mouse highlighting code could get screwed up
 	 if it runs during this.  */
-      BLOCK_INPUT;
 
       if (data->frame_lines != previous_frame_lines
 	  || data->frame_cols != previous_frame_cols)
@@ -6245,8 +6242,6 @@ the return value is nil.  Otherwise the value is t.  */)
 	}
 
       adjust_glyphs (f);
-
-      UNBLOCK_INPUT;
 
       /* Fselect_window will have made f the selected frame, so we
 	 reselect the proper frame here.  Fhandle_switch_frame will change the

@@ -1055,9 +1055,7 @@ filesystem tree, not (expand-file-name ".."  dirname).  */)
 	  bcopy ((char *) nm, o, p - nm);
 	  o [p - nm] = 0;
 
-	  BLOCK_INPUT;
 	  pw = (struct passwd *) getpwnam (o + 1);
-	  UNBLOCK_INPUT;
 	  if (pw)
 	    {
 	      newdir = (unsigned char *) pw -> pw_dir;
@@ -1351,9 +1349,7 @@ search_embedded_absfilename (nm, endp)
 	      /* If we have ~user and `user' exists, discard
 		 everything up to ~.  But if `user' does not exist, leave
 		 ~user alone, it might be a literal file name.  */
-	      BLOCK_INPUT;
 	      pw = getpwnam (o + 1);
-	      UNBLOCK_INPUT;
 	      if (pw)
 		return p;
 	    }
@@ -4708,9 +4704,7 @@ do_auto_save_unwind (arg)  /* used as unwind-protect function */
   auto_saving = 0;
   if (stream != NULL)
     {
-      BLOCK_INPUT;
       fclose (stream);
-      UNBLOCK_INPUT;
     }
   return Qnil;
 }
@@ -4839,7 +4833,6 @@ A non-nil CURRENT-ONLY argument means save only current buffer.  */)
 	if (STRINGP (b->auto_save_file_name)
 	    && stream != NULL && do_handled_files == 0)
 	  {
-	    BLOCK_INPUT;
 	    if (!NILP (b->filename))
 	      {
 		fwrite (SDATA (b->filename), 1,
@@ -4849,7 +4842,6 @@ A non-nil CURRENT-ONLY argument means save only current buffer.  */)
 	    fwrite (SDATA (b->auto_save_file_name), 1,
 		    SBYTES (b->auto_save_file_name), stream);
 	    putc ('\n', stream);
-	    UNBLOCK_INPUT;
 	  }
 
 	if (!NILP (current_only)

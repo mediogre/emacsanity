@@ -1824,7 +1824,6 @@ create_process (process, new_argv, current_dir)
      processes to get their return values scrambled.  */
   XPROCESS (process)->pid = -1;
 
-  BLOCK_INPUT;
 
   {
     /* child_setup must clobber environ on systems with true vfork.
@@ -1852,7 +1851,6 @@ create_process (process, new_argv, current_dir)
     environ = save_environ;
   }
 
-  UNBLOCK_INPUT;
 
   /* This runs in the Emacs process.  */
   if (pid < 0)
@@ -4143,10 +4141,6 @@ wait_reading_process_output (time_limit, microsecs, read_kbd, do_display,
 	 Otherwise, do pending quit if requested.  */
       if (read_kbd >= 0)
 	QUIT;
-#ifdef SYNC_INPUT
-      else
-	process_pending_signals ();
-#endif
 
       /* Exit now if the cell we're waiting for became non-nil.  */
       if (! NILP (wait_for_cell) && ! NILP (XCAR (wait_for_cell)))

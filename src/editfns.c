@@ -1282,9 +1282,7 @@ of the user with that uid, or nil if there is no such user.  */)
     return Vuser_login_name;
 
   id = (uid_t)XFLOATINT (uid);
-  BLOCK_INPUT;
   pw = (struct passwd *) getpwuid (id);
-  UNBLOCK_INPUT;
   return (pw ? build_string (pw->pw_name) : Qnil);
 }
 
@@ -1355,15 +1353,11 @@ name, or nil if there is no such user.  */)
     return Vuser_full_name;
   else if (NUMBERP (uid))
     {
-      BLOCK_INPUT;
       pw = (struct passwd *) getpwuid ((uid_t) XFLOATINT (uid));
-      UNBLOCK_INPUT;
     }
   else if (STRINGP (uid))
     {
-      BLOCK_INPUT;
       pw = (struct passwd *) getpwnam (SDATA (uid));
-      UNBLOCK_INPUT;
     }
   else
     error ("Invalid UID specification");
@@ -1692,9 +1686,7 @@ For example, to produce full ISO 8601 format, use "%Y-%m-%dT%T%z".  */)
   /* This is probably enough.  */
   size = SBYTES (format_string) * 6 + 50;
 
-  BLOCK_INPUT;
   tm = ut ? gmtime (&value) : localtime (&value);
-  UNBLOCK_INPUT;
   if (! tm)
     error ("Specified time is not representable");
 
@@ -1706,22 +1698,18 @@ For example, to produce full ISO 8601 format, use "%Y-%m-%dT%T%z".  */)
       int result;
 
       buf[0] = '\1';
-      BLOCK_INPUT;
       result = emacs_memftimeu (buf, size, SDATA (format_string),
 				SBYTES (format_string),
 				tm, ut);
-      UNBLOCK_INPUT;
       if ((result > 0 && result < size) || (result == 0 && buf[0] == '\0'))
 	return code_convert_string_norecord (make_unibyte_string (buf, result),
 					     Vlocale_coding_system, 0);
 
       /* If buffer was too small, make it bigger and try again.  */
-      BLOCK_INPUT;
       result = emacs_memftimeu (NULL, (size_t) -1,
 				SDATA (format_string),
 				SBYTES (format_string),
 				tm, ut);
-      UNBLOCK_INPUT;
       size = result + 1;
     }
 }
@@ -1752,9 +1740,8 @@ DOW and ZONE.)  */)
   if (! lisp_time_argument (specified_time, &time_spec, NULL))
     error ("Invalid time specification");
 
-  BLOCK_INPUT;
   decoded_time = localtime (&time_spec);
-  UNBLOCK_INPUT;
+
   if (! decoded_time)
     error ("Specified time is not representable");
   XSETFASTINT (list_args[0], decoded_time->tm_sec);
@@ -1770,9 +1757,7 @@ DOW and ZONE.)  */)
 
   /* Make a copy, in case gmtime modifies the struct.  */
   save_tm = *decoded_time;
-  BLOCK_INPUT;
   decoded_time = gmtime (&time_spec);
-  UNBLOCK_INPUT;
   if (decoded_time == 0)
     list_args[8] = Qnil;
   else
@@ -1829,9 +1814,7 @@ usage: (encode-time SECOND MINUTE HOUR DAY MONTH YEAR &optional ZONE)  */)
     zone = Fcar (zone);
   if (NILP (zone))
     {
-      BLOCK_INPUT;
       time = mktime (&tm);
-      UNBLOCK_INPUT;
     }
   else
     {
@@ -1857,9 +1840,7 @@ usage: (encode-time SECOND MINUTE HOUR DAY MONTH YEAR &optional ZONE)  */)
 	 value doesn't suffice, since that would mishandle leap seconds.  */
       set_time_zone_rule (tzstring);
 
-      BLOCK_INPUT;
       time = mktime (&tm);
-      UNBLOCK_INPUT;
 
       /* Restore TZ to previous value.  */
       newenv = environ;
@@ -1903,9 +1884,7 @@ but this is considered obsolete.  */)
   /* Convert to a string, checking for out-of-range time stamps.
      Don't use 'ctime', as that might dump core if VALUE is out of
      range.  */
-  BLOCK_INPUT;
   tm = localtime (&value);
-  UNBLOCK_INPUT;
   if (! (tm && TM_YEAR_IN_ASCTIME_RANGE (tm->tm_year) && (tem = asctime (tm))))
     error ("Specified time is not representable");
 
@@ -1965,14 +1944,12 @@ the data it can't find.  */)
     t = NULL;
   else
     {
-      BLOCK_INPUT;
       t = gmtime (&value);
       if (t)
 	{
 	  gmt = *t;
 	  t = localtime (&value);
 	}
-      UNBLOCK_INPUT;
     }
 
   if (t)

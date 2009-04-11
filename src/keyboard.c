@@ -964,8 +964,8 @@ This function is called by the editor initialization to begin editing.  */)
 
   /* If we enter while input is blocked, don't lock up here.
      This may happen through the debugger during redisplay.  */
-  if (INPUT_BLOCKED_P)
-    return Qnil;
+//  if (INPUT_BLOCKED_P)
+//    return Qnil;
 
   command_loop_level++;
   update_mode_lines = 1;
@@ -1358,15 +1358,8 @@ DEFUN ("top-level", Ftop_level, Stop_level, 0, 0, "",
 This also exits all active minibuffers.  */)
      ()
 {
-#ifdef HAVE_WINDOW_SYSTEM
   if (display_hourglass_p)
     cancel_hourglass ();
-#endif
-
-  /* Unblock input if we enter with input blocked.  This may happen if
-     redisplay traps e.g. during tool-bar update with input blocked.  */
-  while (INPUT_BLOCKED_P)
-    UNBLOCK_INPUT;
 
   return Fthrow (Qtop_level, Qnil);
 }
@@ -3399,7 +3392,6 @@ record_char (c)
      If you, dear reader, have a better idea, you've got the source.  :-) */
   if (dribble)
     {
-      BLOCK_INPUT;
       if (INTEGERP (c))
 	{
 	  if (XUINT (c) < 0x100)
@@ -3425,7 +3417,6 @@ record_char (c)
 	}
 
       fflush (dribble);
-      UNBLOCK_INPUT;
     }
 }
 
@@ -6967,28 +6958,6 @@ handle_async_input ()
     }
 }
 
-void
-process_pending_signals ()
-{
-  if (interrupt_input_pending)
-    handle_async_input ();
-}
-
-/* Send ourselves a SIGIO.
-
-   This function exists so that the UNBLOCK_INPUT macro in
-   blockinput.h can have some way to take care of input we put off
-   dealing with, without assuming that every file which uses
-   UNBLOCK_INPUT also has #included the files necessary to get SIGIO. */
-void
-reinvoke_input_signal ()
-{
-#ifdef SIGIO
-  handle_async_input ();
-#endif
-}
-
-
 
 /* User signal events.  */
 
@@ -10399,9 +10368,7 @@ If FILE is nil, close any open dribble file.  */)
 {
   if (dribble)
     {
-      BLOCK_INPUT;
       fclose (dribble);
-      UNBLOCK_INPUT;
       dribble = 0;
     }
   if (!NILP (file))

@@ -85,8 +85,8 @@ extern POINTER_TYPE *sbrk ();
 extern __malloc_size_t _bytes_used;
 extern __malloc_size_t __malloc_extra_blocks;
 
-#define BLOCK_INPUT_ALLOC BLOCK_INPUT
-#define UNBLOCK_INPUT_ALLOC UNBLOCK_INPUT
+#define BLOCK_INPUT_ALLOC ((void)0)
+#define UNBLOCK_INPUT_ALLOC ((void)0)
 
 /* Value of _bytes_used, when spare_memory was freed.  */
 
@@ -485,8 +485,8 @@ buffer_memory_full ()
 #define MALLOC_BLOCK_INPUT   ((void)0)
 #define MALLOC_UNBLOCK_INPUT ((void)0)
 #else
-#define MALLOC_BLOCK_INPUT   BLOCK_INPUT
-#define MALLOC_UNBLOCK_INPUT UNBLOCK_INPUT
+#define MALLOC_BLOCK_INPUT   ((void)0)
+#define MALLOC_UNBLOCK_INPUT ((void)0)
 #endif
 
 /* Like malloc but check for no memory and block interrupt input..  */
@@ -4348,8 +4348,6 @@ returns nil, because real GC can't be done.  */)
   if (garbage_collection_messages)
     message1_nolog ("Garbage collecting...");
 
-  BLOCK_INPUT;
-
   shrink_regexp_cache ();
 
   gc_in_progress = 1;
@@ -4443,8 +4441,6 @@ returns nil, because real GC can't be done.  */)
   unmark_byte_stack ();
   VECTOR_UNMARK (&buffer_defaults);
   VECTOR_UNMARK (&buffer_local_symbols);
-
-  UNBLOCK_INPUT;
 
   CHECK_CONS_LIST ();
 

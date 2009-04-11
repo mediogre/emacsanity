@@ -289,8 +289,6 @@ fatal_error_signal (sig)
   fatal_error_code = sig;
   signal (sig, SIG_DFL);
 
-  TOTALLY_UNBLOCK_INPUT;
-
   /* If fatal error occurs in code below, avoid infinite recursion.  */
   if (! fatal_error_in_progress)
     {

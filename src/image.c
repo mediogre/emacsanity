@@ -341,9 +341,7 @@ x_destroy_bitmap (f, id)
 
       if (--bm->refcount == 0)
 	{
-	  BLOCK_INPUT;
 	  free_bitmap_record (dpyinfo, bm);
-	  UNBLOCK_INPUT;
 	}
     }
 }
@@ -1325,9 +1323,7 @@ x_clear_image (f, img)
      struct frame *f;
      struct image *img;
 {
-  BLOCK_INPUT;
   x_clear_image_1 (f, img, 1, 1, 1);
-  UNBLOCK_INPUT;
 }
 
 
@@ -1490,10 +1486,6 @@ clear_image_cache (struct frame *f, Lisp_Object filter)
       EMACS_GET_TIME (t);
       old = EMACS_SECS (t) - XFASTINT (Vimage_cache_eviction_delay);
 
-      /* Block input so that we won't be interrupted by a SIGIO
-	 while being in an inconsistent state.  */
-      BLOCK_INPUT;
-
       for (i = nfreed = 0; i < c->used; ++i)
 	{
 	  struct image *img = c->images[i];
@@ -1524,8 +1516,6 @@ clear_image_cache (struct frame *f, Lisp_Object filter)
 
 	  ++windows_or_buffers_changed;
 	}
-
-      UNBLOCK_INPUT;
     }
 }
 
@@ -1700,7 +1690,6 @@ lookup_image (f, spec)
     {
       extern Lisp_Object Qpostscript;
 
-      BLOCK_INPUT;
       img = make_image (spec, hash);
       cache_image (f, img);
       img->load_failed_p = img->type->load (f, img) == 0;
@@ -1772,7 +1761,6 @@ lookup_image (f, spec)
 	    postprocess_image (f, img);
 	}
 
-      UNBLOCK_INPUT;
     }
 
   /* We're using IMG, so set its timestamp to `now'.  */

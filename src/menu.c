@@ -499,9 +499,7 @@ xmalloc_widget_value ()
 {
   widget_value *value;
 
-  BLOCK_INPUT;
   value = malloc_widget_value ();
-  UNBLOCK_INPUT;
 
   return value;
 }
@@ -529,9 +527,7 @@ free_menubar_widget_value_tree (wv)
       free_menubar_widget_value_tree (wv->next);
       wv->next = (widget_value *) 0xDEADBEEF;
     }
-  BLOCK_INPUT;
   free_widget_value (wv);
-  UNBLOCK_INPUT;
 }
 
 /* Create a tree of widget_value objects

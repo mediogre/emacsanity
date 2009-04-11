@@ -51,9 +51,6 @@ extern HANDLE keyboard_handle;
 static COORD movement_pos;
 static DWORD movement_time;
 
-/* from keyboard.c */
-extern void reinvoke_input_signal (void);
-
 /* from w32console.c */
 extern int w32_use_full_screen_buffer;
 
@@ -513,8 +510,6 @@ w32_console_mouse_position (FRAME_PTR *f,
 			    Lisp_Object *y,
 			    unsigned long *time)
 {
-  BLOCK_INPUT;
-
   insist = insist;
 
   *f = get_frame ();
@@ -525,8 +520,6 @@ w32_console_mouse_position (FRAME_PTR *f,
   XSETINT(*x, movement_pos.X);
   XSETINT(*y, movement_pos.Y);
   *time = movement_time;
-
-  UNBLOCK_INPUT;
 }
 
 /* Remember mouse motion and notify emacs.  */
@@ -648,15 +641,6 @@ w32_console_read_socket (struct terminal *terminal,
   int nev, ret = 0, add;
   int isdead;
 
-  if (interrupt_input_blocked)
-    {
-      interrupt_input_pending = 1;
-      return -1;
-    }
-
-  interrupt_input_pending = 0;
-  BLOCK_INPUT;
-
   for (;;)
     {
       nev = fill_queue (0);
@@ -665,7 +649,6 @@ w32_console_read_socket (struct terminal *terminal,
 	  /* If nev == -1, there was some kind of error
 	     If nev == 0 then waitp must be zero and no events were available
 	     so return.  */
-	  UNBLOCK_INPUT;
 	  return nev;
         }
 
@@ -721,7 +704,6 @@ w32_console_read_socket (struct terminal *terminal,
   if (!w32_use_full_screen_buffer)
     maybe_generate_resize_event ();
 
-  UNBLOCK_INPUT;
   return ret;
 }
 

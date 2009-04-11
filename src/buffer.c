@@ -362,11 +362,10 @@ even if it is dead.  The return value is never nil.  */)
   b->base_buffer = 0;
 
   BUF_GAP_SIZE (b) = 20;
-  BLOCK_INPUT;
   /* We allocate extra 1-byte at the tail and keep it always '\0' for
      anchoring a search.  */
   alloc_buffer_text (b, BUF_GAP_SIZE (b) + 1);
-  UNBLOCK_INPUT;
+
   if (! BUF_BEG_ADDR (b))
     buffer_memory_full ();
 
@@ -1580,7 +1579,6 @@ with SIGHUP.  */)
 
   b->name = Qnil;
 
-  BLOCK_INPUT;
   if (! b->base_buffer)
     free_buffer_text (b);
 
@@ -1595,7 +1593,6 @@ with SIGHUP.  */)
       b->width_run_cache = 0;
     }
   b->width_table = Qnil;
-  UNBLOCK_INPUT;
   b->undo_list = Qnil;
 
   return Qt;
@@ -4564,7 +4561,6 @@ alloc_buffer_text (b, nbytes)
 {
   POINTER_TYPE *p;
 
-  BLOCK_INPUT;
 #if defined REL_ALLOC
   p = r_alloc ((POINTER_TYPE **) &b->text->beg, nbytes);
 #else
@@ -4573,12 +4569,10 @@ alloc_buffer_text (b, nbytes)
 
   if (p == NULL)
     {
-      UNBLOCK_INPUT;
       memory_full ();
     }
 
   b->text->beg = (unsigned char *) p;
-  UNBLOCK_INPUT;
 }
 
 /* Enlarge buffer B's text buffer by DELTA bytes.  DELTA < 0 means
@@ -4590,7 +4584,6 @@ enlarge_buffer_text (struct buffer *b, EMACS_INT delta)
   POINTER_TYPE *p;
   size_t nbytes = (BUF_Z_BYTE (b) - BUF_BEG_BYTE (b) + BUF_GAP_SIZE (b) + 1
 		   + delta);
-  BLOCK_INPUT;
 #if defined REL_ALLOC
   p = r_re_alloc ((POINTER_TYPE **) &b->text->beg, nbytes);
 #else
@@ -4599,12 +4592,10 @@ enlarge_buffer_text (struct buffer *b, EMACS_INT delta)
 
   if (p == NULL)
     {
-      UNBLOCK_INPUT;
       memory_full ();
     }
 
   BUF_BEG_ADDR (b) = (unsigned char *) p;
-  UNBLOCK_INPUT;
 }
 
 
@@ -4614,7 +4605,6 @@ static void
 free_buffer_text (b)
      struct buffer *b;
 {
-  BLOCK_INPUT;
 
 #if defined REL_ALLOC
   r_alloc_free ((POINTER_TYPE **) &b->text->beg);
@@ -4623,7 +4613,6 @@ free_buffer_text (b)
 #endif
 
   BUF_BEG_ADDR (b) = NULL;
-  UNBLOCK_INPUT;
 }
 
 

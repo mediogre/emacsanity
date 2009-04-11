@@ -482,7 +482,6 @@ if the entry is new.  */)
 
   XSETINT (rgb, RGB (XUINT (red), XUINT (green), XUINT (blue)));
 
-  BLOCK_INPUT;
 
   /* replace existing entry in w32-color-map or add new entry. */
   entry = Fassoc (name, Vw32_color_map);
@@ -496,8 +495,6 @@ if the entry is new.  */)
       oldrgb = Fcdr (entry);
       Fsetcdr (entry, rgb);
     }
-
-  UNBLOCK_INPUT;
 
   return (oldrgb);
 }
@@ -761,8 +758,6 @@ DEFUN ("w32-default-color-map", Fw32_default_color_map, Sw32_default_color_map,
   colormap_t *pc = w32_color_map;
   Lisp_Object cmap;
 
-  BLOCK_INPUT;
-
   cmap = Qnil;
 
   for (i = 0; i < sizeof (w32_color_map) / sizeof (w32_color_map[0]);
@@ -770,8 +765,6 @@ DEFUN ("w32-default-color-map", Fw32_default_color_map, Sw32_default_color_map,
     cmap = Fcons (Fcons (build_string (pc->name),
 			 make_number (pc->colorref)),
 		  cmap);
-
-  UNBLOCK_INPUT;
 
   return (cmap);
 }
@@ -784,11 +777,7 @@ w32_to_x_color (rgb)
 
   CHECK_NUMBER (rgb);
 
-  BLOCK_INPUT;
-
   color = Frassq (rgb, Vw32_color_map);
-
-  UNBLOCK_INPUT;
 
   if (!NILP (color))
     return (Fcar (color));
@@ -801,8 +790,6 @@ w32_color_map_lookup (colorname)
      char *colorname;
 {
   Lisp_Object tail, ret = Qnil;
-
-  BLOCK_INPUT;
 
   for (tail = Vw32_color_map; CONSP (tail); tail = XCDR (tail))
     {
@@ -823,8 +810,6 @@ w32_color_map_lookup (colorname)
     }
 
 
-  UNBLOCK_INPUT;
-
   return ret;
 }
 
@@ -836,7 +821,6 @@ add_system_logical_colors_to_map (system_colors)
   HKEY colors_key;
 
   /* Other registry operations are done with input blocked.  */
-  BLOCK_INPUT;
 
   /* Look for "Control Panel/Colors" under User and Machine registry
      settings.  */
@@ -873,8 +857,6 @@ add_system_logical_colors_to_map (system_colors)
 	}
       RegCloseKey (colors_key);
     }
-
-  UNBLOCK_INPUT;
 }
 
 
@@ -883,8 +865,6 @@ x_to_w32_color (colorname)
      char * colorname;
 {
   register Lisp_Object ret = Qnil;
-
-  BLOCK_INPUT;
 
   if (colorname[0] == '#')
     {
@@ -937,7 +917,6 @@ x_to_w32_color (colorname)
 	      pos += 0x8;
 	      if (i == 2)
 		{
-		  UNBLOCK_INPUT;
 		  XSETINT (ret, colorval);
 		  return ret;
 		}
@@ -991,7 +970,6 @@ x_to_w32_color (colorname)
 	    {
 	      if (*end != '\0')
 		break;
-	      UNBLOCK_INPUT;
 	      XSETINT (ret, colorval);
 	      return ret;
 	    }
@@ -1033,7 +1011,6 @@ x_to_w32_color (colorname)
 	    {
 	      if (*end != '\0')
 		break;
-	      UNBLOCK_INPUT;
 	      XSETINT (ret, colorval);
 	      return ret;
 	    }
@@ -1068,7 +1045,6 @@ x_to_w32_color (colorname)
 	}
     }
 
-  UNBLOCK_INPUT;
   return ret;
 }
 
@@ -1542,12 +1518,9 @@ x_set_cursor_color (f, arg, oldval)
 
   if (FRAME_W32_WINDOW (f) != 0)
     {
-      BLOCK_INPUT;
       /* Update frame's cursor_gc.  */
       f->output_data.w32->cursor_gc->foreground = fore_pixel;
       f->output_data.w32->cursor_gc->background = pixel;
-
-      UNBLOCK_INPUT;
 
       if (FRAME_VISIBLE_P (f))
 	{
@@ -1626,16 +1599,11 @@ x_set_icon_type (f, arg, oldval)
   if (SYMBOLP (arg) && SYMBOLP (oldval) && EQ (arg, oldval))
     return;
 
-  BLOCK_INPUT;
-
   result = x_bitmap_icon (f, arg);
   if (result)
     {
-      UNBLOCK_INPUT;
       error ("No icon window available");
     }
-
-  UNBLOCK_INPUT;
 }
 
 void
@@ -1790,13 +1758,11 @@ x_set_tool_bar_lines (f, value, oldval)
       int width = FRAME_PIXEL_WIDTH (f);
       int y = nlines * FRAME_LINE_HEIGHT (f);
 
-      BLOCK_INPUT;
       {
         HDC hdc = get_frame_dc (f);
         w32_clear_area (f, hdc, 0, y, width, height);
         release_frame_dc (f, hdc);
       }
-      UNBLOCK_INPUT;
 
       if (WINDOWP (f->tool_bar_window))
 	clear_glyph_matrix (XWINDOW (f->tool_bar_window)->current_matrix);
@@ -1864,9 +1830,7 @@ x_set_name (f, name, explicit)
       if (STRING_MULTIBYTE (name))
 	name = ENCODE_SYSTEM (name);
 
-      BLOCK_INPUT;
       SetWindowText (FRAME_W32_WINDOW (f), SDATA (name));
-      UNBLOCK_INPUT;
     }
 }
 
@@ -1916,9 +1880,7 @@ x_set_title (f, name, old_name)
       if (STRING_MULTIBYTE (name))
 	name = ENCODE_SYSTEM (name);
 
-      BLOCK_INPUT;
       SetWindowText (FRAME_W32_WINDOW (f), SDATA (name));
-      UNBLOCK_INPUT;
     }
 }
 
@@ -4023,8 +3985,6 @@ w32_window (f, window_prompting, minibuffer_only)
      long window_prompting;
      int minibuffer_only;
 {
-  BLOCK_INPUT;
-
   /* Use the resource name as the top-level window name
      for looking up resources.  Make a non-Lisp copy
      for the window manager, so GC relocation won't bother it.
@@ -4054,8 +4014,6 @@ w32_window (f, window_prompting, minibuffer_only)
     f->name = Qnil;
     x_set_name (f, name, explicit);
   }
-
-  UNBLOCK_INPUT;
 
   if (!minibuffer_only && FRAME_EXTERNAL_MENU_BAR (f))
     initialize_frame_menubar (f);
@@ -4088,24 +4046,8 @@ x_icon (f, parms)
   else if (!EQ (icon_x, Qunbound) || !EQ (icon_y, Qunbound))
     error ("Both left and top icon corners of icon must be specified");
 
-  BLOCK_INPUT;
-
   if (! EQ (icon_x, Qunbound))
     x_wm_set_icon_position (f, XINT (icon_x), XINT (icon_y));
-
-#if 0 /* TODO */
-  /* Start up iconic or window? */
-  x_wm_set_window_state
-    (f, (EQ (x_get_arg (dpyinfo, parms, Qvisibility, 0, 0, RES_TYPE_SYMBOL), Qicon)
-	 ? IconicState
-	 : NormalState));
-
-  x_text_icon (f, (char *) SDATA ((!NILP (f->icon_name)
-				     ? f->icon_name
-				     : f->name)));
-#endif
-
-  UNBLOCK_INPUT;
 }
 
 
@@ -4114,8 +4056,6 @@ x_make_gc (f)
      struct frame *f;
 {
   XGCValues gc_values;
-
-  BLOCK_INPUT;
 
   /* Create the GC's of this frame.
      Note that many default values are used.  */
@@ -4134,8 +4074,6 @@ x_make_gc (f)
   /* Reliefs.  */
   f->output_data.w32->white_relief.gc = 0;
   f->output_data.w32->black_relief.gc = 0;
-
-  UNBLOCK_INPUT;
 }
 
 
@@ -4465,9 +4403,7 @@ This function is an internal primitive--use `make-frame' instead.  */)
   /* Tell the server what size and position, etc, we want, and how
      badly we want them.  This should be done after we have the menu
      bar so that its size can be taken into account.  */
-  BLOCK_INPUT;
   x_wm_set_size_hint (f, window_prompting, 0);
-  UNBLOCK_INPUT;
 
   /* Make the window appear on the frame and enable display, unless
      the caller says not to.  However, with explicit parent, Emacs
@@ -4998,11 +4934,9 @@ If DISPLAY is nil, that stands for the selected frame's display.  */)
   if (dpyinfo->reference_count > 0)
     error ("Display still has frames on it");
 
-  BLOCK_INPUT;
   x_destroy_all_bitmaps (dpyinfo);
 
   x_delete_display (dpyinfo);
-  UNBLOCK_INPUT;
 
   return Qnil;
 }
@@ -5478,9 +5412,7 @@ x_create_tip_frame (dpyinfo, parms, text)
   f->left_fringe_width = 0;
   f->right_fringe_width = 0;
 
-  BLOCK_INPUT;
   my_create_tip_window (f);
-  UNBLOCK_INPUT;
 
   x_make_gc (f);
 
@@ -5586,11 +5518,9 @@ compute_tip_xy (f, parms, dx, dy, width, height, root_x, root_y)
       max_x = x_display_pixel_width (FRAME_W32_DISPLAY_INFO (f));
       max_y = x_display_pixel_height (FRAME_W32_DISPLAY_INFO (f));
 
-      BLOCK_INPUT;
       GetCursorPos (&pt);
       *root_x = pt.x;
       *root_y = pt.y;
-      UNBLOCK_INPUT;
 
       /* If multiple monitor support is available, constrain the tip onto
 	 the current monitor. This improves the above by allowing negative
@@ -5723,7 +5653,6 @@ Text larger than the specified size is clipped.  */)
 	      call1 (Qcancel_timer, timer);
 	    }
 
-	  BLOCK_INPUT;
 	  compute_tip_xy (f, parms, dx, dy, FRAME_PIXEL_WIDTH (f),
 			  FRAME_PIXEL_HEIGHT (f), &root_x, &root_y);
 
@@ -5737,7 +5666,6 @@ Text larger than the specified size is clipped.  */)
 			0, 0, 0, 0,
 			SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 
-	  UNBLOCK_INPUT;
 	  goto start_timer;
 	}
     }
@@ -5761,10 +5689,6 @@ Text larger than the specified size is clipped.  */)
   if (NILP (Fassq (Qbackground_color, parms)))
     parms = Fcons (Fcons (Qbackground_color, build_string ("lightyellow")),
 		   parms);
-
-  /* Block input until the tip has been fully drawn, to avoid crashes
-     when drawing tips in menus.  */
-  BLOCK_INPUT;
 
   /* Create a frame for the tooltip, and record it in the global
      variable tip_frame.  */
@@ -5876,8 +5800,6 @@ Text larger than the specified size is clipped.  */)
   /* Draw into the window.  */
   w->must_be_updated_p = 1;
   update_single_window (w, 1);
-
-  UNBLOCK_INPUT;
 
   /* Restore original current buffer.  */
   set_buffer_internal_1 (old_buffer);
@@ -6038,7 +5960,6 @@ If ONLY-DIR-P is non-nil, the user can only select directories.  */)
 
     /* Prevent redisplay.  */
     specbind (Qinhibit_redisplay, Qt);
-    BLOCK_INPUT;
 
     bzero (&new_file_details, sizeof (new_file_details));
     /* Apparently NT4 crashes if you give it an unexpected size.
@@ -6076,8 +5997,6 @@ If ONLY-DIR-P is non-nil, the user can only select directories.  */)
     file_details->lpfnHook = (LPOFNHOOKPROC) file_dialog_callback;
 
     file_opened = GetOpenFileName (file_details);
-
-    UNBLOCK_INPUT;
 
     if (file_opened)
       {

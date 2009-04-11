@@ -358,12 +358,9 @@ cached information about equivalent key sequences.  */)
     }
 
   /* Display them in a menu.  */
-  BLOCK_INPUT;
 
   selection = w32_menu_show (f, xpos, ypos, for_click,
 			     keymaps, title, &error_name);
-  UNBLOCK_INPUT;
-
   discard_menu_items ();
   FRAME_X_DISPLAY_INFO (f)->grabbed = 0;
 
@@ -846,8 +843,6 @@ set_frame_menubar (f, first_time, deep_p)
 
   /* Create or update the menu bar widget.  */
 
-  BLOCK_INPUT;
-
   if (menubar_widget)
     {
       /* Empty current menubar, rather than creating a fresh one.  */
@@ -875,8 +870,6 @@ set_frame_menubar (f, first_time, deep_p)
     if (old_widget == NULL)
       x_set_window_size (f, 0, FRAME_COLS (f), FRAME_LINES (f));
   }
-
-  UNBLOCK_INPUT;
 }
 
 /* Called from Fx_create_frame to create the initial menubar of a frame
@@ -901,16 +894,12 @@ void
 free_frame_menubar (f)
      FRAME_PTR f;
 {
-  BLOCK_INPUT;
-
   {
     HMENU old = GetMenu (FRAME_W32_WINDOW (f));
     SetMenu (FRAME_W32_WINDOW (f), NULL);
     f->output_data.w32->menubar_widget = NULL;
     DestroyMenu (old);
   }
-
-  UNBLOCK_INPUT;
 }
 
 

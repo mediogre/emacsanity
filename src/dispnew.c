@@ -1789,10 +1789,6 @@ void
 adjust_glyphs (f)
      struct frame *f;
 {
-  /* Block input so that expose events and other events that access
-     glyph matrices are not processed while we are changing them.  */
-  BLOCK_INPUT;
-
   if (f)
     adjust_frame_glyphs (f);
   else
@@ -1802,8 +1798,6 @@ adjust_glyphs (f)
       FOR_EACH_FRAME (tail, lisp_frame)
 	adjust_frame_glyphs (XFRAME (lisp_frame));
     }
-
-  UNBLOCK_INPUT;
 }
 
 
@@ -2187,9 +2181,6 @@ free_glyphs (f)
 {
   if (f && f->glyphs_initialized_p)
     {
-      /* Block interrupt input so that we don't get surprised by an X
-         event while we're in an inconsistent state.  */
-      BLOCK_INPUT;
       f->glyphs_initialized_p = 0;
 
       /* Release window sub-matrices.  */
@@ -2234,7 +2225,6 @@ free_glyphs (f)
 	  f->desired_pool = f->current_pool = NULL;
 	}
 
-      UNBLOCK_INPUT;
     }
 }
 
@@ -5739,7 +5729,6 @@ change_frame_size_1 (f, newheight, newwidth, pretend, delay, safe)
       && new_frame_total_cols == FRAME_TOTAL_COLS (f))
     return;
 
-  BLOCK_INPUT;
 
   if (newheight != FRAME_LINES (f))
     {
@@ -5792,8 +5781,6 @@ change_frame_size_1 (f, newheight, newwidth, pretend, delay, safe)
   calculate_costs (f);
   SET_FRAME_GARBAGED (f);
   f->resized_p = 1;
-
-  UNBLOCK_INPUT;
 
   record_unwind_protect (Fset_buffer, Fcurrent_buffer ());
 

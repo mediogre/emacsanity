@@ -110,9 +110,7 @@ directory_files_internal_unwind (dh)
      Lisp_Object dh;
 {
   DIR *d = (DIR *) XSAVE_VALUE (dh)->pointer;
-  BLOCK_INPUT;
   closedir (d);
-  UNBLOCK_INPUT;
   return Qnil;
 }
 
@@ -169,9 +167,7 @@ directory_files_internal (directory, full, match, nosort, attrs, id_format)
   /* Now *bufp is the compiled form of MATCH; don't call anything
      which might compile a new regexp until we're done with the loop!  */
 
-  BLOCK_INPUT;
   d = opendir (SDATA (dirfilename));
-  UNBLOCK_INPUT;
   if (d == NULL)
     report_file_error ("Opening directory", Fcons (directory, Qnil));
 
@@ -288,9 +284,7 @@ directory_files_internal (directory, full, match, nosort, attrs, id_format)
 	}
     }
 
-  BLOCK_INPUT;
   closedir (d);
-  UNBLOCK_INPUT;
 
   /* Discard the unwind protect.  */
   specpdl_ptr = specpdl + count;
@@ -465,9 +459,7 @@ file_name_completion (file, dirname, all_flag, ver_flag, predicate)
 
   encoded_dir = ENCODE_FILE (dirname);
 
-  BLOCK_INPUT;
   d = opendir (SDATA (Fdirectory_file_name (encoded_dir)));
-  UNBLOCK_INPUT;
   if (!d)
     report_file_error ("Opening directory", Fcons (dirname, Qnil));
 
@@ -956,10 +948,8 @@ which see.  */)
 
   if (!(NILP (id_format) || EQ (id_format, Qinteger)))
     {
-      BLOCK_INPUT;
       uname = stat_uname (&s);
       gname = stat_gname (&s);
-      UNBLOCK_INPUT;
     }
   if (uname)
     values[2] = build_string (uname);
