@@ -22,16 +22,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 #include <config.h>
 #include <signal.h>
 
-/* This file is split into two parts by the following preprocessor
-   conditional.  The 'then' clause contains all of the support for
-   asynchronous subprocesses.  The 'else' clause contains stub
-   versions of some of the asynchronous subprocess routines that are
-   often called elsewhere in Emacs, so we don't have to #ifdef the
-   sections that call them.  */
-
-
-#ifdef subprocesses
-
 #include <stdio.h>
 #include <errno.h>
 #include <setjmp.h>
@@ -1772,26 +1762,6 @@ create_process_1 (timer)
   /* Nothing to do.  */
 }
 
-
-#if 0  /* This doesn't work; see the note before sigchld_handler.  */
-#ifdef USG
-#ifdef SIGCHLD
-/* Mimic blocking of signals on system V, which doesn't really have it.  */
-
-/* Nonzero means we got a SIGCHLD when it was supposed to be blocked.  */
-int sigchld_deferred;
-
-SIGTYPE
-create_process_sigchld ()
-{
-  signal (SIGCHLD, create_process_sigchld);
-
-  sigchld_deferred = 1;
-}
-#endif
-#endif
-#endif
-
 void
 create_process (process, new_argv, current_dir)
      Lisp_Object process;
@@ -1801,24 +1771,7 @@ create_process (process, new_argv, current_dir)
   int inchannel, outchannel;
   pid_t pid;
   int sv[2];
-#if !defined (WINDOWSNT) && defined (FD_CLOEXEC)
-  int wait_child_setup[2];
-#endif
-#ifdef POSIX_SIGNALS
-  sigset_t procmask;
-  sigset_t blocked;
-  struct sigaction sigint_action;
-  struct sigaction sigquit_action;
-#ifdef AIX
-  struct sigaction sighup_action;
-#endif
-#else /* !POSIX_SIGNALS */
-#if 0
-#ifdef SIGCHLD
-  SIGTYPE (*sigchld)();
-#endif
-#endif /* 0 */
-#endif /* !POSIX_SIGNALS */
+
   /* Use volatile to protect variables from being clobbered by longjmp.  */
   volatile int forkin, forkout;
   volatile int pty_flag = 0;
@@ -1828,37 +1781,6 @@ create_process (process, new_argv, current_dir)
 
   inchannel = outchannel = -1;
 
-#ifdef HAVE_PTYS
-  if (!NILP (Vprocess_connection_type))
-    outchannel = inchannel = allocate_pty ();
-
-  if (inchannel >= 0)
-    {
-#if ! defined (USG) || defined (USG_SUBTTY_WORKS)
-      /* On most USG systems it does not work to open the pty's tty here,
-	 then close it and reopen it in the child.  */
-#ifdef O_NOCTTY
-      /* Don't let this terminal become our controlling terminal
-	 (in case we don't have one).  */
-      forkout = forkin = emacs_open (pty_name, O_RDWR | O_NOCTTY, 0);
-#else
-      forkout = forkin = emacs_open (pty_name, O_RDWR, 0);
-#endif
-      if (forkin < 0)
-	report_file_error ("Opening pty", Qnil);
-#if defined (DONT_REOPEN_PTY)
-      /* In the case that vfork is defined as fork, the parent process
-	 (Emacs) may send some data before the child process completes
-	 tty options setup.  So we setup tty before forking.  */
-      child_setup_tty (forkout);
-#endif /* DONT_REOPEN_PTY */
-#else
-      forkin = forkout = -1;
-#endif /* not USG, or USG_SUBTTY_WORKS */
-      pty_flag = 1;
-    }
-  else
-#endif /* HAVE_PTYS */
     {
       int tem;
       tem = pipe (sv);
@@ -1877,39 +1799,9 @@ create_process (process, new_argv, current_dir)
       forkin = sv[0];
     }
 
-#if !defined (WINDOWSNT) && defined (FD_CLOEXEC)
-    {
-      int tem;
-
-      tem = pipe (wait_child_setup);
-      if (tem < 0)
-	report_file_error ("Creating pipe", Qnil);
-      tem = fcntl (wait_child_setup[1], F_GETFD, 0);
-      if (tem >= 0)
-	tem = fcntl (wait_child_setup[1], F_SETFD, tem | FD_CLOEXEC);
-      if (tem < 0)
-	{
-	  emacs_close (wait_child_setup[0]);
-	  emacs_close (wait_child_setup[1]);
-	  report_file_error ("Setting file descriptor flags", Qnil);
-	}
-    }
-#endif
-
-#if 0
-  /* Replaced by close_process_descs */
-  set_exclusive_use (inchannel);
-  set_exclusive_use (outchannel);
-#endif
-
-#ifdef O_NONBLOCK
-  fcntl (inchannel, F_SETFL, O_NONBLOCK);
-  fcntl (outchannel, F_SETFL, O_NONBLOCK);
-#else
 #ifdef O_NDELAY
   fcntl (inchannel, F_SETFL, O_NDELAY);
   fcntl (outchannel, F_SETFL, O_NDELAY);
-#endif
 #endif
 
   /* Record this as an active process, with its channels.
@@ -1926,38 +1818,6 @@ create_process (process, new_argv, current_dir)
   XPROCESS (process)->pty_flag = pty_flag;
   XPROCESS (process)->status = Qrun;
   setup_process_coding_systems (process);
-
-  /* Delay interrupts until we have a chance to store
-     the new fork's pid in its process structure */
-#ifdef POSIX_SIGNALS
-  sigemptyset (&blocked);
-#ifdef SIGCHLD
-  sigaddset (&blocked, SIGCHLD);
-#endif
-#ifdef HAVE_WORKING_VFORK
-  /* On many hosts (e.g. Solaris 2.4), if a vforked child calls `signal',
-     this sets the parent's signal handlers as well as the child's.
-     So delay all interrupts whose handlers the child might munge,
-     and record the current handlers so they can be restored later.  */
-  sigaddset (&blocked, SIGINT );  sigaction (SIGINT , 0, &sigint_action );
-  sigaddset (&blocked, SIGQUIT);  sigaction (SIGQUIT, 0, &sigquit_action);
-#ifdef AIX
-  sigaddset (&blocked, SIGHUP );  sigaction (SIGHUP , 0, &sighup_action );
-#endif
-#endif /* HAVE_WORKING_VFORK */
-  sigprocmask (SIG_BLOCK, &blocked, &procmask);
-#else /* !POSIX_SIGNALS */
-#ifdef SIGCHLD
-#if defined (BSD_SYSTEM) || defined (HPUX)
-  sigsetmask (sigmask (SIGCHLD));
-#else /* ordinary USG */
-#if 0
-  sigchld_deferred = 0;
-  sigchld = signal (SIGCHLD, create_process_sigchld);
-#endif
-#endif /* ordinary USG */
-#endif /* SIGCHLD */
-#endif /* !POSIX_SIGNALS */
 
   FD_SET (inchannel, &input_wait_mask);
   FD_SET (inchannel, &non_keyboard_wait_mask);
@@ -1981,146 +1841,12 @@ create_process (process, new_argv, current_dir)
 
     current_dir = ENCODE_FILE (current_dir);
 
-#ifndef WINDOWSNT
-    pid = vfork ();
-    if (pid == 0)
-#endif /* not WINDOWSNT */
       {
 	int xforkin = forkin;
 	int xforkout = forkout;
 
-#if 0 /* This was probably a mistake--it duplicates code later on,
-	 but fails to handle all the cases.  */
-	/* Make sure SIGCHLD is not blocked in the child.  */
-	sigsetmask (SIGEMPTYMASK);
-#endif
-
-	/* Make the pty be the controlling terminal of the process.  */
-#ifdef HAVE_PTYS
-	/* First, disconnect its current controlling terminal.  */
-#ifdef HAVE_SETSID
-	/* We tried doing setsid only if pty_flag, but it caused
-	   process_set_signal to fail on SGI when using a pipe.  */
-	setsid ();
-	/* Make the pty's terminal the controlling terminal.  */
-	if (pty_flag)
-	  {
-#ifdef TIOCSCTTY
-	    /* We ignore the return value
-	       because faith@cs.unc.edu says that is necessary on Linux.  */
-	    ioctl (xforkin, TIOCSCTTY, 0);
-#endif
-	  }
-#else /* not HAVE_SETSID */
-#ifdef USG
-	/* It's very important to call setpgrp here and no time
-	   afterwards.  Otherwise, we lose our controlling tty which
-	   is set when we open the pty. */
-	setpgrp ();
-#endif /* USG */
-#endif /* not HAVE_SETSID */
-#if defined (HAVE_TERMIOS) && defined (LDISC1)
-	if (pty_flag && xforkin >= 0)
-	  {
-	    struct termios t;
-	    tcgetattr (xforkin, &t);
-	    t.c_lflag = LDISC1;
-	    if (tcsetattr (xforkin, TCSANOW, &t) < 0)
-	      emacs_write (1, "create_process/tcsetattr LDISC1 failed\n", 39);
-	  }
-#else
-#if defined (NTTYDISC) && defined (TIOCSETD)
-	if (pty_flag && xforkin >= 0)
-	  {
-	    /* Use new line discipline.  */
-	    int ldisc = NTTYDISC;
-	    ioctl (xforkin, TIOCSETD, &ldisc);
-	  }
-#endif
-#endif
-#ifdef TIOCNOTTY
-	/* In 4.3BSD, the TIOCSPGRP bug has been fixed, and now you
-	   can do TIOCSPGRP only to the process's controlling tty.  */
-	if (pty_flag)
-	  {
-	    /* I wonder: would just ioctl (0, TIOCNOTTY, 0) work here?
-	       I can't test it since I don't have 4.3.  */
-	    int j = emacs_open ("/dev/tty", O_RDWR, 0);
-	    ioctl (j, TIOCNOTTY, 0);
-	    emacs_close (j);
-#ifndef USG
-	    /* In order to get a controlling terminal on some versions
-	       of BSD, it is necessary to put the process in pgrp 0
-	       before it opens the terminal.  */
-#ifdef HAVE_SETPGID
-	    setpgid (0, 0);
-#else
-	    setpgrp (0, 0);
-#endif
-#endif
-	  }
-#endif /* TIOCNOTTY */
-
-#if !defined (DONT_REOPEN_PTY)
-/*** There is a suggestion that this ought to be a
-     conditional on TIOCSPGRP,
-     or !(defined (HAVE_SETSID) && defined (TIOCSCTTY)).
-     Trying the latter gave the wrong results on Debian GNU/Linux 1.1;
-     that system does seem to need this code, even though
-     both HAVE_SETSID and TIOCSCTTY are defined.  */
-	/* Now close the pty (if we had it open) and reopen it.
-	   This makes the pty the controlling terminal of the subprocess.  */
-	if (pty_flag)
-	  {
-
-	    /* I wonder if emacs_close (emacs_open (pty_name, ...))
-	       would work?  */
-	    if (xforkin >= 0)
-	      emacs_close (xforkin);
-	    xforkout = xforkin = emacs_open (pty_name, O_RDWR, 0);
-
-	    if (xforkin < 0)
-	      {
-		emacs_write (1, "Couldn't open the pty terminal ", 31);
-		emacs_write (1, pty_name, strlen (pty_name));
-		emacs_write (1, "\n", 1);
-		_exit (1);
-	      }
-
-	  }
-#endif /* not DONT_REOPEN_PTY */
-
-#ifdef SETUP_SLAVE_PTY
-	if (pty_flag)
-	  {
-	    SETUP_SLAVE_PTY;
-	  }
-#endif /* SETUP_SLAVE_PTY */
-#ifdef AIX
-	/* On AIX, we've disabled SIGHUP above once we start a child on a pty.
-	   Now reenable it in the child, so it will die when we want it to.  */
-	if (pty_flag)
-	  signal (SIGHUP, SIG_DFL);
-#endif
-#endif /* HAVE_PTYS */
-
 	signal (SIGINT, SIG_DFL);
 	signal (SIGQUIT, SIG_DFL);
-
-	/* Stop blocking signals in the child.  */
-#ifdef POSIX_SIGNALS
-	sigprocmask (SIG_SETMASK, &procmask, 0);
-#else /* !POSIX_SIGNALS */
-#ifdef SIGCHLD
-#if defined (BSD_SYSTEM) || defined (HPUX)
-	sigsetmask (SIGEMPTYMASK);
-#else /* ordinary USG */
-#if 0
-	signal (SIGCHLD, sigchld);
-#endif
-#endif /* ordinary USG */
-#endif /* SIGCHLD */
-#endif /* !POSIX_SIGNALS */
 
 #if !defined (DONT_REOPEN_PTY)
 	if (pty_flag)
@@ -2129,13 +1855,7 @@ create_process (process, new_argv, current_dir)
 #ifdef WINDOWSNT
 	pid = child_setup (xforkin, xforkout, xforkout,
 			   new_argv, 1, current_dir);
-#else  /* not WINDOWSNT */
-#ifdef FD_CLOEXEC
-	emacs_close (wait_child_setup[0]);
-#endif
-	child_setup (xforkin, xforkout, xforkout,
-		     new_argv, 1, current_dir);
-#endif /* not WINDOWSNT */
+#endif /* WINDOWSNT */
       }
     environ = save_environ;
   }
@@ -2180,56 +1900,8 @@ create_process (process, new_argv, current_dir)
       if (forkin != forkout && forkout >= 0)
 	emacs_close (forkout);
 
-#ifdef HAVE_PTYS
-      if (pty_flag)
-	XPROCESS (process)->tty_name = build_string (pty_name);
-      else
-#endif
 	XPROCESS (process)->tty_name = Qnil;
-
-#if !defined (WINDOWSNT) && defined (FD_CLOEXEC)
-      /* Wait for child_setup to complete in case that vfork is
-	 actually defined as fork.  The descriptor wait_child_setup[1]
-	 of a pipe is closed at the child side either by close-on-exec
-	 on successful execvp or the _exit call in child_setup.  */
-      {
-	char dummy;
-
-	emacs_close (wait_child_setup[1]);
-	emacs_read (wait_child_setup[0], &dummy, 1);
-	emacs_close (wait_child_setup[0]);
-      }
-#endif
     }
-
-  /* Restore the signal state whether vfork succeeded or not.
-     (We will signal an error, below, if it failed.)  */
-#ifdef POSIX_SIGNALS
-#ifdef HAVE_WORKING_VFORK
-  /* Restore the parent's signal handlers.  */
-  sigaction (SIGINT, &sigint_action, 0);
-  sigaction (SIGQUIT, &sigquit_action, 0);
-#ifdef AIX
-  sigaction (SIGHUP, &sighup_action, 0);
-#endif
-#endif /* HAVE_WORKING_VFORK */
-  /* Stop blocking signals in the parent.  */
-  sigprocmask (SIG_SETMASK, &procmask, 0);
-#else /* !POSIX_SIGNALS */
-#ifdef SIGCHLD
-#if defined (BSD_SYSTEM) || defined (HPUX)
-  sigsetmask (SIGEMPTYMASK);
-#else /* ordinary USG */
-#if 0
-  signal (SIGCHLD, sigchld);
-  /* Now really handle any of these signals
-     that came in during this function.  */
-  if (sigchld_deferred)
-    kill (getpid (), SIGCHLD);
-#endif
-#endif /* ordinary USG */
-#endif /* SIGCHLD */
-#endif /* !POSIX_SIGNALS */
 
   /* Now generate the error if vfork failed.  */
   if (pid < 0)
@@ -3486,22 +3158,8 @@ usage: (make-network-process &rest ARGS)  */)
       immediate_quit = 1;
       QUIT;
 
-      /* This turns off all alarm-based interrupts; the
-	 bind_polling_period call above doesn't always turn all the
-	 short-interval ones off, especially if interrupt_input is
-	 set.
-
-	 It'd be nice to be able to control the connect timeout
-	 though.  Would non-blocking connect calls be portable?
-
-	 This used to be conditioned by HAVE_GETADDRINFO.  Why?  */
-
-      turn_on_atimers (0);
-
       ret = connect (s, lres->ai_addr, lres->ai_addrlen);
       xerrno = errno;
-
-      turn_on_atimers (1);
 
       if (ret == 0 || xerrno == EISCONN)
 	{
@@ -5471,14 +5129,6 @@ This is intended for use by asynchronous process output filters and sentinels.  
 jmp_buf send_process_frame;
 Lisp_Object process_sent_to;
 
-SIGTYPE
-send_process_trap ()
-{
-  SIGNAL_THREAD_CHECK (SIGPIPE);
-  sigunblock (sigmask (SIGPIPE));
-  longjmp (send_process_frame, 1);
-}
-
 /* Send some data to process PROC.
    BUF is the beginning of the data; LEN is the number of characters.
    OBJECT is the Lisp object that the data comes from.  If OBJECT is
@@ -5637,22 +5287,6 @@ send_process (proc, buf, len, object)
 	  while (this > 0)
 	    {
 	      int outfd = p->outfd;
-	      old_sigpipe = (SIGTYPE (*) ()) signal (SIGPIPE, send_process_trap);
-#ifdef DATAGRAM_SOCKETS
-	      if (DATAGRAM_CHAN_P (outfd))
-		{
-		  rv = sendto (outfd, (char *) buf, this,
-			       0, datagram_address[outfd].sa,
-			       datagram_address[outfd].len);
-		  if (rv < 0 && errno == EMSGSIZE)
-		    {
-		      signal (SIGPIPE, old_sigpipe);
-		      report_file_error ("sending datagram",
-					 Fcons (proc, Qnil));
-		    }
-		}
-	      else
-#endif
 		{
 		  rv = emacs_write (outfd, (char *) buf, this);
 #ifdef ADAPTIVE_READ_BUFFERING
@@ -7462,454 +7096,6 @@ The variable takes effect when `start-process' is called.  */);
   defsubr (&Slist_system_processes);
   defsubr (&Sprocess_attributes);
 }
-
-
-#else /* not subprocesses */
-
-#include <sys/types.h>
-#include <errno.h>
-#include <sys/stat.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#ifdef HAVE_UNISTD_H
-#include <unistd.h>
-#endif
-
-#include "lisp.h"
-#include "systime.h"
-#include "character.h"
-#include "coding.h"
-#include "termopts.h"
-#include "sysselect.h"
-
-extern int frame_garbaged;
-
-extern EMACS_TIME timer_check ();
-extern int timers_run;
-
-Lisp_Object QCtype, QCname;
-
-Lisp_Object Qeuid, Qegid, Qcomm, Qstate, Qppid, Qpgrp, Qsess, Qttname, Qtpgid;
-Lisp_Object Qminflt, Qmajflt, Qcminflt, Qcmajflt, Qutime, Qstime, Qcstime;
-Lisp_Object Qcutime, Qpri, Qnice, Qthcount, Qstart, Qvsize, Qrss, Qargs;
-Lisp_Object Quser, Qgroup, Qetime, Qpcpu, Qpmem, Qtime, Qctime;
-
-/* As described above, except assuming that there are no subprocesses:
-
-   Wait for timeout to elapse and/or keyboard input to be available.
-
-   time_limit is:
-     timeout in seconds, or
-     zero for no limit, or
-     -1 means gobble data immediately available but don't wait for any.
-
-   read_kbd is a Lisp_Object:
-     0 to ignore keyboard input, or
-     1 to return when input is available, or
-     -1 means caller will actually read the input, so don't throw to
-       the quit handler.
-
-   see full version for other parameters. We know that wait_proc will
-     always be NULL, since `subprocesses' isn't defined.
-
-   do_display != 0 means redisplay should be done to show subprocess
-   output that arrives.
-
-   Return true if we received input from any process.  */
-
-int
-wait_reading_process_output (time_limit, microsecs, read_kbd, do_display,
-			     wait_for_cell, wait_proc, just_wait_proc)
-     int time_limit, microsecs, read_kbd, do_display;
-     Lisp_Object wait_for_cell;
-     struct Lisp_Process *wait_proc;
-     int just_wait_proc;
-{
-  register int nfds;
-  EMACS_TIME end_time, timeout;
-  SELECT_TYPE waitchannels;
-  int xerrno;
-
-  /* What does time_limit really mean?  */
-  if (time_limit || microsecs)
-    {
-      EMACS_GET_TIME (end_time);
-      EMACS_SET_SECS_USECS (timeout, time_limit, microsecs);
-      EMACS_ADD_TIME (end_time, end_time, timeout);
-    }
-
-  /* Turn off periodic alarms (in case they are in use)
-     and then turn off any other atimers,
-     because the select emulator uses alarms.  */
-  stop_polling ();
-  turn_on_atimers (0);
-
-  while (1)
-    {
-      int timeout_reduced_for_timers = 0;
-
-      /* If calling from keyboard input, do not quit
-	 since we want to return C-g as an input character.
-	 Otherwise, do pending quit if requested.  */
-      if (read_kbd >= 0)
-	QUIT;
-
-      /* Exit now if the cell we're waiting for became non-nil.  */
-      if (! NILP (wait_for_cell) && ! NILP (XCAR (wait_for_cell)))
-	break;
-
-      /* Compute time from now till when time limit is up */
-      /* Exit if already run out */
-      if (time_limit == -1)
-	{
-	  /* -1 specified for timeout means
-	     gobble output available now
-	     but don't wait at all. */
-
-	  EMACS_SET_SECS_USECS (timeout, 0, 0);
-	}
-      else if (time_limit || microsecs)
-	{
-	  EMACS_GET_TIME (timeout);
-	  EMACS_SUB_TIME (timeout, end_time, timeout);
-	  if (EMACS_TIME_NEG_P (timeout))
-	    break;
-	}
-      else
-	{
-	  EMACS_SET_SECS_USECS (timeout, 100000, 0);
-	}
-
-      /* If our caller will not immediately handle keyboard events,
-	 run timer events directly.
-	 (Callers that will immediately read keyboard events
-	 call timer_delay on their own.)  */
-      if (NILP (wait_for_cell))
-	{
-	  EMACS_TIME timer_delay;
-
-	  do
-	    {
-	      int old_timers_run = timers_run;
-	      timer_delay = timer_check (1);
-	      if (timers_run != old_timers_run && do_display)
-		/* We must retry, since a timer may have requeued itself
-		   and that could alter the time delay.  */
-		redisplay_preserve_echo_area (14);
-	      else
-		break;
-	    }
-	  while (!detect_input_pending ());
-
-	  /* If there is unread keyboard input, also return.  */
-	  if (read_kbd != 0
-	      && requeued_events_pending_p ())
-	    break;
-
-	  if (! EMACS_TIME_NEG_P (timer_delay) && time_limit != -1)
-	    {
-	      EMACS_TIME difference;
-	      EMACS_SUB_TIME (difference, timer_delay, timeout);
-	      if (EMACS_TIME_NEG_P (difference))
-		{
-		  timeout = timer_delay;
-		  timeout_reduced_for_timers = 1;
-		}
-	    }
-	}
-
-      /* Cause C-g and alarm signals to take immediate action,
-	 and cause input available signals to zero out timeout.  */
-      if (read_kbd < 0)
-	set_waiting_for_input (&timeout);
-
-      /* Wait till there is something to do.  */
-
-      if (! read_kbd && NILP (wait_for_cell))
-	FD_ZERO (&waitchannels);
-      else
-	FD_SET (0, &waitchannels);
-
-      /* If a frame has been newly mapped and needs updating,
-	 reprocess its display stuff.  */
-      if (frame_garbaged && do_display)
-	{
-	  clear_waiting_for_input ();
-	  redisplay_preserve_echo_area (15);
-	  if (read_kbd < 0)
-	    set_waiting_for_input (&timeout);
-	}
-
-      if (read_kbd && detect_input_pending ())
-	{
-	  nfds = 0;
-	  FD_ZERO (&waitchannels);
-	}
-      else
-	nfds = select (1, &waitchannels, (SELECT_TYPE *)0, (SELECT_TYPE *)0,
-		       &timeout);
-
-      xerrno = errno;
-
-      /* Make C-g and alarm signals set flags again */
-      clear_waiting_for_input ();
-
-      /*  If we woke up due to SIGWINCH, actually change size now.  */
-      do_pending_window_change (0);
-
-      if (time_limit && nfds == 0 && ! timeout_reduced_for_timers)
-	/* We waited the full specified time, so return now.  */
-	break;
-
-      if (nfds == -1)
-	{
-	  /* If the system call was interrupted, then go around the
-	     loop again.  */
-	  if (xerrno == EINTR)
-	    FD_ZERO (&waitchannels);
-	  else
-	    error ("select error: %s", emacs_strerror (xerrno));
-	}
-#ifdef SOLARIS2
-      else if (nfds > 0 && (waitchannels & 1)  && interrupt_input)
-	/* System sometimes fails to deliver SIGIO.  */
-	kill (getpid (), SIGIO);
-#endif
-#ifdef SIGIO
-      if (read_kbd && interrupt_input && (waitchannels & 1))
-	kill (getpid (), SIGIO);
-#endif
-
-      /* Check for keyboard input */
-
-      if (read_kbd
-	  && detect_input_pending_run_timers (do_display))
-	{
-	  swallow_events (do_display);
-	  if (detect_input_pending_run_timers (do_display))
-	    break;
-	}
-
-      /* If there is unread keyboard input, also return.  */
-      if (read_kbd
-	  && requeued_events_pending_p ())
-	break;
-
-      /* If wait_for_cell. check for keyboard input
-	 but don't run any timers.
-	 ??? (It seems wrong to me to check for keyboard
-	 input at all when wait_for_cell, but the code
-	 has been this way since July 1994.
-	 Try changing this after version 19.31.)  */
-      if (! NILP (wait_for_cell)
-	  && detect_input_pending ())
-	{
-	  swallow_events (do_display);
-	  if (detect_input_pending ())
-	    break;
-	}
-
-      /* Exit now if the cell we're waiting for became non-nil.  */
-      if (! NILP (wait_for_cell) && ! NILP (XCAR (wait_for_cell)))
-	break;
-    }
-
-  start_polling ();
-
-  return 0;
-}
-
-
-/* Don't confuse make-docfile by having two doc strings for this function.
-   make-docfile does not pay attention to #if, for good reason!  */
-DEFUN ("get-buffer-process", Fget_buffer_process, Sget_buffer_process, 1, 1, 0,
-       0)
-     (name)
-     register Lisp_Object name;
-{
-  return Qnil;
-}
-
-  /* Don't confuse make-docfile by having two doc strings for this function.
-     make-docfile does not pay attention to #if, for good reason!  */
-DEFUN ("process-inherit-coding-system-flag",
-       Fprocess_inherit_coding_system_flag, Sprocess_inherit_coding_system_flag,
-       1, 1, 0,
-       0)
-     (process)
-     register Lisp_Object process;
-{
-  /* Ignore the argument and return the value of
-     inherit-process-coding-system.  */
-  return inherit_process_coding_system ? Qt : Qnil;
-}
-
-/* Kill all processes associated with `buffer'.
-   If `buffer' is nil, kill all processes.
-   Since we have no subprocesses, this does nothing.  */
-
-void
-kill_buffer_processes (buffer)
-     Lisp_Object buffer;
-{
-}
-
-DEFUN ("list-system-processes", Flist_system_processes, Slist_system_processes,
-       0, 0, 0,
-       doc: /* Return a list of numerical process IDs of all running processes.
-If this functionality is unsupported, return nil.
-
-See `process-attributes' for getting attributes of a process given its ID.  */)
-    ()
-{
-  return list_system_processes ();
-}
-
-DEFUN ("process-attributes", Fprocess_attributes,
-       Sprocess_attributes, 1, 1, 0,
-       doc: /* Return attributes of the process given by its PID, a number.
-
-Value is an alist where each element is a cons cell of the form
-
-    \(KEY . VALUE)
-
-If this functionality is unsupported, the value is nil.
-
-See `list-system-processes' for getting a list of all process IDs.
-
-The KEYs of the attributes that this function may return are listed
-below, together with the type of the associated VALUE (in parentheses).
-Not all platforms support all of these attributes; unsupported
-attributes will not appear in the returned alist.
-Unless explicitly indicated otherwise, numbers can have either
-integer or floating point values.
-
- euid    -- Effective user User ID of the process (number)
- user    -- User name corresponding to euid (string)
- egid    -- Effective user Group ID of the process (number)
- group   -- Group name corresponding to egid (string)
- comm    -- Command name (executable name only) (string)
- state   -- Process state code, such as "S", "R", or "T" (string)
- ppid    -- Parent process ID (number)
- pgrp    -- Process group ID (number)
- sess    -- Session ID, i.e. process ID of session leader (number)
- ttname  -- Controlling tty name (string)
- tpgid   -- ID of foreground process group on the process's tty (number)
- minflt  -- number of minor page faults (number)
- majflt  -- number of major page faults (number)
- cminflt -- cumulative number of minor page faults (number)
- cmajflt -- cumulative number of major page faults (number)
- utime   -- user time used by the process, in the (HIGH LOW USEC) format
- stime   -- system time used by the process, in the (HIGH LOW USEC) format
- time    -- sum of utime and stime, in the (HIGH LOW USEC) format
- cutime  -- user time used by the process and its children, (HIGH LOW USEC)
- cstime  -- system time used by the process and its children, (HIGH LOW USEC)
- ctime   -- sum of cutime and cstime, in the (HIGH LOW USEC) format
- pri     -- priority of the process (number)
- nice    -- nice value of the process (number)
- thcount -- process thread count (number)
- start   -- time the process started, in the (HIGH LOW USEC) format
- vsize   -- virtual memory size of the process in KB's (number)
- rss     -- resident set size of the process in KB's (number)
- etime   -- elapsed time the process is running, in (HIGH LOW USEC) format
- pcpu    -- percents of CPU time used by the process (floating-point number)
- pmem    -- percents of total physical memory used by process's resident set
-              (floating-point number)
- args    -- command line which invoked the process (string).   */)
-    (pid)
-
-    Lisp_Object pid;
-{
-  return system_process_attributes (pid);
-}
-
-void
-init_process ()
-{
-}
-
-void
-syms_of_process ()
-{
-  QCtype = intern (":type");
-  staticpro (&QCtype);
-  QCname = intern (":name");
-  staticpro (&QCname);
-  QCtype = intern (":type");
-  staticpro (&QCtype);
-  QCname = intern (":name");
-  staticpro (&QCname);
-  Qeuid = intern ("euid");
-  staticpro (&Qeuid);
-  Qegid = intern ("egid");
-  staticpro (&Qegid);
-  Quser = intern ("user");
-  staticpro (&Quser);
-  Qgroup = intern ("group");
-  staticpro (&Qgroup);
-  Qcomm = intern ("comm");
-  staticpro (&Qcomm);
-  Qstate = intern ("state");
-  staticpro (&Qstate);
-  Qppid = intern ("ppid");
-  staticpro (&Qppid);
-  Qpgrp = intern ("pgrp");
-  staticpro (&Qpgrp);
-  Qsess = intern ("sess");
-  staticpro (&Qsess);
-  Qttname = intern ("ttname");
-  staticpro (&Qttname);
-  Qtpgid = intern ("tpgid");
-  staticpro (&Qtpgid);
-  Qminflt = intern ("minflt");
-  staticpro (&Qminflt);
-  Qmajflt = intern ("majflt");
-  staticpro (&Qmajflt);
-  Qcminflt = intern ("cminflt");
-  staticpro (&Qcminflt);
-  Qcmajflt = intern ("cmajflt");
-  staticpro (&Qcmajflt);
-  Qutime = intern ("utime");
-  staticpro (&Qutime);
-  Qstime = intern ("stime");
-  staticpro (&Qstime);
-  Qtime = intern ("time");
-  staticpro (&Qtime);
-  Qcutime = intern ("cutime");
-  staticpro (&Qcutime);
-  Qcstime = intern ("cstime");
-  staticpro (&Qcstime);
-  Qctime = intern ("ctime");
-  staticpro (&Qctime);
-  Qpri = intern ("pri");
-  staticpro (&Qpri);
-  Qnice = intern ("nice");
-  staticpro (&Qnice);
-  Qthcount = intern ("thcount");
-  staticpro (&Qthcount);
-  Qstart = intern ("start");
-  staticpro (&Qstart);
-  Qvsize = intern ("vsize");
-  staticpro (&Qvsize);
-  Qrss = intern ("rss");
-  staticpro (&Qrss);
-  Qetime = intern ("etime");
-  staticpro (&Qetime);
-  Qpcpu = intern ("pcpu");
-  staticpro (&Qpcpu);
-  Qpmem = intern ("pmem");
-  staticpro (&Qpmem);
-  Qargs = intern ("args");
-  staticpro (&Qargs);
-
-  defsubr (&Sget_buffer_process);
-  defsubr (&Sprocess_inherit_coding_system_flag);
-  defsubr (&Slist_system_processes);
-  defsubr (&Sprocess_attributes);
-}
-
-
-#endif /* not subprocesses */
 
 /* arch-tag: 3706c011-7b9a-4117-bd4f-59e7f701a4c4
    (do not change this comment) */

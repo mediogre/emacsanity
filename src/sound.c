@@ -301,10 +301,6 @@ sound_perror (msg)
 {
   int saved_errno = errno;
 
-  turn_on_atimers (1);
-#ifdef SIGIO
-  sigunblock (sigmask (SIGIO));
-#endif
   if (saved_errno != 0)
     error ("%s: %s", msg, strerror (saved_errno));
   else
@@ -738,7 +734,6 @@ vox_configure (sd)
   /* On GNU/Linux, it seems that the device driver doesn't like to be
      interrupted by a signal.  Block the ones we know to cause
      troubles.  */
-  turn_on_atimers (0);
 #ifdef SIGIO
   sigblock (sigmask (SIGIO));
 #endif
@@ -772,7 +767,6 @@ vox_configure (sd)
       ioctl (sd->fd, SOUND_MIXER_WRITE_PCM, &volume);
     }
 
-  turn_on_atimers (1);
 #ifdef SIGIO
   sigunblock (sigmask (SIGIO));
 #endif
@@ -793,12 +787,10 @@ vox_close (sd)
 #ifdef SIGIO
       sigblock (sigmask (SIGIO));
 #endif
-      turn_on_atimers (0);
 
       /* Flush sound data, and reset the device.  */
       ioctl (sd->fd, SNDCTL_DSP_SYNC, NULL);
 
-      turn_on_atimers (1);
 #ifdef SIGIO
       sigunblock (sigmask (SIGIO));
 #endif

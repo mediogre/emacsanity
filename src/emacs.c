@@ -299,12 +299,6 @@ fatal_error_signal (sig)
       shut_down_emacs (sig, 0, Qnil);
     }
 
-  /* Signal the same code; this time it will really be fatal.
-     Remember that since we're in a signal handler, the signal we're
-     going to send is probably blocked, so we have to unblock it if we
-     want to really receive it.  */
-  sigunblock (sigmask (fatal_error_code));
-
   if (fatal_error_signal_hook)
     fatal_error_signal_hook ();
 
@@ -701,13 +695,11 @@ main (int argc, char **argv)
   if (1
       )
     {
-      sigblock (sigmask (SIGHUP));
       /* In --batch mode, don't catch SIGHUP if already ignored.
 	 That makes nohup work.  */
       if (! noninteractive
 	  || signal (SIGHUP, SIG_IGN) != SIG_IGN)
 	signal (SIGHUP, fatal_error_signal);
-      sigunblock (sigmask (SIGHUP));
     }
 
   if (

@@ -53,13 +53,6 @@ extern volatile int interrupt_input_blocked;
    during the current critical section.  */
 extern int interrupt_input_pending;
 
-
-/* Non-zero means asynchronous timers should be run when input is
-   unblocked.  */
-
-extern int pending_atimers;
-
-
 /* Begin critical section. */
 #define BLOCK_INPUT (interrupt_input_blocked++)
 
@@ -86,8 +79,6 @@ extern int pending_atimers;
 	{					\
 	  if (interrupt_input_pending)		\
 	    reinvoke_input_signal ();		\
-	  if (pending_atimers)			\
-	    do_pending_atimers ();		\
 	}					\
       else if (interrupt_input_blocked < 0)	\
 	abort ();				\

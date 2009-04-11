@@ -45,8 +45,6 @@ extern void init_signals P_ ((void));
 { SIGMASKTYPE omask = sigblock (SIGFULLMASK); sigsetmask (omask & ~SIG); }
 #endif
 
-#define sigfree() sigsetmask (SIGEMPTYMASK)
-
 #if defined (SIGINFO) && defined (BROKEN_SIGINFO)
 #undef SIGINFO
 #endif

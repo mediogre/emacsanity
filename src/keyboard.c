@@ -74,15 +74,6 @@ volatile int interrupt_input_blocked;
    during the current critical section.  */
 int interrupt_input_pending;
 
-/* This var should be (interrupt_input_pending || pending_atimers).
-   The QUIT macro checks this instead of interrupt_input_pending and
-   pending_atimers separately, to reduce code size.  So, any code that
-   changes interrupt_input_pending or pending_atimers should update
-   this too.  */
-#ifdef SYNC_INPUT
-int pending_signals;
-#endif
-
 #define KBD_BUFFER_SIZE 4096
 
 KBOARD *initial_kboard;
@@ -2190,17 +2181,8 @@ struct atimer *poll_timer;
 void
 poll_for_input_1 ()
 {
-/* Tell ns_read_socket() it is being called asynchronously so it can avoid
-   doing anything dangerous. */
-#ifdef HAVE_NS
-  ++handling_signal;
-#endif
-  if (interrupt_input_blocked == 0
-      && !waiting_for_input)
+  if (interrupt_input_blocked == 0 && !waiting_for_input)
     read_avail_input (0);
-#ifdef HAVE_NS
-  --handling_signal;
-#endif
 }
 
 /* Timer callback function for poll_timer.  TIMER is equal to
@@ -2212,12 +2194,7 @@ poll_for_input (timer)
 {
   if (poll_suppress_count == 0)
     {
-#ifdef SYNC_INPUT
-      interrupt_input_pending = 1;
-      pending_signals = 1;
-#else
       poll_for_input_1 ();
-#endif
     }
 }
 
@@ -2235,10 +2212,6 @@ start_polling ()
      it's always set. */
   if (!interrupt_input)
     {
-      /* Turn alarm handling on unconditionally.  It might have
-	 been turned off in process.c.  */
-      turn_on_atimers (1);
-
       /* If poll timer doesn't exist, are we need one with
 	 a different interval, start a new one.  */
       if (poll_timer == NULL
@@ -3848,7 +3821,6 @@ kbd_buffer_store_event_hold (event, hold_quit)
       if (immediate_quit && NILP (Vinhibit_quit))
 	{
 	  immediate_quit = 0;
-	  sigfree ();
 	  QUIT;
 	}
     }
@@ -7117,14 +7089,7 @@ void
 handle_async_input ()
 {
   interrupt_input_pending = 0;
-#ifdef SYNC_INPUT
-  pending_signals = pending_atimers;
-#endif
-/* Tell ns_read_socket() it is being called asynchronously so it can avoid
-   doing anything dangerous. */
-#ifdef HAVE_NS
-  ++handling_signal;
-#endif
+
   while (1)
     {
       int nread;
@@ -7135,9 +7100,6 @@ handle_async_input ()
       if (nread <= 0)
 	break;
     }
-#ifdef HAVE_NS
-  --handling_signal;
-#endif
 }
 
 void
@@ -7145,41 +7107,7 @@ process_pending_signals ()
 {
   if (interrupt_input_pending)
     handle_async_input ();
-  do_pending_atimers ();
 }
-
-#ifdef SIGIO   /* for entire page */
-/* Note SIGIO has been undef'd if FIONREAD is missing.  */
-
-static SIGTYPE
-input_available_signal (signo)
-     int signo;
-{
-  /* Must preserve main program's value of errno.  */
-  int old_errno = errno;
-#if defined (USG) && !defined (POSIX_SIGNALS)
-  /* USG systems forget handlers when they are used;
-     must reestablish each time */
-  signal (signo, input_available_signal);
-#endif /* USG */
-
-#ifdef SYNC_INPUT
-  interrupt_input_pending = 1;
-  pending_signals = 1;
-#else
-  SIGNAL_THREAD_CHECK (signo);
-#endif
-
-  if (input_available_clear_time)
-    EMACS_SET_SECS_USECS (*input_available_clear_time, 0, 0);
-
-#ifndef SYNC_INPUT
-  handle_async_input ();
-#endif
-
-  errno = old_errno;
-}
-#endif /* SIGIO */
 
 /* Send ourselves a SIGIO.
 
@@ -7297,8 +7225,6 @@ store_user_signal_events ()
   for (p = user_signals; p; p = p->next)
     if (p->npending > 0)
       {
-	SIGMASKTYPE mask;
-
 	if (nstored == 0)
 	  {
 	    bzero (&buf, sizeof buf);
@@ -7307,7 +7233,6 @@ store_user_signal_events ()
 	  }
 	nstored += p->npending;
 
-	mask = sigblock (sigmask (p->sig));
 	do
 	  {
 	    buf.code = p->sig;
@@ -7315,7 +7240,6 @@ store_user_signal_events ()
 	    p->npending--;
 	  }
 	while (p->npending > 0);
-	sigsetmask (mask);
       }
 
   return nstored;
@@ -10757,11 +10681,6 @@ handle_interrupt ()
   /* XXX This code needs to be revised for multi-tty support. */
   if (!NILP (Vquit_flag))
     {
-      /* If SIGINT isn't blocked, don't let us be interrupted by
-	 another SIGINT, it might be harmful due to non-reentrancy
-	 in I/O functions.  */
-      sigblock (sigmask (SIGINT));
-
       fflush (stdout);
       reset_all_sys_modes ();
 
@@ -10805,7 +10724,6 @@ handle_interrupt ()
 
       fflush (stdout);
       init_all_sys_modes ();
-      sigfree ();
     }
   else
     {
@@ -10817,7 +10735,6 @@ handle_interrupt ()
 	  struct gl_state_s saved;
 
 	  immediate_quit = 0;
-          sigfree ();
 	  saved = gl_state;
 
 	  Fsignal (Qquit, Qnil);
@@ -10846,7 +10763,6 @@ handle_interrupt ()
 void
 quit_throw_to_read_char ()
 {
-  sigfree ();
   /* Prevent another signal from doing this before we finish.  */
   clear_waiting_for_input ();
   input_pending = 0;
@@ -11216,9 +11132,6 @@ init_keyboard ()
   input_pending = 0;
   interrupt_input_blocked = 0;
   interrupt_input_pending = 0;
-#ifdef SYNC_INPUT
-  pending_signals = 0;
-#endif
 
   /* This means that command_loop_1 won't try to select anything the first
      time through.  */
@@ -11236,13 +11149,8 @@ init_keyboard ()
 /* Use interrupt input by default, if it works and noninterrupt input
    has deficiencies.  */
 
-#ifdef INTERRUPT_INPUT
-  interrupt_input = 1;
-#else
   interrupt_input = 0;
-#endif
 
-  sigfree ();
   dribble = 0;
 
   if (keyboard_init_hook)

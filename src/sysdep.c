@@ -342,70 +342,8 @@ wait_for_termination (pid)
 {
   while (1)
     {
-#ifdef subprocesses
-#if defined (BSD_SYSTEM) || defined (HPUX)
-      /* Note that kill returns -1 even if the process is just a zombie now.
-	 But inevitably a SIGCHLD interrupt should be generated
-	 and child_sig will do wait3 and make the process go away. */
-      /* There is some indication that there is a bug involved with
-	 termination of subprocesses, perhaps involving a kernel bug too,
-	 but no idea what it is.  Just as a hunch we signal SIGCHLD to see
-	 if that causes the problem to go away or get worse.  */
-      sigsetmask (sigmask (SIGCHLD));
-      if (0 > kill (pid, 0))
-	{
-	  sigsetmask (SIGEMPTYMASK);
-	  kill (getpid (), SIGCHLD);
-	  break;
-	}
-      if (wait_debugging)
-	sleep (1);
-      else
-	sigpause (SIGEMPTYMASK);
-#else /* not BSD_SYSTEM, and not HPUX version >= 6 */
-#ifdef POSIX_SIGNALS    /* would this work for GNU/Linux as well? */
-      sigblock (sigmask (SIGCHLD));
-      errno = 0;
-      if (kill (pid, 0) == -1 && errno == ESRCH)
-	{
-	  sigunblock (sigmask (SIGCHLD));
-	  break;
-	}
-
-      sigsuspend (&empty_mask);
-#else /* not POSIX_SIGNALS */
-#ifdef HAVE_SYSV_SIGPAUSE
-      sighold (SIGCHLD);
-      if (0 > kill (pid, 0))
-	{
-	  sigrelse (SIGCHLD);
-	  break;
-	}
-      sigpause (SIGCHLD);
-#else /* not HAVE_SYSV_SIGPAUSE */
-#ifdef WINDOWSNT
       wait (0);
       break;
-#else /* not WINDOWSNT */
-      if (0 > kill (pid, 0))
-	break;
-      /* Using sleep instead of pause avoids timing error.
-	 If the inferior dies just before the sleep,
-	 we lose just one second.  */
-      sleep (1);
-#endif /* not WINDOWSNT */
-#endif /* not HAVE_SYSV_SIGPAUSE */
-#endif /* not POSIX_SIGNALS */
-#endif /* not BSD_SYSTEM, and not HPUX version >= 6 */
-#else /* not subprocesses */
-#if __DJGPP__ > 1
-      break;
-#else /* not __DJGPP__ > 1 */
-      if (kill (pid, 0) < 0)
-	break;
-      wait (0);
-#endif /* not __DJGPP__ > 1*/
-#endif /* not subprocesses */
     }
 }
 

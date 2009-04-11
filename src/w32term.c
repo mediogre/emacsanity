@@ -6229,15 +6229,6 @@ w32_term_init (display_name, xrm_option, resource_name)
      the bitmaps.  */
   w32_init_fringe (terminal->rif);
 
-#ifdef F_SETOWN
-  fcntl (connection, F_SETOWN, getpid ());
-#endif /* ! defined (F_SETOWN) */
-
-#ifdef SIGIO
-  if (interrupt_input)
-    init_sigio (connection);
-#endif /* ! defined (SIGIO) */
-
   UNBLOCK_INPUT;
 
   return dpyinfo;

@@ -3207,8 +3207,6 @@ SIGTYPE
 arith_error (signo)
      int signo;
 {
-  sigsetmask (SIGEMPTYMASK);
-
   SIGNAL_THREAD_CHECK (signo);
   xsignal0 (Qarith_error);
 }

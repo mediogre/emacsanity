@@ -1842,26 +1842,6 @@ extern char *stack_bottom;
    This is a good thing to do around a loop that has no side effects
    and (in particular) cannot call arbitrary Lisp code.  */
 
-#ifdef SYNC_INPUT
-extern void process_pending_signals P_ ((void));
-extern int pending_signals;
-
-#define QUIT						\
-  do {							\
-    if (!NILP (Vquit_flag) && NILP (Vinhibit_quit))	\
-      {							\
-        Lisp_Object flag = Vquit_flag;			\
-	Vquit_flag = Qnil;				\
-	if (EQ (Vthrow_on_input, flag))			\
-	  Fthrow (Vthrow_on_input, Qt);			\
-	Fsignal (Qquit, Qnil);				\
-      }							\
-    else if (pending_signals)				\
-      process_pending_signals ();			\
-  } while (0)
-
-#else  /* not SYNC_INPUT */
-
 #define QUIT						\
   do {							\
     if (!NILP (Vquit_flag) && NILP (Vinhibit_quit))	\
@@ -1873,8 +1853,6 @@ extern int pending_signals;
 	Fsignal (Qquit, Qnil);				\
       }							\
   } while (0)
-
-#endif	/* not SYNC_INPUT */
 
 
 /* Nonzero if ought to quit now.  */
