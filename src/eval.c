@@ -78,7 +78,6 @@ struct catchtag
   struct handler *handlerlist;
   int lisp_eval_depth;
   int pdlcount;
-  int interrupt_input_blocked;
   struct byte_stack *byte_stack;
 };
 
@@ -1395,13 +1394,6 @@ internal_condition_case (bfun, handlers, hfun)
   struct catchtag c;
   struct handler h;
 
-  /* Since Fsignal will close off all calls to x_catch_errors,
-     we will get the wrong results if some are not closed now.  */
-#if HAVE_X_WINDOWS
-  if (x_catching_errors ())
-    abort ();
-#endif
-
   c.tag = Qnil;
   c.val = Qnil;
   c.backlist = backtrace_list;
@@ -1439,13 +1431,6 @@ internal_condition_case_1 (bfun, arg, handlers, hfun)
   Lisp_Object val;
   struct catchtag c;
   struct handler h;
-
-  /* Since Fsignal will close off all calls to x_catch_errors,
-     we will get the wrong results if some are not closed now.  */
-#if HAVE_X_WINDOWS
-  if (x_catching_errors ())
-    abort ();
-#endif
 
   c.tag = Qnil;
   c.val = Qnil;
@@ -1487,13 +1472,6 @@ internal_condition_case_2 (bfun, nargs, args, handlers, hfun)
   Lisp_Object val;
   struct catchtag c;
   struct handler h;
-
-  /* Since Fsignal will close off all calls to x_catch_errors,
-     we will get the wrong results if some are not closed now.  */
-#if HAVE_X_WINDOWS
-  if (x_catching_errors ())
-    abort ();
-#endif
 
   c.tag = Qnil;
   c.val = Qnil;
@@ -1561,14 +1539,6 @@ See also the function `condition-case'.  */)
     real_error_symbol = Fcar (data);
   else
     real_error_symbol = error_symbol;
-
-#if 0 /* rms: I don't know why this was here,
-	 but it is surely wrong for an error that is handled.  */
-#ifdef HAVE_WINDOW_SYSTEM
-  if (display_hourglass_p)
-    cancel_hourglass ();
-#endif
-#endif
 
   /* This hook is used by edebug.  */
   if (! NILP (Vsignal_hook_function)

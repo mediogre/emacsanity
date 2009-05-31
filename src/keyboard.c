@@ -64,15 +64,6 @@ along with GNU Emacs.  If not, see <http://www.gnu.org/licenses/>.  */
 extern int errno;
 #endif
 
-/* Variables for blockinput.h: */
-
-/* Non-zero if interrupt input is blocked right now.  */
-volatile int interrupt_input_blocked;
-
-/* Nonzero means an input interrupt has arrived
-   during the current critical section.  */
-int interrupt_input_pending;
-
 #define KBD_BUFFER_SIZE 4096
 
 KBOARD *initial_kboard;
@@ -2164,7 +2155,7 @@ EMACS_INT polling_period;
 void
 poll_for_input_1 ()
 {
-  if (interrupt_input_blocked == 0 && !waiting_for_input)
+  if (!waiting_for_input)
     read_avail_input (0);
 }
 
@@ -6944,8 +6935,6 @@ tty_read_avail_input (struct terminal *terminal,
 void
 handle_async_input ()
 {
-  interrupt_input_pending = 0;
-
   while (1)
     {
       int nread;
@@ -10929,8 +10918,6 @@ init_keyboard ()
   do_mouse_tracking = Qnil;
 #endif
   input_pending = 0;
-  interrupt_input_blocked = 0;
-  interrupt_input_pending = 0;
 
   /* This means that command_loop_1 won't try to select anything the first
      time through.  */

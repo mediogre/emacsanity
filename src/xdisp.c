@@ -22000,8 +22000,6 @@ display_and_set_cursor (w, on, hpos, vpos, x, y)
       || hpos < glyph_row->used[TEXT_AREA])
     glyph = glyph_row->glyphs[TEXT_AREA] + hpos;
 
-  xassert (interrupt_input_blocked);
-
   /* Set new_cursor_type to the cursor we want to be displayed.  */
   new_cursor_type = get_window_cursor_type (w, glyph,
 					    &new_cursor_width, &active_cursor);

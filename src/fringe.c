@@ -877,8 +877,6 @@ draw_row_fringe_bitmaps (w, row)
      struct window *w;
      struct glyph_row *row;
 {
-  xassert (interrupt_input_blocked);
-
   /* If row is completely invisible, because of vscrolling, we
      don't have to draw anything.  */
   if (row->visible_height <= 0)
