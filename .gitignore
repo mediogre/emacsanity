@@ -13,3 +13,5 @@ makefile
 *.user
 Debug
 Release
+src/TAGS
+notes.org
