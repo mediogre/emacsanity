@@ -119,7 +119,7 @@
 
     public partial class F
     {
-        public static LispObject list(int nargs, LispObject[] args)
+        public static LispObject list(int nargs, params LispObject[] args)
         {
             LispObject val = Q.nil;
 

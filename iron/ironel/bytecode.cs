@@ -24,4 +24,9 @@
             return Q.nil;
         }
     }
+
+    public partial class Q
+    {
+        public static LispObject bytecode;
+    }
 }

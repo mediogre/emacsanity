@@ -332,5 +332,24 @@
 
             return val;
         }
+
+        public static LispObject nthcdr(LispObject n, LispObject list)
+        {
+            int i, num;
+            L.CHECK_NUMBER(n);
+            num = L.XINT(n);
+            for (i = 0; i < num && !L.NILP(list); i++)
+            {
+                L.QUIT();
+                L.CHECK_LIST_CONS(list, list);
+                list = L.XCDR(list);
+            }
+            return list;
+        }
+
+        public static LispObject nth(LispObject n, LispObject list)
+        {
+            return F.car(F.nthcdr(n, list));
+        }
     }
 }

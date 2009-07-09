@@ -103,6 +103,11 @@
             {
                 return is_indirect_variable;
             }
+
+            set
+            {
+                is_indirect_variable = value;
+            }
         }
     }
 
@@ -683,28 +688,6 @@
         }
     }
 
-    public class catchtag
-    {
-        public LispObject tag;
-        public LispObject val;
-
-        public backtrace backlist;
-        public Handler handlerlist;
-        public int lisp_eval_depth;
-        public int pdlcount;
-        public byte_stack byte_stack;
-
-        public catchtag(LispObject tag, backtrace bl, Handler hl, int depth, int count, byte_stack bs)
-        {
-            this.tag = tag;
-            backlist = bl;
-            handlerlist = hl;
-            lisp_eval_depth = depth;
-            pdlcount = count;
-            byte_stack = bs;
-        }
-    }
-    
     public class Handler
     {
         public LispObject handler;
@@ -715,20 +698,6 @@
         public catchtag tag;
 
         public Handler next;
-    }
-
-    public class backtrace
-    {
-        public backtrace next;
-        public LispObject function;
-        public LispObject[] args;	/* Points to vector of args. */
-        public int nargs;		/* Length of vector.
-			   If nargs is UNEVALLED, args points to slot holding
-			   list of unevalled args */
-
-        public bool evalargs;
-        /* Nonzero means call value of debugger when done with this operation. */
-        public bool debug_on_exit;
     }
 
     [System.Serializable]

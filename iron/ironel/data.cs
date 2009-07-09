@@ -21,6 +21,8 @@
         public static LispSymbol markerp, buffer_or_string_p, integer_or_marker_p, boundp, fboundp;
         public static LispSymbol floatp, numberp, number_or_marker_p, char_table_p, vector_or_char_table_p;
         public static LispSymbol subrp, unevalled, many, cdr, ad_advice_info, ad_activate_internal;
+
+        public static LispObject interactive_form;
     }
 
     public partial class L
@@ -514,10 +516,66 @@
 
             return newval;
         }
+
+        /* Access or set a buffer-local symbol's default value.  */
+
+        /* Return the default value of SYMBOL, but don't check for voidness.
+           Return Qunbound if it is void.  */
+        public static LispObject default_value (LispObject symbol)
+        {
+            LispObject valcontents;
+
+            CHECK_SYMBOL(symbol);
+            valcontents = SYMBOL_VALUE(symbol);
+
+            /* For a built-in buffer-local variable, get the default value
+               rather than letting do_symval_forwarding get the current value.  */
+            if (BUFFER_OBJFWDP(valcontents))
+            {
+                int offset = XBUFFER_OBJFWD(valcontents).offset;
+                if (PER_BUFFER_IDX(offset) != 0)
+                    return PER_BUFFER_DEFAULT(offset);
+            }
+
+            /* Handle user-created local variables.  */
+            if (BUFFER_LOCAL_VALUEP(valcontents))
+            {
+                /* If var is set up for a buffer that lacks a local value for it,
+               the current value is nominally the default value.
+               But the `realvalue' slot may be more up to date, since
+               ordinary setq stores just that slot.  So use that.  */
+                LispObject current_alist_element, alist_element_car;
+                current_alist_element
+              = XCAR(XBUFFER_LOCAL_VALUE(valcontents).cdr);
+                alist_element_car = XCAR(current_alist_element);
+                if (EQ(alist_element_car, current_alist_element))
+                    return do_symval_forwarding(XBUFFER_LOCAL_VALUE(valcontents).realvalue);
+                else
+                    return XCDR(XBUFFER_LOCAL_VALUE(valcontents).cdr);
+            }
+            /* For other variables, get the current value.  */
+            return do_symval_forwarding(valcontents);
+        }
     }
 
     public partial class F
     {
+        public static LispObject default_boundp(LispObject symbol)
+        {
+            LispObject value = L.default_value(symbol);
+            return (L.EQ(value, Q.unbound) ? Q.nil : Q.t);
+        }
+
+        public static LispObject default_value(LispObject symbol)
+        {
+            LispObject value = default_value(symbol);
+            if (!L.EQ(value, Q.unbound))
+                return value;
+
+            L.xsignal1(Q.void_variable, symbol);
+            return Q.nil;
+        }
+
         public static LispObject set_default (LispObject symbol, LispObject value)
         {
             L.CHECK_SYMBOL (symbol);
@@ -644,6 +702,29 @@
             L.CHECK_CONS(cell);
             L.XSETCDR(cell, newcdr);
             return newcdr;
+        }
+
+        /* Extract and set components of symbols */
+        public static LispObject boundp(LispObject symbol)
+        {
+            L.CHECK_SYMBOL(symbol);
+
+            LispObject valcontents = L.SYMBOL_VALUE(symbol);
+
+            if (L.BUFFER_LOCAL_VALUEP(valcontents))
+                valcontents = L.swap_in_symval_forwarding(symbol, valcontents);
+
+            return (L.EQ(valcontents, Q.unbound) ? Q.nil : Q.t);
+        }
+
+        public static LispObject symbol_function(LispObject symbol)
+        {
+            L.CHECK_SYMBOL(symbol);
+            if (!L.EQ(L.XSYMBOL(symbol).function, Q.unbound))
+                return L.XSYMBOL(symbol).function;
+
+            L.xsignal1(Q.void_function, symbol);
+            return Q.nil;
         }
 
         public static LispObject fset(LispObject symbol, LispObject definition)

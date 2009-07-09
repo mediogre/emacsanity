@@ -309,11 +309,20 @@ namespace IronElisp
             CHECK_TYPE(INTEGERP(x), Q.integerp, x);
         }
 
+        public static void CHECK_NATNUM(LispObject x)
+        {
+            CHECK_TYPE (NATNUMP (x), Q.wholenump, x);
+        }
+
         public static void CHECK_BUFFER(LispObject x)
         {
             CHECK_TYPE(BUFFERP(x), Q.bufferp, x);
         }
 
+        public static void CHECK_LIST_CONS(LispObject x, LispObject y)
+        {
+            CHECK_TYPE(CONSP(x), Q.listp, y);
+        }
         public static void CHECK_LIST_END(LispObject x, LispObject y)
         {
             CHECK_TYPE(NILP(x), Q.listp, y);
@@ -334,6 +343,11 @@ namespace IronElisp
             return x is LispInt;
         }
 
+        public static bool NATNUMP(LispObject x)
+        {
+            return (INTEGERP (x) && XINT (x) >= 0);
+        }
+        
         public static int XINT(LispObject x)
         {
             return (x as LispInt).val;
@@ -393,6 +407,12 @@ namespace IronElisp
         public static Interval STRING_INTERVALS(LispObject STR)
         {
             return XSTRING(STR).intervals;
+        }
+
+        public static void LOADHIST_ATTACH(LispObject x)
+        {
+            if (initialized)
+                V.current_load_list = F.cons(x, V.current_load_list);
         }
     }
 }

@@ -177,9 +177,9 @@
                    debugger,
                    signal_hook_function,
                    debug_on_signal,
-                   /*           3517:  DEFVAR_LISP ("macro-declaration-function", &Vmacro_declaration_function,
-                           13 matches for "defvar_lisp" in buffer: fileio.c
-                              5108:  DEFVAR_LISP ("file-name-coding-system", &Vfile_name_coding_system,
+                   macro_declaration_function,
+//                           13 matches for "defvar_lisp" in buffer: fileio.c
+/*                              5108:  DEFVAR_LISP ("file-name-coding-system", &Vfile_name_coding_system,
                               5113:  DEFVAR_LISP ("default-file-name-coding-system",
                               5149:  DEFVAR_LISP ("directory-sep-char", &Vdirectory_sep_char,
                               5153:  DEFVAR_LISP ("file-name-handler-alist", &Vfile_name_handler_alist,
@@ -293,12 +293,10 @@
                               3940:  DEFVAR_LISP ("minor-mode-overriding-map-alist", &Vminor_mode_overriding_map_alist,
                               3947:  DEFVAR_LISP ("emulation-mode-map-alists", &Vemulation_mode_map_alists,
                               3956:  DEFVAR_LISP ("where-is-preferred-modifier", &Vwhere_is_preferred_modifier,
-                           24 matches for "defvar_lisp" in buffer: lread.c
-                              3858:defvar_lisp_nopro (namestring, address)
-                              3871:defvar_lisp (namestring, address)
-                              3875:  defvar_lisp_nopro (namestring, address);
-                              3962:  DEFVAR_LISP ("obarray", &Vobarray,
-                              3968:  DEFVAR_LISP ("values", &Vvalues,
+*/
+                   // lread.c
+                   obarray,
+/*                              3968:  DEFVAR_LISP ("values", &Vvalues,
                               3972:  DEFVAR_LISP ("standard-input", &Vstandard_input,
                               3977:  DEFVAR_LISP ("read-with-symbol-positions", &Vread_with_symbol_positions,
                               3991:  DEFVAR_LISP ("read-symbol-positions-list", &Vread_symbol_positions_list,
@@ -309,18 +307,21 @@
                               4052:  DEFVAR_LISP ("load-history", &Vload_history,
                               4072:  DEFVAR_LISP ("load-file-name", &Vload_file_name,
                               4076:  DEFVAR_LISP ("user-init-file", &Vuser_init_file,
-                              4085:  DEFVAR_LISP ("current-load-list", &Vcurrent_load_list,
-                              4089:  DEFVAR_LISP ("load-read-function", &Vload_read_function,
+*/
+                   current_load_list,
+/*                              4089:  DEFVAR_LISP ("load-read-function", &Vload_read_function,
                               4094:  DEFVAR_LISP ("load-source-file-function", &Vload_source_file_function,
                               4114:  DEFVAR_LISP ("source-directory", &Vsource_directory,
                               4121:  DEFVAR_LISP ("preloaded-file-list", &Vpreloaded_file_list,
-                              4125:  DEFVAR_LISP ("byte-boolean-vars", &Vbyte_boolean_vars,
-                              4136:  DEFVAR_LISP ("bytecomp-version-regexp", &Vbytecomp_version_regexp,
+*/
+                   byte_boolean_vars,
+/*                              4136:  DEFVAR_LISP ("bytecomp-version-regexp", &Vbytecomp_version_regexp,
                               4145:  DEFVAR_LISP ("eval-buffer-list", &Veval_buffer_list,
                               4149:  DEFVAR_LISP ("old-style-backquotes", &Vold_style_backquotes,
-                           1 match for "defvar_lisp" in buffer: macros.c
-                               392:  DEFVAR_LISP ("executing-kbd-macro", &Vexecuting_kbd_macro,
-                           15 matches for "defvar_lisp" in buffer: minibuf.c
+*/
+                   // macros.c
+                   executing_kbd_macro,
+/*                           15 matches for "defvar_lisp" in buffer: minibuf.c
                               2104:  DEFVAR_LISP ("read-buffer-function", &Vread_buffer_function,
                               2113:  DEFVAR_LISP ("minibuffer-setup-hook", &Vminibuffer_setup_hook,
                               2117:  DEFVAR_LISP ("minibuffer-exit-hook", &Vminibuffer_exit_hook,
@@ -502,8 +503,236 @@
         SIZE
     }
 
-    public class Defs
+    public enum Ints
+    {
+        /*
+        11 matches for "DEFVAR_INT" in buffer: alloc.c
+           5471:  DEFVAR_INT ("gc-cons-threshold", &gc_cons_threshold,
+           5489:  DEFVAR_INT ("pure-bytes-used", &pure_bytes_used,
+           5492:  DEFVAR_INT ("cons-cells-consed", &cons_cells_consed,
+           5495:  DEFVAR_INT ("floats-consed", &floats_consed,
+           5498:  DEFVAR_INT ("vector-cells-consed", &vector_cells_consed,
+           5501:  DEFVAR_INT ("symbols-consed", &symbols_consed,
+           5504:  DEFVAR_INT ("string-chars-consed", &string_chars_consed,
+           5507:  DEFVAR_INT ("misc-objects-consed", &misc_objects_consed,
+           5510:  DEFVAR_INT ("intervals-consed", &intervals_consed,
+           5513:  DEFVAR_INT ("strings-consed", &strings_consed,
+           5551:  DEFVAR_INT ("gcs-done", &gcs_done,
+        1 match for "DEFVAR_INT" in buffer: dispnew.c
+           6251:  DEFVAR_INT ("baud-rate", &baud_rate,
+        8 matches for "DEFVAR_INT" in buffer: dosfns.c
+            707:  DEFVAR_INT ("dos-country-code", &dos_country_code,
+            711:  DEFVAR_INT ("dos-codepage", &dos_codepage,
+            723:  DEFVAR_INT ("dos-timezone-offset", &dos_timezone_offset,
+            743:  DEFVAR_INT ("dos-hyper-key", &dos_hyper_key,
+            748:  DEFVAR_INT ("dos-super-key", &dos_super_key,
+            753:  DEFVAR_INT ("dos-keypad-mode", &dos_keypad_mode,
+            777:  DEFVAR_INT ("dos-keyboard-layout", &dos_keyboard_layout,
+            782:  DEFVAR_INT ("dos-decimal-point", &dos_decimal_point,
+        1 match for "DEFVAR_INT" in buffer: emacs.c
+           1556:  DEFVAR_INT ("emacs-priority", &emacs_priority,
+*/
+        // eval.c
+        max_specpdl_size,
+        max_lisp_eval_depth,
+/*
+        7 matches for "DEFVAR_INT" in buffer: keyboard.c
+          11261:  DEFVAR_INT ("unread-command-char", &unread_command_char,
+          11329:  DEFVAR_INT ("auto-save-interval", &auto_save_interval,
+          11346:  DEFVAR_INT ("polling-period", &polling_period,
+          11360:  DEFVAR_INT ("double-click-fuzz", &double_click_fuzz,
+          11375:  DEFVAR_INT ("num-input-keys", &num_input_keys,
+          11381:  DEFVAR_INT ("num-nonmacro-input-events", &num_nonmacro_input_events,
+          11459:  DEFVAR_INT ("extra-keyboard-modifiers", &extra_keyboard_modifiers,
+        1 match for "DEFVAR_INT" in buffer: lread.c
+           3822:   DEFVAR_INT ("emacs-priority", &emacs_priority, "Documentation");  
+        1 match for "DEFVAR_INT" in buffer: macros.c
+            396:  DEFVAR_INT ("executing-kbd-macro-index", &executing_kbd_macro_index,
+        2 matches for "DEFVAR_INT" in buffer: undo.c
+            679:  DEFVAR_INT ("undo-limit", &undo_limit,
+            689:  DEFVAR_INT ("undo-strong-limit", &undo_strong_limit,
+        4 matches for "DEFVAR_INT" in buffer: w32fns.c
+           6816:  DEFVAR_INT ("w32-quit-key", &w32_quit_key,
+           6914:  DEFVAR_INT ("w32-mouse-button-tolerance",
+           6923:  DEFVAR_INT ("w32-mouse-move-interval",
+           7146:  DEFVAR_INT ("w32-ansi-code-page",
+        1 match for "DEFVAR_INT" in buffer: w32proc.c
+           2334:  DEFVAR_INT ("w32-pipe-read-delay", &w32_pipe_read_delay,
+        1 match for "DEFVAR_INT" in buffer: w32term.c
+           6218:  DEFVAR_INT ("w32-num-mouse-buttons",
+        3 matches for "DEFVAR_INT" in buffer: window.c
+           7187:  DEFVAR_INT ("next-screen-context-lines", &next_screen_context_lines,
+           7191:  DEFVAR_INT ("window-min-height", &window_min_height,
+           7200:  DEFVAR_INT ("window-min-width", &window_min_width,
+        8 matches for "DEFVAR_INT" in buffer: xdisp.c
+          24297:  DEFVAR_INT ("scroll-step", &scroll_step,
+          24304:  DEFVAR_INT ("scroll-conservatively", &scroll_conservatively,
+          24314:  DEFVAR_INT ("scroll-margin", &scroll_margin,
+          24352:  DEFVAR_INT ("line-number-display-limit-width",
+          24479:  DEFVAR_INT ("tool-bar-button-relief", &tool_bar_button_relief,
+          24533:  DEFVAR_INT ("hscroll-margin", &hscroll_margin,
+          24611:  DEFVAR_INT ("overline-margin", &overline_margin,
+          24617:  DEFVAR_INT ("underline-minimum-offset",
+        1 match for "DEFVAR_INT" in buffer: xselect.c
+           3006:  DEFVAR_INT ("x-selection-timeout", &x_selection_timeout,
+        1 match for "DEFVAR_INT" in buffer: lisp.h
+           1751:#define DEFVAR_INT(lname, vname, doc) defvar_int (lname, vname)
+        */
+        SIZE
+    }
+
+    public enum Bools
+    {
+/*
+1 match for "DEFVAR_BOOL" in buffer: alloc.c
+   5520:  DEFVAR_BOOL ("garbage-collection-messages", &garbage_collection_messages,
+1 match for "DEFVAR_BOOL" in buffer: bytecode.c
+   1696:  DEFVAR_BOOL ("byte-metering-on", &byte_metering_on,
+1 match for "DEFVAR_BOOL" in buffer: charset.c
+   2393:  DEFVAR_BOOL ("inhibit-load-charset-map", &inhibit_load_charset_map,
+5 matches for "DEFVAR_BOOL" in buffer: coding.c
+  10626:  DEFVAR_BOOL ("inhibit-eol-conversion", &inhibit_eol_conversion,
+  10633:  DEFVAR_BOOL ("inherit-process-coding-system", &inherit_process_coding_system,
+  10775:  DEFVAR_BOOL ("coding-system-require-warning",
+  10784:  DEFVAR_BOOL ("inhibit-iso-escape-detection",
+  10812:  DEFVAR_BOOL ("inhibit-null-byte-detection",
+5 matches for "DEFVAR_BOOL" in buffer: dispnew.c
+   6256:  DEFVAR_BOOL ("inverse-video", &inverse_video,
+   6260:  DEFVAR_BOOL ("visible-bell", &visible_bell,
+   6265:  DEFVAR_BOOL ("no-redraw-on-reenter", &no_redraw_on_reenter,
+   6285:  DEFVAR_BOOL ("cursor-in-echo-area", &cursor_in_echo_area,
+   6304:  DEFVAR_BOOL ("redisplay-dont-pause", &redisplay_dont_pause,
+1 match for "DEFVAR_BOOL" in buffer: emacs.c
+   1543:  DEFVAR_BOOL ("noninteractive", &noninteractive1,
+*/
+        // eval.c
+        debug_on_quit,
+        debug_on_next_call,
+        debugger_may_continue,
+/*
+2 matches for "DEFVAR_BOOL" in buffer: fileio.c
+   5259:  DEFVAR_BOOL ("write-region-inhibit-fsync", &write_region_inhibit_fsync,
+   5266:  DEFVAR_BOOL ("delete-by-moving-to-trash", &delete_by_moving_to_trash,
+2 matches for "DEFVAR_BOOL" in buffer: fns.c
+   5165:  DEFVAR_BOOL ("use-dialog-box", &use_dialog_box,
+   5174:  DEFVAR_BOOL ("use-file-dialog", &use_file_dialog,
+1 match for "DEFVAR_BOOL" in buffer: frame.c
+   4317:  DEFVAR_BOOL ("focus-follows-mouse", &focus_follows_mouse,
+1 match for "DEFVAR_BOOL" in buffer: image.c
+   8025:  DEFVAR_BOOL ("cross-disabled-images", &cross_disabled_images,
+1 match for "DEFVAR_BOOL" in buffer: indent.c
+   2185:  DEFVAR_BOOL ("indent-tabs-mode", &indent_tabs_mode,
+2 matches for "DEFVAR_BOOL" in buffer: insdel.c
+   2380:  DEFVAR_BOOL ("check-markers-debug-flag", &check_markers_debug_flag,
+   2387:  DEFVAR_BOOL ("inhibit-modification-hooks", &inhibit_modification_hooks,
+3 matches for "DEFVAR_BOOL" in buffer: keyboard.c
+  11371:  DEFVAR_BOOL ("inhibit-local-menu-bar-menus", &inhibit_local_menu_bar_menus,
+  11439:  DEFVAR_BOOL ("cannot-suspend", &cannot_suspend,
+  11444:  DEFVAR_BOOL ("menu-prompting", &menu_prompting,
+6 matches for "DEFVAR_BOOL" in buffer: lread.c
+    142:/* List of all DEFVAR_BOOL variables.  Used by the byte optimizer.  
+   4034:  DEFVAR_BOOL ("load-in-progress", &load_in_progress,
+   4103:  DEFVAR_BOOL ("load-force-doc-strings", &load_force_doc_strings,
+   4108:  DEFVAR_BOOL ("load-convert-to-unibyte", &load_convert_to_unibyte,
+   4126:	       doc: /* List of all DEFVAR_BOOL variables, used by the byte code optimizer.  
+   4129:  DEFVAR_BOOL ("load-dangerous-libraries", &load_dangerous_libraries,
+1 match for "DEFVAR_BOOL" in buffer: marker.c
+    923:  DEFVAR_BOOL ("byte-debug-flag", &byte_debug_flag,
+6 matches for "DEFVAR_BOOL" in buffer: minibuf.c
+   2108:  DEFVAR_BOOL ("read-buffer-completion-ignore-case",
+   2128:  DEFVAR_BOOL ("history-delete-duplicates", &history_delete_duplicates,
+   2141:  DEFVAR_BOOL ("completion-ignore-case", &completion_ignore_case,
+   2149:  DEFVAR_BOOL ("enable-recursive-minibuffers", &enable_recursive_minibuffers,
+   2205:  DEFVAR_BOOL ("minibuffer-auto-raise", &minibuffer_auto_raise,
+   2219:  DEFVAR_BOOL ("minibuffer-allow-text-properties",
+1 match for "DEFVAR_BOOL" in buffer: msdos.c
+   5234:  DEFVAR_BOOL ("delete-exited-processes", &delete_exited_processes,
+4 matches for "DEFVAR_BOOL" in buffer: print.c
+   2326:  DEFVAR_BOOL ("print-escape-newlines", &print_escape_newlines,
+   2331:  DEFVAR_BOOL ("print-escape-nonascii", &print_escape_nonascii,
+   2339:  DEFVAR_BOOL ("print-escape-multibyte", &print_escape_multibyte,
+   2345:  DEFVAR_BOOL ("print-quoted", &print_quoted,
+1 match for "DEFVAR_BOOL" in buffer: process.c
+   6967:  DEFVAR_BOOL ("delete-exited-processes", &delete_exited_processes,
+5 matches for "DEFVAR_BOOL" in buffer: syntax.c
+   3440:  DEFVAR_BOOL ("parse-sexp-ignore-comments", &parse_sexp_ignore_comments,
+   3443:  DEFVAR_BOOL ("parse-sexp-lookup-properties", &parse_sexp_lookup_properties,
+   3450:  DEFVAR_BOOL ("words-include-escapes", &words_include_escapes,
+   3453:  DEFVAR_BOOL ("multibyte-syntax-as-symbol", &multibyte_syntax_as_symbol,
+   3457:  DEFVAR_BOOL ("open-paren-in-column-0-is-defun-start",
+2 matches for "DEFVAR_BOOL" in buffer: term.c
+    162://  DEFVAR_BOOL ("system-uses-terminfo", &system_uses_terminfo,
+    184://  DEFVAR_BOOL ("visible-cursor", &visible_cursor,
+1 match for "DEFVAR_BOOL" in buffer: undo.c
+    729:  DEFVAR_BOOL ("undo-inhibit-record-point", &undo_inhibit_record_point,
+1 match for "DEFVAR_BOOL" in buffer: w32console.c
+    170:  DEFVAR_BOOL ("w32-use-full-screen-buffer",
+5 matches for "DEFVAR_BOOL" in buffer: w32fns.c
+   6906:  DEFVAR_BOOL ("w32-enable-synthesized-fonts", &w32_enable_synthesized_fonts,
+   6931:  DEFVAR_BOOL ("w32-pass-extra-mouse-buttons-to-system",
+   6941:  DEFVAR_BOOL ("w32-pass-multimedia-buttons-to-system",
+   7028:  DEFVAR_BOOL ("w32-strict-fontnames",
+   7038:  DEFVAR_BOOL ("w32-strict-painting",
+3 matches for "DEFVAR_BOOL" in buffer: w32term.c
+   6250:  DEFVAR_BOOL ("w32-use-visible-system-caret",
+   6267:  DEFVAR_BOOL ("x-use-underline-position-properties",
+   6275:  DEFVAR_BOOL ("x-underline-at-descent-line",
+2 matches for "DEFVAR_BOOL" in buffer: window.c
+   7173:  DEFVAR_BOOL ("mode-line-in-non-selected-windows", &mode_line_in_non_selected_windows,
+   7183:  DEFVAR_BOOL ("auto-window-vscroll", &auto_window_vscroll_p,
+14 matches for "DEFVAR_BOOL" in buffer: xdisp.c
+    614:/* The symbol `inhibit-menubar-update' and its DEFVAR_BOOL variable.  
+  24243:  DEFVAR_BOOL ("x-stretch-cursor", &x_stretch_cursor_p,
+  24340:  DEFVAR_BOOL ("mode-line-inverse-video", &mode_line_inverse_video,
+  24359:  DEFVAR_BOOL ("highlight-nonselected-windows", &highlight_nonselected_windows,
+  24363:  DEFVAR_BOOL ("multiple-frames", &multiple_frames,
+  24455:  DEFVAR_BOOL ("auto-raise-tool-bar-buttons", &auto_raise_tool_bar_buttons_p,
+  24459:  DEFVAR_BOOL ("make-cursor-line-fully-visible", &make_cursor_line_fully_visible_p,
+  24491:  DEFVAR_BOOL ("unibyte-display-via-language-environment",
+  24527:  DEFVAR_BOOL ("auto-hscroll-mode", &automatic_hscrolling_p,
+  24556:  DEFVAR_BOOL ("message-truncate-lines", &message_truncate_lines,
+  24573:  DEFVAR_BOOL ("inhibit-menubar-update", &inhibit_menubar_update,
+  24603:  DEFVAR_BOOL ("inhibit-eval-during-redisplay", &inhibit_eval_during_redisplay,
+  24607:  DEFVAR_BOOL ("inhibit-free-realized-faces", &inhibit_free_realized_faces,
+  24626:  DEFVAR_BOOL ("display-hourglass", &display_hourglass_p,
+4 matches for "DEFVAR_BOOL" in buffer: xfns.c
+   5888:  DEFVAR_BOOL ("x-gtk-use-old-file-dialog", &x_gtk_use_old_file_dialog,
+   5895:  DEFVAR_BOOL ("x-gtk-show-hidden-files", &x_gtk_show_hidden_files,
+   5901:  DEFVAR_BOOL ("x-gtk-file-dialog-help-text", &x_gtk_file_dialog_help_text,
+   5907:  DEFVAR_BOOL ("x-gtk-whole-detached-tool-bar", &x_gtk_whole_detached_tool_bar,
+3 matches for "DEFVAR_BOOL" in buffer: xterm.c
+  10872:  DEFVAR_BOOL ("x-use-underline-position-properties",
+  10882:  DEFVAR_BOOL ("x-underline-at-descent-line",
+  10890:  DEFVAR_BOOL ("x-mouse-click-focus-ignore-position",
+1 match for "DEFVAR_BOOL" in buffer: lisp.h
+   1750:#define DEFVAR_BOOL(lname, vname, doc) defvar_bool (lname, vname)*/
+        SIZE
+    }
+
+    public class Defs : Indexable<int>, Indexable<LispObject>, Indexable<bool>
     {
         public static LispObject[] O = new LispObject[(int)Objects.SIZE];
-    }
+        public static int[] I = new int[(int)Ints.SIZE];
+        public static bool[] B = new bool[(int)Bools.SIZE];
+
+        int Indexable<int>.this[int index]
+        {
+            get { return I[index]; }
+            set { I[index] = value; }
+        }
+
+        LispObject Indexable<LispObject>.this[int index]
+        {
+            get { return O[index]; }
+            set { O[index] = value; }
+        }
+
+        bool Indexable<bool>.this[int index]
+        {
+            get { return B[index]; }
+            set { B[index] = value; }
+        }
+
+        public static Defs Instance = new Defs();
+    }    
 }

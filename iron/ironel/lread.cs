@@ -1,12 +1,17 @@
 ﻿namespace IronElisp
 {
+    public partial class Q
+    {
+        public static LispObject backquote, comma, comma_at, comma_dot, function;
+    }
+
     public partial class L
     {
         public static LispHash initial_obarray;
 
         public static void init_obarray()
         {
-            initial_obarray = V.obarray = new LispHash();
+            V.obarray = initial_obarray = new LispHash();
 
             Q.nil = F.make_symbol(make_string("nil"));
             Q.nil.Interned = LispSymbol.symbol_interned.SYMBOL_INTERNED_IN_INITIAL_OBARRAY;
@@ -15,7 +20,7 @@
             Q.nil.Function = Q.unbound;
             Q.nil.Plist = Q.nil;
 
-            V.obarray["nil"] = Q.nil;
+            (V.obarray as LispHash)["nil"] = Q.nil;
 
             Q.unbound = F.make_symbol(make_string("unbound"));
             Q.unbound.Value = Q.unbound;
@@ -37,7 +42,7 @@
 
         public static LispSymbol intern(string str)
         {
-            LispHash obarray = V.obarray;
+            LispHash obarray = V.obarray as LispHash;
             obarray = check_obarray(obarray);
 
             LispSymbol tem = oblookup(obarray, str);
@@ -63,26 +68,143 @@
             return obarray as LispHash;
         }
 
-        public static void defsubr(string name, subr2 fn, int min_args, string int_spec, string doc_string)
+        public static LispSubr defsubr(string name, subr0 fn, int min_args, int max_args, string int_spec, string doc_string)
         {
             LispSymbol sym = intern(name);
-            sym.Function   = new LispSubr(name, fn, min_args, 2, int_spec, doc_string);
+            LispSubr subr = new LispSubr(name, fn, min_args, max_args, int_spec, doc_string);
+
+            sym.Function = subr;
+            return subr;
+        }
+
+        public static LispSubr defsubr(string name, subr1 fn, int min_args, int max_args, string int_spec, string doc_string)
+        {
+            LispSymbol sym = intern(name);
+            LispSubr subr = new LispSubr(name, fn, min_args, max_args, int_spec, doc_string);
+
+            sym.Function = subr;
+            return subr;
+        }
+
+        public static LispSubr defsubr(string name, subr2 fn, int min_args, int max_args, string int_spec, string doc_string)
+        {
+            LispSymbol sym = intern(name);
+            LispSubr subr = new LispSubr(name, fn, min_args, max_args, int_spec, doc_string);
+
+            sym.Function = subr;
+            return subr;
+        }
+
+        public static LispSubr defsubr(string name, subr3 fn, int min_args, int max_args, string int_spec, string doc_string)
+        {
+            LispSymbol sym = intern(name);
+            LispSubr subr = new LispSubr(name, fn, min_args, max_args, int_spec, doc_string);
+
+            sym.Function = subr;
+            return subr;
+        }
+
+        public static LispSubr defsubr(string name, subr4 fn, int min_args, int max_args, string int_spec, string doc_string)
+        {
+            LispSymbol sym = intern(name);
+            LispSubr subr = new LispSubr(name, fn, min_args, max_args, int_spec, doc_string);
+
+            sym.Function = subr;
+            return subr;
+        }
+
+        public static LispSubr defsubr(string name, subr5 fn, int min_args, int max_args, string int_spec, string doc_string)
+        {
+            LispSymbol sym = intern(name);
+            LispSubr subr = new LispSubr(name, fn, min_args, max_args, int_spec, doc_string);
+
+            sym.Function = subr;
+            return subr;
+        }
+
+        public static LispSubr defsubr(string name, subr_many fn, int min_args, int max_args, string int_spec, string doc_string)
+        {
+            LispSymbol sym = intern(name);
+            LispSubr subr = new LispSubr(name, fn, min_args, int_spec, doc_string);
+
+            sym.Function = subr;
+            return subr;
+        }
+
+        /* Define an "integer variable"; a symbol whose value is forwarded
+           to a C variable of type int.  Sample call:
+           DEFVAR_INT ("emacs-priority", &emacs_priority, "Documentation");  */
+        public static void defvar_int(string namestring, Ints address, string doc)
+        {
+            LispObject sym, val;
+            sym = intern(namestring);
+            val = new LispIntFwd(Defs.Instance, (int) address);
+            SET_SYMBOL_VALUE(sym, val);
+
+            F.put(sym, Q.variable_documentation, make_string(doc));
+        }
+
+        /* Similar but define a variable whose value is t if address contains 1,
+           nil if address contains 0.  */
+        public static void defvar_bool(string namestring, Bools address, string doc)
+        {
+            LispObject sym, val;
+            sym = intern(namestring);
+            val = new LispBoolFwd(Defs.Instance, (int)address);
+
+            SET_SYMBOL_VALUE(sym, val);
+            F.put(sym, Q.variable_documentation, make_string(doc));
+            V.byte_boolean_vars = F.cons(sym, V.byte_boolean_vars);
+        }
+
+        /* Similar but define a variable whose value is the Lisp Object stored
+           at address.  Two versions: with and without gc-marking of the C
+           variable.  The nopro version is used when that variable will be
+           gc-marked for some other reason, since marking the same slot twice
+           can cause trouble with strings.  */
+        public static void defvar_lisp(string namestring, Indexable<LispObject> t, int o, string doc)
+        {
+            LispObject sym = intern(namestring);
+            LispObject val = new LispObjFwd(t, o);
+
+            SET_SYMBOL_VALUE(sym, val);
+            F.put(sym, Q.variable_documentation, make_string(doc));
+        }
+
+        public static void defvar_lisp(string namestring, Objects address, string doc)
+        {
+            defvar_lisp(namestring, Defs.Instance, (int)address, doc);
         }
 
         public static void syms_of_lread()
         {
-            defsubr("intern", F.intern, 1, null,
-@"Return the canonical symbol whose name is STRING.
+            defsubr("intern", F.intern, 1, 2, null,
+                    @" Return the canonical symbol whose name is STRING.
 If there is none, one is created by this function and returned.
 A second optional argument specifies the obarray to use;
 it defaults to the value of `obarray'.");
         }
     }
 
-
     public partial class V
     {
-        public static LispHash obarray;
+        public static LispObject current_load_list
+        {
+            get { return Defs.O[(int)Objects.current_load_list]; }
+            set { Defs.O[(int)Objects.current_load_list] = value; }
+        }
+
+        public static LispObject obarray
+        {
+            get { return Defs.O[(int)Objects.obarray]; }
+            set { Defs.O[(int)Objects.obarray] = value; }
+        }
+
+        public static LispObject byte_boolean_vars
+        {
+            get { return Defs.O[(int)Objects.byte_boolean_vars]; }
+            set { Defs.O[(int)Objects.byte_boolean_vars] = value; }
+        }
     }
 
     public partial class F
@@ -422,12 +544,5 @@ it defaults to the value of `obarray'.");
 
     public partial class L
     {
-        public static void defvar_lisp(string namestring, Indexable<LispObject> t, int o)
-        {
-            LispObject sym = intern(namestring);
-            LispObject val = new LispObjFwd(t, o);
-
-            SET_SYMBOL_VALUE(sym, val);
-        }
     }
 }

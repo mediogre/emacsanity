@@ -913,6 +913,15 @@
             return buffer_local_flags[OFFSET];
         }
 
+        /* Return the default value of the per-buffer variable at offset
+           OFFSET in the buffer structure.  */
+        public static LispObject PER_BUFFER_DEFAULT(int OFFSET)
+        {
+            return buffer_defaults[OFFSET];
+        }
+
+        /* Return the buffer-local value of the per-buffer variable at offset
+           OFFSET in the buffer structure.  */
         public static LispObject PER_BUFFER_VALUE(Buffer buffer, int offset)
         {
            return buffer[offset];
