@@ -75,17 +75,17 @@
         3 matches for "defvar_lisp" in buffer: ccl.c
            2343:  DEFVAR_LISP ("code-conversion-map-vector", &Vcode_conversion_map_vector,
            2347:  DEFVAR_LISP ("font-ccl-encoder-alist", &Vfont_ccl_encoder_alist,
-           2360:  DEFVAR_LISP ("translation-hash-table-vector", &Vtranslation_hash_table_vector,
-        8 matches for "defvar_lisp" in buffer: character.c
-           1118:  DEFVAR_LISP ("translation-table-vector",  &Vtranslation_table_vector,
-           1125:  DEFVAR_LISP ("auto-fill-chars", &Vauto_fill_chars,
-           1133:  DEFVAR_LISP ("char-width-table", &Vchar_width_table,
-           1141:  DEFVAR_LISP ("char-direction-table", &Vchar_direction_table,
-           1145:  DEFVAR_LISP ("printable-chars", &Vprintable_chars,
-           1154:  DEFVAR_LISP ("char-script-table", &Vchar_script_table,
-           1166:  DEFVAR_LISP ("script-representative-chars", &Vscript_representative_chars,
-           1176:  DEFVAR_LISP ("unicode-category-table", &Vunicode_category_table,
-        3 matches for "defvar_lisp" in buffer: charset.c
+           2360:  DEFVAR_LISP ("translation-hash-table-vector", &Vtranslation_hash_table_vector, */
+//        8 matches for "defvar_lisp" in buffer: character.c
+        translation_table_vector,
+        auto_fill_chars,
+        char_width_table,
+        char_direction_table,
+        printable_chars,
+        char_script_table,
+        script_representative_chars,
+        unicode_category_table,
+                               /*        3 matches for "defvar_lisp" in buffer: charset.c
            2389:  DEFVAR_LISP ("charset-map-path", &Vcharset_map_path,
            2397:  DEFVAR_LISP ("charset-list", &Vcharset_list,
            2401:  DEFVAR_LISP ("current-iso639-language", &Vcurrent_iso639_language,
@@ -135,9 +135,11 @@
            6288:  DEFVAR_LISP ("glyph-table", &Vglyph_table,
            6299:  DEFVAR_LISP ("standard-display-table", &Vstandard_display_table,
            6309:  DEFVAR_LISP ("redisplay-preemption-period", &Vredisplay_preemption_period,
-        2 matches for "defvar_lisp" in buffer: doc.c
-            949:  DEFVAR_LISP ("internal-doc-file-name", &Vdoc_file_name,
-            953:  DEFVAR_LISP ("build-files", &Vbuild_files,
+*/
+         // doc.c
+            doc_file_name,
+            build_files,
+/*
         3 matches for "defvar_lisp" in buffer: dosfns.c
             727:  DEFVAR_LISP ("dos-version", &Vdos_version,
             731:  DEFVAR_LISP ("dos-windows-version", &Vdos_windows_version,
@@ -232,8 +234,9 @@
                               8035:  DEFVAR_LISP ("image-cache-eviction-delay", &Vimage_cache_eviction_delay,
                            1 match for "defvar_lisp" in buffer: insdel.c
                               2383:  DEFVAR_LISP ("combine-after-change-calls", &Vcombine_after_change_calls,
-                           48 matches for "defvar_lisp" in buffer: keyboard.c
-                             11241:  DEFVAR_LISP ("last-command-event", &last_command_event,
+*/
+//                           48 matches for "defvar_lisp" in buffer: keyboard.c
+/*                             11241:  DEFVAR_LISP ("last-command-event", &last_command_event,
                              11244:  DEFVAR_LISP ("last-nonmenu-event", &last_nonmenu_event,
                              11250:  DEFVAR_LISP ("last-input-event", &last_input_event,
                              11253:  DEFVAR_LISP ("unread-command-events", &Vunread_command_events,
@@ -251,9 +254,9 @@
                              11395:  DEFVAR_LISP ("help-char", &Vhelp_char,
                              11401:  DEFVAR_LISP ("help-event-list", &Vhelp_event_list,
                              11406:  DEFVAR_LISP ("help-form", &Vhelp_form,
-                             11412:  DEFVAR_LISP ("prefix-help-command", &Vprefix_help_command,
-                             11418:  DEFVAR_LISP ("top-level", &Vtop_level,
-                             11454:  DEFVAR_LISP ("menu-prompt-more-char", &menu_prompt_more_char,
+                             11412:  DEFVAR_LISP ("prefix-help-command", &Vprefix_help_command, */
+                             top_level,
+/*                             11454:  DEFVAR_LISP ("menu-prompt-more-char", &menu_prompt_more_char,
                              11472:  DEFVAR_LISP ("deactivate-mark", &Vdeactivate_mark,
                              11481:  DEFVAR_LISP ("command-hook-internal", &Vcommand_hook_internal,
                              11485:  DEFVAR_LISP ("pre-command-hook", &Vpre_command_hook,
@@ -296,17 +299,17 @@
 */
                    // lread.c
                    obarray,
-/*                              3968:  DEFVAR_LISP ("values", &Vvalues,
-                              3972:  DEFVAR_LISP ("standard-input", &Vstandard_input,
-                              3977:  DEFVAR_LISP ("read-with-symbol-positions", &Vread_with_symbol_positions,
-                              3991:  DEFVAR_LISP ("read-symbol-positions-list", &Vread_symbol_positions_list,
-                              4006:  DEFVAR_LISP ("load-path", &Vload_path,
+/*                              3968:  DEFVAR_LISP ("values", &Vvalues, */
+                   standard_input,
+                   read_with_symbol_positions,
+                   read_symbol_positions_list,
+/*                              4006:  DEFVAR_LISP ("load-path", &Vload_path,
                               4012:  DEFVAR_LISP ("load-suffixes", &Vload_suffixes,
                               4019:  DEFVAR_LISP ("load-file-rep-suffixes", &Vload_file_rep_suffixes,
                               4037:  DEFVAR_LISP ("after-load-alist", &Vafter_load_alist,
-                              4052:  DEFVAR_LISP ("load-history", &Vload_history,
-                              4072:  DEFVAR_LISP ("load-file-name", &Vload_file_name,
-                              4076:  DEFVAR_LISP ("user-init-file", &Vuser_init_file,
+                              4052:  DEFVAR_LISP ("load-history", &Vload_history,*/
+                   load_file_name,
+/*                              4076:  DEFVAR_LISP ("user-init-file", &Vuser_init_file,
 */
                    current_load_list,
 /*                              4089:  DEFVAR_LISP ("load-read-function", &Vload_read_function,
@@ -317,8 +320,9 @@
                    byte_boolean_vars,
 /*                              4136:  DEFVAR_LISP ("bytecomp-version-regexp", &Vbytecomp_version_regexp,
                               4145:  DEFVAR_LISP ("eval-buffer-list", &Veval_buffer_list,
-                              4149:  DEFVAR_LISP ("old-style-backquotes", &Vold_style_backquotes,
 */
+                   old_style_backquotes,
+
                    // macros.c
                    executing_kbd_macro,
 /*                           15 matches for "defvar_lisp" in buffer: minibuf.c
@@ -425,8 +429,10 @@
    7209:  DEFVAR_LISP ("scroll-preserve-screen-position",
    7220:  DEFVAR_LISP ("window-point-insertion-type", &Vwindow_point_insertion_type,
    7224:  DEFVAR_LISP ("window-configuration-change-hook",
-32 matches for "defvar_lisp" in buffer: xdisp.c
-  24250:  DEFVAR_LISP ("show-trailing-whitespace", &Vshow_trailing_whitespace,
+*/
+// 32 matches for "defvar_lisp" in buffer: xdisp.c
+        show_trailing_whitespace,
+/*
   24255:  DEFVAR_LISP ("nobreak-char-display", &Vnobreak_char_display,
   24264:  DEFVAR_LISP ("void-text-area-pointer", &Vvoid_text_area_pointer,
   24270:  DEFVAR_LISP ("inhibit-redisplay", &Vinhibit_redisplay,
@@ -439,8 +445,9 @@
   24346:  DEFVAR_LISP ("line-number-display-limit", &Vline_number_display_limit,
   24369:  DEFVAR_LISP ("frame-title-format", &Vframe_title_format,
   24377:  DEFVAR_LISP ("icon-title-format", &Vicon_title_format,
-  24394:  DEFVAR_LISP ("message-log-max", &Vmessage_log_max,
-  24400:  DEFVAR_LISP ("window-size-change-functions", &Vwindow_size_change_functions,
+*/
+        message_log_max,
+/*  24400:  DEFVAR_LISP ("window-size-change-functions", &Vwindow_size_change_functions,
   24408:  DEFVAR_LISP ("window-scroll-functions", &Vwindow_scroll_functions,
   24416:  DEFVAR_LISP ("window-text-change-functions",
   24421:  DEFVAR_LISP ("redisplay-end-trigger-functions", &Vredisplay_end_trigger_functions,
@@ -458,6 +465,7 @@
   24577:  DEFVAR_LISP ("wrap-prefix", &Vwrap_prefix,
   24590:  DEFVAR_LISP ("line-prefix", &Vline_prefix,
   24630:  DEFVAR_LISP ("hourglass-delay", &Vhourglass_delay,
+/*
 8 matches for "defvar_lisp" in buffer: xfaces.c
    6053:  DEFVAR_LISP ("font-list-limit", &Vfont_list_limit,
    6059:  DEFVAR_LISP ("face-new-frame-defaults", &Vface_new_frame_defaults,
@@ -588,9 +596,10 @@
    5520:  DEFVAR_BOOL ("garbage-collection-messages", &garbage_collection_messages,
 1 match for "DEFVAR_BOOL" in buffer: bytecode.c
    1696:  DEFVAR_BOOL ("byte-metering-on", &byte_metering_on,
-1 match for "DEFVAR_BOOL" in buffer: charset.c
-   2393:  DEFVAR_BOOL ("inhibit-load-charset-map", &inhibit_load_charset_map,
-5 matches for "DEFVAR_BOOL" in buffer: coding.c
+*/
+        //charset.c
+        inhibit_load_charset_map,
+/*5 matches for "DEFVAR_BOOL" in buffer: coding.c
   10626:  DEFVAR_BOOL ("inhibit-eol-conversion", &inhibit_eol_conversion,
   10633:  DEFVAR_BOOL ("inherit-process-coding-system", &inherit_process_coding_system,
   10775:  DEFVAR_BOOL ("coding-system-require-warning",
@@ -629,13 +638,13 @@
   11371:  DEFVAR_BOOL ("inhibit-local-menu-bar-menus", &inhibit_local_menu_bar_menus,
   11439:  DEFVAR_BOOL ("cannot-suspend", &cannot_suspend,
   11444:  DEFVAR_BOOL ("menu-prompting", &menu_prompting,
-6 matches for "DEFVAR_BOOL" in buffer: lread.c
-    142:/* List of all DEFVAR_BOOL variables.  Used by the byte optimizer.  
-   4034:  DEFVAR_BOOL ("load-in-progress", &load_in_progress,
-   4103:  DEFVAR_BOOL ("load-force-doc-strings", &load_force_doc_strings,
-   4108:  DEFVAR_BOOL ("load-convert-to-unibyte", &load_convert_to_unibyte,
-   4126:	       doc: /* List of all DEFVAR_BOOL variables, used by the byte code optimizer.  
-   4129:  DEFVAR_BOOL ("load-dangerous-libraries", &load_dangerous_libraries,
+*/
+        // lread.c
+        load_in_progress,
+        load_force_doc_strings,
+        load_convert_to_unibyte,
+        load_dangerous_libraries,
+/*
 1 match for "DEFVAR_BOOL" in buffer: marker.c
     923:  DEFVAR_BOOL ("byte-debug-flag", &byte_debug_flag,
 6 matches for "DEFVAR_BOOL" in buffer: minibuf.c

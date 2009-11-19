@@ -1,5 +1,21 @@
 ﻿namespace IronElisp
 {
+    public partial class V
+    {
+        public static LispObject doc_file_name
+        {
+            get { return Defs.O[(int)Objects.doc_file_name]; }
+            set { Defs.O[(int)Objects.doc_file_name] = value; }
+        }
+
+        /* A list of files used to build this Emacs binary.  */
+        public static LispObject build_files
+        {
+            get { return Defs.O[(int)Objects.build_files]; }
+            set { Defs.O[(int)Objects.build_files] = value; }
+        }
+    }
+
     public partial class L
     {
         /* Extract a doc string from a file.  FILEPOS says where to get it.

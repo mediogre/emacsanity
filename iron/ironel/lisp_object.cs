@@ -9,7 +9,8 @@
         }
     }
 
-    public class LispObject
+
+    public interface LispObject
     {
     }
 
@@ -18,6 +19,16 @@
         public int val;
 
         public LispInt(int x)
+        {
+            val = x;
+        }
+    }
+
+    public class LispFloat : LispObject
+    {
+        public double val;
+
+        public LispFloat(double x)
         {
             val = x;
         }
@@ -113,19 +124,21 @@
 
     public class LispString : LispObject
     {
-        // int size;
-        // int size_byte;
+        int size;
+        int size_byte;
         public Interval intervals;
 
-        // should this be a byte array???
-        string data;
+        byte[] data;
 
-        public LispString(string str)
+        public LispString(int nchars, int nbytes)
         {
-            data = str;
+            size = nchars;
+            size_byte = nbytes;
+
+            data = new byte[nbytes];
         }
 
-        public string SData
+        public byte[] SData
         {
             get
             {
@@ -135,21 +148,60 @@
 
         public int Size
         {
-            get { return data.Length; }
+            get { return size; }
+            set { size = value; }
         }
-    }
 
-    public class LispVector : LispObject
-    {
-        public System.Collections.Generic.List<LispObject> contents;
-
-        public int Size
+        public int SizeBytes
         {
-            get { return contents.Count; }
+            get
+            {
+                return size_byte < 0 ? size : size_byte;
+            }
+
+            set
+            {
+                size_byte = value;
+            }
+        }
+
+        public void bcopy(byte[] contents, int length)
+        {
+            System.Array.Copy(contents, data, length);
+        }
+
+        public void bcopy(byte[] contents, int to, int length)
+        {
+            System.Array.Copy(contents, 0, data, to, length);
+        }
+
+        public void bcopy(byte[] contents, int from, int to, int length)
+        {
+            System.Array.Copy(contents, from, data, to, length);
+        }
+
+        public bool bcmp(byte[] other)
+        {
+            if (ReferenceEquals(data, other))
+                return true;
+
+            if (other == null)
+                return false;
+
+            if (other.Length != data.Length)
+                return false;
+
+            for (int i = 0; i < data.Length; i++)
+            {
+                if (data[i] != other[i])
+                    return false;
+            }
+
+            return true;
         }
     }
 
-    public class LispCompiled : LispVectorLike
+    public class LispCompiled : LispVector
     {
         public const int COMPILED_ARGLIST = 0;
         public const int COMPILED_BYTECODE = 1;
@@ -158,14 +210,8 @@
         public const int COMPILED_DOC_STRING = 4;
         public const int COMPILED_INTERACTIVE = 5;
 
-        public int size;
-
-        public int Size
+        public LispCompiled(int size) : base (size)
         {
-            get
-            {
-                return size;
-            }
         }
     }
 
@@ -403,8 +449,55 @@
         int integer;
     }
 
-    public class LispVectorLike : LispObject
+    public interface LispVectorLike<T> : LispObject
     {
+        int Size
+        {
+            get;
+        }
+
+        T this[int index]
+        {
+            get;
+            set;
+        }
+    }
+
+    public class LispVector : LispVectorLike<LispObject>
+    {
+        private LispObject[] contents;
+
+        public LispVector(int size)
+        {
+            contents = new LispObject[size];
+        }
+
+        public int Size
+        {
+            get { return contents.Length; }
+        }
+
+        public LispObject this[int index]
+        {
+            get
+            {
+                return contents[index];
+            }
+
+            set
+            {
+                contents[index] = value;
+            }
+        }
+
+        // make a copy of our list
+        public LispObject[] Contents
+        {
+            get
+            {
+                return contents;
+            }
+        }
     }
 
     public delegate LispObject subr0();
@@ -419,7 +512,7 @@
 
     public delegate LispObject subr_many(int num_args, params LispObject[] args);
 
-    public class LispSubr : LispVectorLike
+    public class LispSubr : LispObject
     {
         public const int UNEVALLED = -1;
         public const int MANY = -2;
@@ -582,8 +675,28 @@
     // etc
     // or we could write properties Default {get {return content[0];}}
     // Either way we'll need to create these mappings from contents array to discrete fields. 
-    public class LispCharTable : LispVectorLike
+    public class LispCharTable : LispVectorLike<LispObject>
     {
+        public int Size
+        {
+            get
+            {
+                throw new System.Exception("Comeback");
+            }
+        }
+
+        public LispObject this[int index]
+        {
+            get
+            {
+                throw new System.Exception("Comeback");
+            }
+
+            set
+            {
+                throw new System.Exception("Comeback");
+            }
+        }    
         public const int CHARTAB_SIZE_BITS_0 = 6;
         public const int CHARTAB_SIZE_BITS_1 = 4;
         public const int CHARTAB_SIZE_BITS_2 = 5;
@@ -625,30 +738,75 @@
     }
 
     /* A boolvector is a kind of vectorlike, with contents are like a string.  */
-    public class LispBoolVector : LispVectorLike
+    public class LispBoolVector : LispVectorLike<byte>
     {
-        /* This is the vector's size field.  It doesn't have the real size,
-           just the subtype information.  */
-        // EMACS_UINT vector_size;
-        // struct Lisp_Vector *next;
+        /* Number of bits to put in each character in the internal representation
+           of bool vectors.  This should not vary across implementations.  */
+        public const int BOOL_VECTOR_BITS_PER_CHAR = 8;
+
         /* This is the size in bits.  */
-        public int size;
+        int size;
         /* This contains the actual bits, packed into bytes.  */
         byte[] data;
+
+        public int Size
+        {
+            get
+            {
+                return size;
+            }
+        }
+
+        public byte this[int index]
+        {
+            get
+            {
+                return data[index];
+            }
+
+            set
+            {
+                data[index] = value;
+            }
+        }        
+    }
+
+    public class LispHash : LispVectorLike<LispObject>
+    {
+        public int Size
+        {
+            get
+            {
+                throw new System.Exception("Comeback");
+            }
+        }
+
+        public LispObject this[int index]
+        {
+            get
+            {
+                throw new System.Exception("Comeback");
+            }
+
+            set
+            {
+                throw new System.Exception("Comeback");
+            }
+        }    
     }
 
     // GNUEmacs uses vectors with hashed buckets of single-linked symbols
-    // We just use a hashtable here - it's 21st century, right?
-    public class LispHash : LispObject
+    // We'll just use a hashtable for now
+    public class ObarrayHash : LispObject
     {
-        System.Collections.Generic.Dictionary<string, LispSymbol> table;
+        System.Collections.Generic.Dictionary<byte[], LispSymbol> table;
 
-        public LispHash()
+        public ObarrayHash()
         {
-            table = new System.Collections.Generic.Dictionary<string, LispSymbol>();
+            table = new System.Collections.Generic.Dictionary<byte[], LispSymbol>();
         }
 
-        public LispSymbol this[string index]
+        public LispSymbol this[byte[] index]
         {
             get
             {

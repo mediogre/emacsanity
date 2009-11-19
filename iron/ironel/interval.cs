@@ -81,6 +81,9 @@
 
     public partial class L
     {
+        public static Interval NULL_INTERVAL = null;
+        public static Interval INTERVAL_DEFAULT = NULL_INTERVAL;
+
         public static bool NULL_INTERVAL_P(Interval i)
         {
             return i == null;

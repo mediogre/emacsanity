@@ -38,8 +38,28 @@
         HBAR_CURSOR
     }
 
-    public class Frame : LispVectorLike
+    public class Frame : LispVectorLike<LispObject>
     {
+        public int Size
+        {
+            get
+            {
+                throw new System.Exception("Comeback");
+            }
+        }
+
+        public LispObject this[int index]
+        {
+            get
+            {
+                throw new System.Exception("Comeback");
+            }
+
+            set
+            {
+                throw new System.Exception("Comeback");
+            }
+        }    
         Frame next;
 
         /* Name of this frame: a Lisp string.  It is used for looking up resources,

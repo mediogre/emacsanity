@@ -46,7 +46,10 @@
     <Compile Include="bytecode.cs" />
     <Compile Include="callint.cs" />
     <Compile Include="character.cs" />
+    <Compile Include="charset.cs" />
+    <Compile Include="coding.cs" />
     <Compile Include="commands.cs" />
+    <Compile Include="composite.cs" />
     <Compile Include="data.cs" />
     <Compile Include="defs.cs" />
     <Compile Include="dispextern.cs" />
@@ -55,10 +58,12 @@
     <Compile Include="doprnt.cs" />
     <Compile Include="emacs.cs" />
     <Compile Include="eval.cs" />
+    <Compile Include="fileio.cs" />
     <Compile Include="fns.cs" />
     <Compile Include="font.cs" />
     <Compile Include="frame.cs" />
     <Compile Include="indent.cs" />
+    <Compile Include="insdel.cs" />
     <Compile Include="interval.cs" />
     <Compile Include="keyboard.cs" />
     <Compile Include="lisp_h.cs" />
@@ -66,11 +71,13 @@
     <Compile Include="lread.cs" />
     <Compile Include="macros.cs" />
     <Compile Include="marker.cs" />
+    <Compile Include="minibuf.cs" />
     <Compile Include="print.cs" />
     <Compile Include="region_cache.cs" />
     <Compile Include="search.cs" />
     <Compile Include="term.cs" />
     <Compile Include="termhooks.cs" />
+    <Compile Include="textprop.cs" />
     <Compile Include="w32fns.cs" />
     <Compile Include="w32term.cs" />
     <Compile Include="xdisp.cs" />

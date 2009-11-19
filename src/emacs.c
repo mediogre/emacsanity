@@ -971,7 +971,7 @@ main (int argc, char **argv)
       keys_of_keymap ();
       keys_of_window ();
     }
-  else
+//  else
     {
       /* Initialization that must be done even if the global variable
 	 initialized is non zero.  */

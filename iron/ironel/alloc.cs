@@ -38,7 +38,7 @@
             set {Defs.O[ (int) Objects.gc_elapsed] = value; }
         }        
     }
-    
+
     public partial class L
     {
         public static Interval make_interval()
@@ -48,20 +48,268 @@
             return r;
         }
 
-        public static LispObject make_string(string data)
+        public static LispObject make_string (byte[] contents, int nbytes)
         {
-            // TODO: multi-byte stuff?
-            return new LispString(data);
+            LispObject val;
+            int nchars = 0;
+            int multibyte_nbytes = 0;
+
+            parse_str_as_multibyte (contents, nbytes, ref nchars, ref multibyte_nbytes);
+            if (nbytes == nchars || nbytes != multibyte_nbytes)
+                /* CONTENTS contains no multibyte sequences or contains an invalid
+                   multibyte sequence.  We must make unibyte string.  */
+                val = make_unibyte_string (contents, nbytes);
+            else
+                val = make_multibyte_string (contents, nchars, nbytes);
+            return val;
+        }
+
+        /* Make an unibyte string from LENGTH bytes at CONTENTS.  */
+        public static LispObject make_unibyte_string(byte[] contents, int length)
+        {
+            return make_unibyte_string(contents, 0, length);
+        }
+
+        /* Make an unibyte string from LENGTH bytes at CONTENTS.  */
+        public static LispObject make_unibyte_string(byte[] contents, int idx, int length)
+        {
+            LispObject val = make_uninit_string(length);
+            XSTRING(val).bcopy(contents, idx, 0, length);
+            STRING_SET_UNIBYTE(ref val);
+            return val;
+        }
+
+        /* Make a multibyte string from NCHARS characters occupying NBYTES
+           bytes at CONTENTS.  */
+        public static LispObject make_multibyte_string(byte[] contents, int nchars, int nbytes)
+        {
+            LispObject val = make_uninit_multibyte_string(nchars, nbytes);
+            XSTRING(val).bcopy(contents, nbytes);
+            return val;
+        }
+
+        /* Make a string from NCHARS characters occupying NBYTES bytes at
+           CONTENTS.  The argument MULTIBYTE controls whether to label the
+           string as multibyte.  If NCHARS is negative, it counts the number of
+           characters by itself.  */
+        public static LispObject make_specified_string (byte[] contents, int nchars, int nbytes, bool multibyte)
+        {
+            LispObject val;
+
+            if (nchars < 0)
+            {
+                if (multibyte)
+                    nchars = multibyte_chars_in_text (contents, 0, nbytes);
+                else
+                    nchars = nbytes;
+            }
+            val = make_uninit_multibyte_string (nchars, nbytes);
+            (val as LispString).bcopy(contents, nbytes);
+
+            if (!multibyte)
+                STRING_SET_UNIBYTE (ref val);
+            return val;
+        }
+
+        /* Make a string from the data at STR, treating it as multibyte if the
+           data warrants.  */
+        public static LispObject build_string(string str)
+        {
+            return make_string(str);
+        }
+
+        /* Return an unibyte Lisp_String set up to hold LENGTH characters
+           occupying LENGTH bytes.  */
+        public static LispObject make_uninit_string(int length)
+        {
+            if (length == 0)
+                return empty_unibyte_string;
+            LispObject val = make_uninit_multibyte_string(length, length);
+            STRING_SET_UNIBYTE(ref val);
+            return val;
+        }
+
+        /* Return a multibyte Lisp_String set up to hold NCHARS characters
+           which occupy NBYTES bytes.  */
+        public static LispObject make_uninit_multibyte_string(int nchars, int nbytes)
+        {
+            if (nchars < 0)
+            {
+                abort();
+            }
+
+            if (nbytes == 0)
+                return empty_multibyte_string;
+
+            LispObject s = new LispString(nchars, nbytes);
+            return s;
+        }
+        
+        public static LispObject make_string(string str)
+        {
+            byte[] data = System.Text.Encoding.UTF8.GetBytes(str);
+            return make_string(data, data.Length);
         }
 
         public static LispObject make_pure_string(string data)
         {
-            return new LispString(string.Intern(data));
+            return make_string(data);
+        }
+
+        static void init_strings()
+        {
+            empty_unibyte_string = make_pure_string(""); // , 0, 0, 0);
+            empty_multibyte_string = make_pure_string(""); //, 0, 0, 1);
+        }
+
+        public static void init_alloc_once()
+        {
+            init_strings();
+
+            byte_stack_list = null;
+        }
+
+        public static void init_alloc()
+        {
+            byte_stack_list = null;
         }
     }
 
     public partial class F
     {
+        public static LispObject make_list(LispObject length, LispObject init)
+        {
+            LispObject val;
+            int size;
+
+            L.CHECK_NATNUM(length);
+            size = L.XINT(length);
+
+            val = Q.nil;
+            while (size > 0)
+            {
+                val = F.cons(init, val);
+                --size;
+
+                if (size > 0)
+                {
+                    val = F.cons(init, val);
+                    --size;
+
+                    if (size > 0)
+                    {
+                        val = F.cons(init, val);
+                        --size;
+
+                        if (size > 0)
+                        {
+                            val = F.cons(init, val);
+                            --size;
+
+                            if (size > 0)
+                            {
+                                val = F.cons(init, val);
+                                --size;
+                            }
+                        }
+                    }
+                }
+
+                L.QUIT();
+            }
+
+            return val;
+        }
+
+        public static LispObject make_vector(LispObject length, LispObject init)
+        {
+            L.CHECK_NATNUM(length);
+            int sizei = L.XINT(length);
+
+            LispVector p = new LispVector(sizei);
+            for (int index = 0; index < sizei; index++)
+                p[index] = init;
+
+            return p;
+        }
+
+        public static LispObject make_compiled_vector(LispObject length, LispObject init)
+        {
+            L.CHECK_NATNUM(length);
+            int sizei = L.XINT(length);
+
+            LispCompiled p = new LispCompiled(sizei);
+            for (int index = 0; index < sizei; index++)
+                p[index] = init;
+
+            return p;
+        }
+
+        public static LispObject make_byte_code (int nargs, params LispObject[] args)
+        {
+            LispObject len, val;
+            int index;
+
+            len = L.XSETINT(nargs);
+            val = F.make_compiled_vector(len, Q.nil);
+
+            if (L.STRINGP (args[1]) && L.STRING_MULTIBYTE (args[1]))
+                /* BYTECODE-STRING must have been produced by Emacs 20.2 or the
+                   earlier because they produced a raw 8-bit string for byte-code
+                   and now such a byte-code string is loaded as multibyte while
+                   raw 8-bit characters converted to multibyte form.  Thus, now we
+                   must convert them back to the original unibyte form.  */
+                args[1] = F.string_as_unibyte (args[1]);
+
+            LispVector p = L.XVECTOR(val);
+            for (index = 0; index < nargs; index++)
+            {
+                p[index] = args[index];
+            }
+
+            return val;
+        }
+
+        public static LispObject make_string (LispObject length, LispObject init)
+        {
+            LispObject val;
+            int p, end;
+            uint c;
+            int nbytes;
+
+            L.CHECK_NATNUM (length);
+            L.CHECK_NUMBER (init);
+
+            c = (uint) L.XINT (init);
+            if (L.ASCII_CHAR_P (c))
+            {
+                nbytes = L.XINT (length);
+                val = L.make_uninit_string (nbytes);
+                p = 0; 
+                end = L.SCHARS (val);
+                byte[] d = L.SDATA (val); 
+                while (p != end)
+                    d[p++] = (byte) c;
+            }
+            else
+            {
+                byte[] str = new byte[L.MAX_MULTIBYTE_LENGTH];
+                int len = L.CHAR_STRING (c, str);
+
+                nbytes = len * L.XINT (length);
+                val = L.make_uninit_multibyte_string (L.XINT (length), nbytes);
+                p = 0;
+                end = nbytes;
+                while (p != end)
+                {
+                    L.XSTRING(val).bcopy(str, p, len);
+                    p += len;
+                }
+            }
+
+            return val;
+        }
+        
         public static LispSymbol make_symbol(LispObject name)
         {
             LispSymbol p = new LispSymbol(name as LispString);
@@ -75,6 +323,11 @@
         public static LispInt make_number(int x)
         {
             return new LispInt(x);
+        }
+
+        public static LispFloat make_float(double x)
+        {
+            return new LispFloat(x);
         }
     }
 

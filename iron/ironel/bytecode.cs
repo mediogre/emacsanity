@@ -2,7 +2,7 @@
 {
     public class byte_stack
     {
-        public string pc;
+        public int pc;
         public LispObject top, bottom;
         public LispObject byte_string;
         public int byte_string_start;

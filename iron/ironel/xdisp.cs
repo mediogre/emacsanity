@@ -28,5 +28,21 @@
     {
         // Non-nil means don't actually do any redisplay.
         public static LispObject inhibit_redisplay;
+
+        /* Non-nil means highlight trailing whitespace.  */
+        public static LispObject show_trailing_whitespace
+        {
+            get { return Defs.O[(int)Objects.show_trailing_whitespace]; }
+            set { Defs.O[(int)Objects.show_trailing_whitespace] = value; }
+        }
+
+        /* Number of lines to keep in the message log buffer.  t means
+           infinite.  nil means don't log at all.  */
+        public static LispObject message_log_max
+        {
+            get { return Defs.O[(int)Objects.message_log_max]; }
+            set { Defs.O[(int)Objects.message_log_max] = value; }
+        }
+        
     }
 }

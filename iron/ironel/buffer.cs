@@ -6,7 +6,7 @@
            this address might change when blocks are relocated which can
            e.g. happen when malloc is called.  So, don't pass a pointer
            into a buffer's text to functions that malloc.  */
-        // unsigned char *beg; COMEBACK_WHEN_READY!!!
+        byte[] beg;
 
         int gpt;		/* Char pos of gap in buffer.  */
         public int z;		/* Char pos of end of buffer.  */
@@ -56,7 +56,7 @@
         int inhibit_shrinking;
     }
     
-    public class Buffer : LispVectorLike, Indexable<LispObject>
+    public class Buffer : LispVectorLike<LispObject>, Indexable<LispObject>
     {
         public enum Offsets
         {
@@ -119,6 +119,14 @@
         }
 
         LispObject[] symbols = new LispObject[(int) Offsets.SIZE];
+
+        public int Size
+        {
+            get
+            {
+                return symbols.Length;
+            }
+        }
 
         public LispObject this[int index]
         {

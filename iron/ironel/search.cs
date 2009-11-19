@@ -21,7 +21,8 @@ namespace IronElisp
             // TODO: when regex.cs is ready (if ever), use the original code 
             // but so far we'll just try to do simple .net regexp matching
 
-            Match m = Regex.Match(SDATA(str), SDATA(regexp));
+            Match m = Regex.Match(System.Text.Encoding.UTF8.GetString(SDATA(str)),
+                                  System.Text.Encoding.UTF8.GetString(SDATA(regexp)));
             if (m.Success)
             {
                 return m.Index;

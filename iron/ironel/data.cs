@@ -27,6 +27,10 @@
 
     public partial class L
     {
+        public static void init_data()
+        {
+        }
+
         public static void syms_of_data()
         {
             Q.quote = intern("quote");
@@ -207,6 +211,11 @@
         {
             xsignal2(Q.wrong_type_argument, predicate, value);
             return Q.nil;
+        }
+
+        public static void args_out_of_range(LispObject a1, LispObject a2)
+        {
+            xsignal2(Q.args_out_of_range, a1, a2);
         }
 
         /* Store NEWVAL into SYMBOL, where VALCONTENTS is found in the value cell
@@ -665,6 +674,60 @@
             return Q.nil;
         }
 
+        /* Extract and set vector and string elements */
+        public static LispObject aref(LispObject array, LispObject idx)
+        {
+            int idxval;
+
+            L.CHECK_NUMBER(idx);
+            idxval = L.XINT(idx);
+            if (L.STRINGP(array))
+            {
+                int c, idxval_byte;
+
+                if (idxval < 0 || idxval >= L.SCHARS(array))
+                    L.args_out_of_range(array, idx);
+                if (!L.STRING_MULTIBYTE(array))
+                    return L.make_number((byte)L.SREF(array, idxval));
+                idxval_byte = L.string_char_to_byte(array, idxval);
+
+                c = (int)L.STRING_CHAR(L.SDATA(array), idxval_byte,
+                         L.SBYTES(array) - idxval_byte);
+                return L.make_number(c);
+            }
+            else if (L.BOOL_VECTOR_P(array))
+            {
+                int val;
+
+                if (idxval < 0 || idxval >= L.XBOOL_VECTOR(array).Size)
+                    L.args_out_of_range(array, idx);
+
+                val = (byte)L.XBOOL_VECTOR(array)[idxval / LispBoolVector.BOOL_VECTOR_BITS_PER_CHAR];
+                return ((val & (1 << (idxval % LispBoolVector.BOOL_VECTOR_BITS_PER_CHAR))) != 0 ? Q.t : Q.nil);
+            }
+#if COMEBACK_LATER
+  else if (CHAR_TABLE_P (array))
+    {
+      CHECK_CHARACTER (idx);
+      return CHAR_TABLE_REF (array, idxval);
+    }
+#endif
+            else
+            {
+                int size = 0;
+                if (L.VECTORP(array))
+                    size = L.XVECTOR(array).Size;
+                else if (L.COMPILEDP(array))
+                    size = (array as LispCompiled).Size;
+                else
+                    L.wrong_type_argument(Q.arrayp, array);
+
+                if (idxval < 0 || idxval >= size)
+                    L.args_out_of_range(array, idx);
+                return L.XVECTOR(array)[idxval];
+            }
+        }
+
         public static LispObject set(LispObject symbol, LispObject newval)
         {
             return L.set_internal(symbol, newval, L.current_buffer, false);
@@ -725,6 +788,12 @@
 
             L.xsignal1(Q.void_function, symbol);
             return Q.nil;
+        }
+
+        public static LispObject symbol_name(LispObject symbol)
+        {
+            L.CHECK_SYMBOL(symbol);
+            return L.SYMBOL_NAME(symbol);
         }
 
         public static LispObject fset(LispObject symbol, LispObject definition)

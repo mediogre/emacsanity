@@ -3,6 +3,10 @@ Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual C# Express 2008
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ironel", "ironel\ironel.csproj", "{FA60144B-A59A-4151-B82F-A58190FC4E8D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ironel.test", "ironel.test\ironel.test.csproj", "{E631B68D-5374-493E-8919-ADBB0D32E55C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "debugapp", "debugapp\debugapp.csproj", "{40FF4462-7C8C-4657-9095-58C0ADC6F3D1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -13,6 +17,14 @@ Global
 		{FA60144B-A59A-4151-B82F-A58190FC4E8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FA60144B-A59A-4151-B82F-A58190FC4E8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FA60144B-A59A-4151-B82F-A58190FC4E8D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E631B68D-5374-493E-8919-ADBB0D32E55C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E631B68D-5374-493E-8919-ADBB0D32E55C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E631B68D-5374-493E-8919-ADBB0D32E55C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E631B68D-5374-493E-8919-ADBB0D32E55C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{40FF4462-7C8C-4657-9095-58C0ADC6F3D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{40FF4462-7C8C-4657-9095-58C0ADC6F3D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{40FF4462-7C8C-4657-9095-58C0ADC6F3D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{40FF4462-7C8C-4657-9095-58C0ADC6F3D1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

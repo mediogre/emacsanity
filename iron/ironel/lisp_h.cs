@@ -4,6 +4,19 @@ namespace IronElisp
 {
     public partial class L
     {
+        /* Flag bits in a character.  These also get used in termhooks.h.
+           Richard Stallman <rms@gnu.ai.mit.edu> thinks that MULE
+           (MUlti-Lingual Emacs) might need 22 bits for the character value
+           itself, so we probably shouldn't use any bits lower than 0x0400000.  */
+        public const uint CHAR_ALT = 0x0400000;
+        public const uint CHAR_SUPER = 0x0800000;
+        public const uint CHAR_HYPER = 0x1000000;
+        public const uint CHAR_SHIFT = 0x2000000;
+        public const uint CHAR_CTL = 0x4000000;
+        public const uint CHAR_META = 0x8000000;
+
+        public const uint CHAR_MODIFIER_MASK = (CHAR_ALT | CHAR_SUPER | CHAR_HYPER | CHAR_SHIFT | CHAR_CTL | CHAR_META);
+
         public static System.Type XTYPE(LispObject x)
         {
             return x.GetType();
@@ -91,17 +104,17 @@ namespace IronElisp
 
         public static LispObject AREF(LispObject x, int idx)
         {
-            return XVECTOR(x).contents[idx];
+            return (x as LispVectorLike<LispObject>)[idx];
         }
 
         public static int ASIZE(LispObject ARRAY)
         {
-            return XVECTOR(ARRAY).Size;
+            return ((LispVectorLike<LispObject>)ARRAY).Size;
         }
 
         public static void ASET(LispObject x, int idx, LispObject val)
         {
-            XVECTOR(x).contents[idx] = val;
+            ((LispVectorLike<LispObject>) x)[idx] = val;
         }
 
         public static bool COMPILEDP(LispObject x)
@@ -126,7 +139,7 @@ namespace IronElisp
 
         public static bool EQ(LispObject x, LispObject y)
         {
-            return x == y;
+            return LispObject.ReferenceEquals(x, y);
         }
 
         public static LispCons XCONS(LispObject x)
@@ -194,19 +207,70 @@ namespace IronElisp
             return x as LispString;
         }
 
-        public static char SREF(LispObject str, int index)
+        public static byte[] SDATA(LispObject x)
+        {
+            return XSTRING(x).SData;
+        }
+
+        public static byte SREF(LispObject str, int index)
         {
             return SDATA(str)[index];
         }
 
-        public static string SDATA(LispObject x)
+        public static byte SSET(LispObject str, int index, byte newval)
         {
-            return XSTRING(x).SData;
+            return (SDATA(str)[index] = newval);
         }
 
         public static int SCHARS(LispObject str)
         {
             return XSTRING(str).Size;
+        }
+
+        /* Set text properties.  */
+        public static void STRING_SET_INTERVALS(LispObject STR, Interval INT)
+        {
+            XSTRING(STR).intervals = INT;
+        }
+
+        public static void STRING_SET_CHARS(LispObject str, int newsize)
+        {
+            XSTRING(str).Size = newsize;
+        }
+
+        public static int SBYTES(LispObject str)
+        {
+            return STRING_BYTES(XSTRING(str));
+        }
+
+        public static int STRING_BYTES(LispString str)
+        {
+            return str.SizeBytes;
+        }
+
+        /* Nonzero if STR is a multibyte string.  */
+        public static bool STRING_MULTIBYTE(LispObject STR)
+        {
+            return (XSTRING(STR).SizeBytes >= 0);
+        }
+
+        /* Mark STR as a unibyte string.  */
+        public static void STRING_SET_UNIBYTE(ref LispObject STR)
+        {
+            if (EQ(STR, empty_multibyte_string))
+                STR = empty_unibyte_string;
+            else
+                XSTRING(STR).SizeBytes = -1;
+        }
+
+        /* Mark STR as a multibyte string.  Assure that STR contains only
+           ASCII characters in advance.  */
+        public static void STRING_SET_MULTIBYTE(ref LispObject STR)
+        {
+            if (EQ(STR, empty_unibyte_string))
+                STR = empty_multibyte_string;
+            else
+                XSTRING(STR).SizeBytes = XSTRING(STR).Size;
         }
 
         /* Value is the value of SYM, with defvaralias taken into
@@ -413,6 +477,34 @@ namespace IronElisp
         {
             if (initialized)
                 V.current_load_list = F.cons(x, V.current_load_list);
+        }
+
+        public static LispHash XHASH_TABLE(LispObject x)
+        {
+            return x as LispHash;
+        }
+
+        /* Value is the value part of entry IDX in hash table H.  */
+        public static LispObject HASH_VALUE(LispHash H, int IDX)
+        {
+#if COMEBACK_LATER
+            AREF((H)->key_and_value, 2 * (IDX) + 1);
+#endif
+            throw new System.Exception("No hash yet");
+        }
+
+        /* Almost equivalent to Faref (CT, IDX) with optimization for ASCII
+           characters.  Do not check validity of CT.  */
+        public static LispObject CHAR_TABLE_REF(LispObject CT, uint IDX)
+        {
+#if COMEBACK_LATER
+  ((ASCII_CHAR_P (IDX)							 \
+    && SUB_CHAR_TABLE_P (XCHAR_TABLE (CT)->ascii)			 \
+    && !NILP (XSUB_CHAR_TABLE (XCHAR_TABLE (CT)->ascii)->contents[IDX])) \
+   ? XSUB_CHAR_TABLE (XCHAR_TABLE (CT)->ascii)->contents[IDX]		 \
+   : char_table_ref ((CT), (IDX)))
+#endif
+            throw new System.Exception("Come back with hashes");
         }
     }
 }

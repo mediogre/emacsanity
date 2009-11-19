@@ -206,6 +206,13 @@
     public partial class V
     {
         public static LispObject throw_on_input;
+
+        /* Form to evaluate (if non-nil) when Emacs is started.  */
+        public static LispObject top_level
+        {
+            get { return Defs.O[(int)Objects.top_level]; }
+            set { Defs.O[(int)Objects.top_level] = value; }
+        }
     }
 
     public partial class F
