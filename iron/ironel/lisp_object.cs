@@ -52,7 +52,7 @@
         public LispObject function;
         public LispObject plist;
 
-        LispObject next;
+        public LispObject next;
 
         public LispSymbol(LispString name)
             : this(name, symbol_interned.SYMBOL_UNINTERNED)
@@ -793,39 +793,6 @@
                 throw new System.Exception("Comeback");
             }
         }    
-    }
-
-    // GNUEmacs uses vectors with hashed buckets of single-linked symbols
-    // We'll just use a hashtable for now
-    public class ObarrayHash : LispObject
-    {
-        System.Collections.Generic.Dictionary<byte[], LispSymbol> table;
-
-        public ObarrayHash()
-        {
-            table = new System.Collections.Generic.Dictionary<byte[], LispSymbol>();
-        }
-
-        public LispSymbol this[byte[] index]
-        {
-            get
-            {
-                return table[index];
-            }
-
-            set
-            {
-                table[index] = value;
-            }
-        }
-
-        public int Size
-        {
-            get
-            {
-                return table.Count;
-            }
-        }
     }
 
     public class specbinding

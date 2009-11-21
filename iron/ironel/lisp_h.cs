@@ -139,6 +139,9 @@ namespace IronElisp
 
         public static bool EQ(LispObject x, LispObject y)
         {
+            if (x is LispInt && y is LispInt)
+                return ((LispInt)x).val == ((LispInt)y).val;
+
             return LispObject.ReferenceEquals(x, y);
         }
 

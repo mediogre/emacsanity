@@ -2,25 +2,25 @@
 {
     public partial class Q
     {
-        public static LispSymbol nil;
-        public static LispSymbol unbound;
-        public static LispSymbol t;
-        public static LispSymbol variable_documentation;
+        public static LispObject nil;
+        public static LispObject unbound;
+        public static LispObject t;
+        public static LispObject variable_documentation;
 
-        public static LispSymbol quote, lambda, subr, error_conditions, error_message, top_level;
-        public static LispSymbol error, quit, wrong_type_argument, args_out_of_range, void_function;
-        public static LispSymbol cyclic_function_indirection, cyclic_variable_indirection;
-        public static LispSymbol void_variable, setting_constant, invalid_read_syntax;
+        public static LispObject quote, lambda, subr, error_conditions, error_message, top_level;
+        public static LispObject error, quit, wrong_type_argument, args_out_of_range, void_function;
+        public static LispObject cyclic_function_indirection, cyclic_variable_indirection;
+        public static LispObject void_variable, setting_constant, invalid_read_syntax;
 
-        public static LispSymbol invalid_function, wrong_number_of_arguments, no_catch;
-        public static LispSymbol end_of_file, arith_error, beginning_of_buffer, end_of_buffer;
-        public static LispSymbol buffer_read_only, text_read_only, mark_inactive;
+        public static LispObject invalid_function, wrong_number_of_arguments, no_catch;
+        public static LispObject end_of_file, arith_error, beginning_of_buffer, end_of_buffer;
+        public static LispObject buffer_read_only, text_read_only, mark_inactive;
 
-        public static LispSymbol listp, consp, symbolp, keywordp, integerp, natnump, wholenump;
-        public static LispSymbol stringp, arrayp, sequencep, bufferp, vectorp, char_or_string_p;
-        public static LispSymbol markerp, buffer_or_string_p, integer_or_marker_p, boundp, fboundp;
-        public static LispSymbol floatp, numberp, number_or_marker_p, char_table_p, vector_or_char_table_p;
-        public static LispSymbol subrp, unevalled, many, cdr, ad_advice_info, ad_activate_internal;
+        public static LispObject listp, consp, symbolp, keywordp, integerp, natnump, wholenump;
+        public static LispObject stringp, arrayp, sequencep, bufferp, vectorp, char_or_string_p;
+        public static LispObject markerp, buffer_or_string_p, integer_or_marker_p, boundp, fboundp;
+        public static LispObject floatp, numberp, number_or_marker_p, char_table_p, vector_or_char_table_p;
+        public static LispObject subrp, unevalled, many, cdr, ad_advice_info, ad_activate_internal;
 
         public static LispObject interactive_form;
     }

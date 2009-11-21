@@ -46,7 +46,7 @@
 
     public partial class L
     {
-        public static ObarrayHash initial_obarray;
+        public static LispObject initial_obarray;
 
         /* non-zero if inside `load' */
         public static bool load_in_progress
@@ -85,129 +85,196 @@
            means that there's no unread character. */
         public static int unread_char;
 
+        public const int OBARRAY_SIZE = 1511;
         public static void init_obarray()
         {
-            V.obarray = initial_obarray = new ObarrayHash();
+            LispObject oblength = XSETINT (OBARRAY_SIZE);
 
             Q.nil = F.make_symbol(make_string("nil"));
-            Q.nil.Interned = LispSymbol.symbol_interned.SYMBOL_INTERNED_IN_INITIAL_OBARRAY;
-            Q.nil.Constant = true;
-            Q.nil.Value = Q.nil;
-            Q.nil.Function = Q.unbound;
-            Q.nil.Plist = Q.nil;
+            
+            V.obarray = F.make_vector (oblength, make_number (0));
+            initial_obarray = V.obarray; 
 
-            (V.obarray as ObarrayHash)[System.Text.Encoding.UTF8.GetBytes("nil")] = Q.nil;
+            XSYMBOL(Q.nil).Interned = LispSymbol.symbol_interned.SYMBOL_INTERNED_IN_INITIAL_OBARRAY;
+            XSYMBOL(Q.nil).Constant = true;
+            XSYMBOL(Q.nil).Value = Q.nil;
+            XSYMBOL(Q.nil).Plist = Q.nil;
+
+            int hash = hash_string (System.Text.Encoding.UTF8.GetBytes("nil"), 3);
+            hash %= OBARRAY_SIZE;
+            XVECTOR (V.obarray)[hash] = Q.nil; 
 
             Q.unbound = F.make_symbol(make_string("unbound"));
-            Q.unbound.Value = Q.unbound;
-            Q.unbound.Function = Q.unbound;
+            XSYMBOL(Q.nil).Function = Q.unbound;
+            XSYMBOL(Q.unbound).Value = Q.unbound;
+            XSYMBOL(Q.unbound).Function = Q.unbound;
 
-#if COMEBACK_AFTER_READ
             Q.t = intern("t");
-            Q.t.Value = Q.t;
-            Q.t.Constant = true;
+            XSYMBOL(Q.t).Value = Q.t;
+            XSYMBOL(Q.t).Constant = true;
 
 
             Q.variable_documentation = intern("variable-documentation");
-#endif
+
             read_buffer_size = 100 + MAX_MULTIBYTE_LENGTH;
             read_buffer = new byte[read_buffer_size];
         }
 
-        // COMEBACK - probably need to switch back to native Emacs utf8-like strings
-        static LispSymbol oblookup(ObarrayHash obarray, string str)
+         /* oblookup stores the bucket number here, for the sake of Funintern.  */
+         public static int oblookup_last_bucket_number;
+        /* Return the symbol in OBARRAY whose names matches the string
+           of SIZE characters (SIZE_BYTE bytes) at PTR.
+           If there is no such symbol in OBARRAY, return nil.
+
+           Also store the bucket number in oblookup_last_bucket_number.  */
+        public static LispObject oblookup (LispObject obarray, byte[] ptr, int size, int size_byte)
         {
-            return obarray[System.Text.Encoding.UTF8.GetBytes(str)];
+            int hash;
+            int obsize;
+            LispObject tail;
+            LispObject bucket;
+
+            if (!VECTORP (obarray)
+                || (obsize = XVECTOR (obarray).Size) == 0)
+            {
+                obarray = check_obarray (obarray);
+                obsize = XVECTOR (obarray).Size;
+            }
+
+            hash = hash_string (ptr, size_byte) % obsize;
+            bucket = XVECTOR (obarray)[hash];
+            oblookup_last_bucket_number = hash;
+            if (EQ (bucket, make_number (0)))
+            {
+            }
+            else if (!SYMBOLP (bucket))
+                error ("Bad data in guts of obarray"); /* Like CADR error message */
+            else
+                for (tail = bucket; ; )
+                {
+                    if (SBYTES (SYMBOL_NAME (tail)) == size_byte &&
+                        SCHARS(SYMBOL_NAME(tail)) == size &&
+                        ! XSTRING(SYMBOL_NAME(tail)).bcmp(ptr))
+                        return tail;
+                    else if (XSYMBOL (tail).next == null)
+                        break;
+
+                    tail = XSYMBOL (tail).next; 
+                }
+            return XSETINT(hash);
         }
 
-        public static LispSymbol intern(string str)
+        public static int hash_string(byte[] ptr, int len)
         {
-            ObarrayHash obarray = V.obarray as ObarrayHash;
-            obarray = check_obarray(obarray);
+            int p = 0;
+            int end = len;
+            byte c;
+            int hash = 0;
 
-            LispSymbol tem = oblookup(obarray, str);
+            while (p != end)
+            {
+                c = ptr[p++];
+                if (c >= 0140) c -= 40;
+                hash = ((hash << 3) + (hash >> 28) + c);
+            }
+            return (int) (hash & 07777777777);
+        }
 
-            if (tem != null)
+        /* Get an error if OBARRAY is not an obarray.
+           If it is one, return it.  */
+        public static LispObject check_obarray(LispObject obarray)
+        {
+            if (!VECTORP (obarray) || XVECTOR (obarray).Size == 0)
+            {
+                /* If Vobarray is now invalid, force it to be valid.  */
+                if (EQ (V.obarray, obarray))
+                    V.obarray = initial_obarray;
+
+                wrong_type_argument (Q.vectorp, obarray);
+            }
+            return obarray;
+        }
+
+        public static LispObject intern(string str)
+        {
+            return intern(System.Text.Encoding.UTF8.GetBytes(str));
+        }
+
+        /* Intern the C string STR: return a symbol with that name,
+           interned in the current obarray.  */
+        public static LispObject intern(byte[] str)
+        {
+            int len = str.Length;
+
+            LispObject obarray = V.obarray;
+            if (!VECTORP (obarray) || XVECTOR (obarray).Size == 0)
+                obarray = check_obarray (obarray);
+            LispObject tem = oblookup (obarray, str, len, len);
+            if (SYMBOLP (tem))
                 return tem;
-
-            return F.intern(make_string(str), obarray);
-        }
-
-        public static ObarrayHash check_obarray(LispObject obarray)
-        {
-            /* need to check if V.obarray is invalid and set it ot initial obarray
-                        if (h.Size == 0)
-                        {
-                            if (ReferenceEquals(h, V.obarray))
-                            {
-                                V.obarray = initial_obarray;
-                            }
-                        }
-            */
-
-            return obarray as ObarrayHash;
+            return F.intern (make_string (str, len), obarray);
         }
 
         public static LispSubr defsubr(string name, subr0 fn, int min_args, int max_args, string int_spec, string doc_string)
         {
-            LispSymbol sym = intern(name);
+            LispObject sym = intern(name);
             LispSubr subr = new LispSubr(name, fn, min_args, max_args, int_spec, doc_string);
 
-            sym.Function = subr;
+            XSYMBOL(sym).Function = subr;
             return subr;
         }
 
         public static LispSubr defsubr(string name, subr1 fn, int min_args, int max_args, string int_spec, string doc_string)
         {
-            LispSymbol sym = intern(name);
+            LispObject sym = intern(name);
             LispSubr subr = new LispSubr(name, fn, min_args, max_args, int_spec, doc_string);
 
-            sym.Function = subr;
+            XSYMBOL(sym).Function = subr;
             return subr;
         }
 
         public static LispSubr defsubr(string name, subr2 fn, int min_args, int max_args, string int_spec, string doc_string)
         {
-            LispSymbol sym = intern(name);
+            LispObject sym = intern(name);
             LispSubr subr = new LispSubr(name, fn, min_args, max_args, int_spec, doc_string);
 
-            sym.Function = subr;
+            XSYMBOL(sym).Function = subr;
             return subr;
         }
 
         public static LispSubr defsubr(string name, subr3 fn, int min_args, int max_args, string int_spec, string doc_string)
         {
-            LispSymbol sym = intern(name);
+            LispObject sym = intern(name);
             LispSubr subr = new LispSubr(name, fn, min_args, max_args, int_spec, doc_string);
 
-            sym.Function = subr;
+            XSYMBOL(sym).Function = subr;
             return subr;
         }
 
         public static LispSubr defsubr(string name, subr4 fn, int min_args, int max_args, string int_spec, string doc_string)
         {
-            LispSymbol sym = intern(name);
+            LispObject sym = intern(name);
             LispSubr subr = new LispSubr(name, fn, min_args, max_args, int_spec, doc_string);
 
-            sym.Function = subr;
+            XSYMBOL(sym).Function = subr;
             return subr;
         }
 
         public static LispSubr defsubr(string name, subr5 fn, int min_args, int max_args, string int_spec, string doc_string)
         {
-            LispSymbol sym = intern(name);
+            LispObject sym = intern(name);
             LispSubr subr = new LispSubr(name, fn, min_args, max_args, int_spec, doc_string);
 
-            sym.Function = subr;
+            XSYMBOL(sym).Function = subr;
             return subr;
         }
 
         public static LispSubr defsubr(string name, subr_many fn, int min_args, int max_args, string int_spec, string doc_string)
         {
-            LispSymbol sym = intern(name);
+            LispObject sym = intern(name);
             LispSubr subr = new LispSubr(name, fn, min_args, int_spec, doc_string);
 
-            sym.Function = subr;
+            XSYMBOL(sym).Function = subr;
             return subr;
         }
 
@@ -628,38 +695,41 @@ it defaults to the value of `obarray'.");
             return L.read_internal_start(stream, Q.nil, Q.nil);
         }        
 
-        public static LispSymbol intern(LispObject str, LispObject obarray)
+        public static LispObject intern(LispObject str, LispObject obarray)
         {
-            if (obarray == null)
+            LispObject tem, sym;
+
+            if (L.NILP (obarray)) obarray = V.obarray;
+            obarray = L.check_obarray (obarray);
+
+            L.CHECK_STRING(str);
+
+            tem = L.oblookup (obarray, L.SDATA (str),
+                              L.SCHARS(str),
+                              L.SBYTES(str));
+            if (!L.INTEGERP (tem))
+                return tem;
+
+            sym = F.make_symbol (str);
+
+            if (L.EQ (obarray, L.initial_obarray))
+                L.XSYMBOL(sym).Interned = LispSymbol.symbol_interned.SYMBOL_INTERNED_IN_INITIAL_OBARRAY;
+            else
+                L.XSYMBOL(sym).Interned = LispSymbol.symbol_interned.SYMBOL_INTERNED;
+
+            if ((L.SREF (str, 0) == ':') && L.EQ (obarray, L.initial_obarray))
             {
-                obarray = V.obarray;
+                L.XSYMBOL(sym).Constant = true;
+                L.XSYMBOL(sym).Value = sym;
             }
 
-            ObarrayHash hash = L.check_obarray(obarray);
-            LispString s  = str as LispString;
+            LispObject ptr = L.XVECTOR (obarray)[L.XINT (tem)];
+            if (L.SYMBOLP (ptr))
+                L.XSYMBOL (sym).next = L.XSYMBOL (ptr);
+            else
+                L.XSYMBOL (sym).next = null;
 
-            LispSymbol sym = hash[s.SData];
-            if (sym != null)
-            {
-                return sym;
-            }
-
-            LispSymbol.symbol_interned intern_type = LispSymbol.symbol_interned.SYMBOL_INTERNED;
-            if (ReferenceEquals(hash, L.initial_obarray))
-            {
-                intern_type = LispSymbol.symbol_interned.SYMBOL_INTERNED_IN_INITIAL_OBARRAY;
-            }
-
-            sym = F.make_symbol(s);
-            sym.Interned = intern_type;
-
-            if (ReferenceEquals(hash, L.initial_obarray) && s.SData.Length > 0 && s.SData[0] == ':')
-            {
-                sym.Constant = true;
-                sym.Value = sym;
-            }
-
-            hash[s.SData] = sym;
+            L.XVECTOR (obarray)[L.XINT (tem)] = sym;
             return sym;
         }
     }
