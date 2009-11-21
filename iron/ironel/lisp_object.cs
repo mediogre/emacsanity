@@ -771,8 +771,86 @@
         }        
     }
 
-    public class LispHash : LispVectorLike<LispObject>
+    public class LispHashTable : LispVectorLike<LispObject>
     {
+        public LispHashTable ()
+        {
+            test               = Q.nil;
+            weak               = Q.nil;
+            rehash_size        = Q.nil;
+            rehash_threshold   = Q.nil;
+            hash               = Q.nil;
+            next               = Q.nil;
+            next_free          = Q.nil;
+            index              = Q.nil;
+            user_hash_function = Q.nil; 
+            user_cmp_function  = Q.nil;
+        }
+        
+        /* Function used to compare keys.  */
+        public LispObject test;
+
+        /* Nil if table is non-weak.  Otherwise a symbol describing the
+           weakness of the table.  */
+        public LispObject weak;
+
+        /* When the table is resized, and this is an integer, compute the
+           new size by adding this to the old size.  If a float, compute the
+           new size by multiplying the old size with this factor.  */
+        public LispObject rehash_size;
+
+        /* Resize hash table when number of entries/ table size is >= this
+           ratio, a float.  */
+        public LispObject rehash_threshold;
+
+        /* Vector of hash codes.. If hash[I] is nil, this means that that
+           entry I is unused.  */
+        public LispObject hash;
+
+        /* Vector used to chain entries.  If entry I is free, next[I] is the
+           entry number of the next free item.  If entry I is non-free,
+           next[I] is the index of the next entry in the collision chain.  */
+        public LispObject next;
+
+        /* Index of first free entry in free list.  */
+        public LispObject next_free;
+
+        /* Bucket vector.  A non-nil entry is the index of the first item in
+           a collision chain.  This vector's size can be larger than the
+           hash table size to reduce collisions.  */
+        public LispObject index;
+
+        /* User-supplied hash function, or nil.  */
+        public LispObject user_hash_function;
+
+        /* User-supplied key comparison function, or nil.  */
+        public LispObject user_cmp_function;
+
+        /* Only the fields above are traced normally by the GC.  The ones below
+           `count'.  are special and are either ignored by the GC or traced in
+           a special way (e.g. because of weakness).  */
+
+        /* Number of key/value entries in the table.  */
+        public uint count;
+
+        /* Vector of keys and values.  The key of item I is found at index
+           2 * I, the value is found at index 2 * I + 1.
+           This is gc_marked specially if the table is weak.  */
+        public LispObject key_and_value;
+
+        /* Next weak hash table if this is a weak hash table.  The head
+           of the list is in weak_hash_tables.  */
+        public LispHashTable next_weak;
+
+        public delegate bool cmp_func(LispHashTable h, LispObject a, uint ai, LispObject b, uint bi);
+        public delegate uint hash_func(LispHashTable h, LispObject o);
+
+        /* C function to compare two keys.  */
+        public cmp_func cmpfn;
+
+        /* C function to compute hash code.  */
+        public hash_func hashfn;
+        
         public int Size
         {
             get

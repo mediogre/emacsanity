@@ -59,6 +59,7 @@
     <Compile Include="emacs.cs" />
     <Compile Include="eval.cs" />
     <Compile Include="fileio.cs" />
+    <Compile Include="floatfns.cs" />
     <Compile Include="fns.cs" />
     <Compile Include="font.cs" />
     <Compile Include="frame.cs" />

@@ -1,5 +1,13 @@
 ﻿namespace IronElisp
 {
+    public partial class Q
+    {
+        /* Various symbols.  */
+        public static LispObject hash_table_p, eq, eql, equal, key, value;
+        public static LispObject Ctest, Csize, Crehash_size, Crehash_threshold, Cweakness;
+        public static LispObject hash_table_test, key_or_value, key_and_value;
+    }
+
     public partial class V
     {
         public static LispObject features
@@ -537,7 +545,349 @@
             return false;
         }
 
-        public static int hash_lookup(LispHash h, LispObject key)
+        public static LispHashTable weak_hash_tables;
+
+        /* Value is the next integer I >= N, N >= 0 which is "almost" a prime
+           number.  */
+        public static int next_almost_prime(int n)
+        {
+            if (n % 2 == 0)
+                n += 1;
+            if (n % 3 == 0)
+                n += 2;
+            if (n % 7 == 0)
+                n += 4;
+            return n;
+        }
+
+        /***********************************************************************
+                    Hash Code Computation
+         ***********************************************************************/
+        /* Maximum depth up to which to dive into Lisp structures.  */
+        public const int SXHASH_MAX_DEPTH = 3;
+
+        /* Maximum length up to which to take list and vector elements into
+           account.  */
+        public const int SXHASH_MAX_LEN = 7;
+
+        /* Combine two integers X and Y for hashing.  */
+        public static uint SXHASH_COMBINE(uint X, uint Y)
+        {
+            return (((X << 4) + ((X >> 24) & 0x0fffffff)) + Y);
+        }
+
+        /* Return a hash for string PTR which has length LEN.  The hash
+           code returned is guaranteed to fit in a Lisp integer.  */
+        public static uint sxhash_string(byte[] ptr, int len)
+        {
+            int p = 0;
+            int end = len;
+            byte c;
+            uint hash = 0;
+
+            while (p != end)
+            {
+                c = ptr[p++];
+                if (c >= 0140)
+                    c -= 40;
+                hash = ((hash << 4) + (hash >> 28) + c);
+            }
+
+            return hash;
+        }
+
+        /* Return a hash for list LIST.  DEPTH is the current depth in the
+           list.  We don't recurse deeper than SXHASH_MAX_DEPTH in it.  */
+        public static uint sxhash_list(LispObject list, int depth)
+        {
+            uint hash = 0;
+            int i;
+
+            if (depth < SXHASH_MAX_DEPTH)
+                for (i = 0;
+                 CONSP(list) && i < SXHASH_MAX_LEN;
+                 list = XCDR(list), ++i)
+                {
+                    uint hash2 = sxhash(XCAR(list), depth + 1);
+                    hash = SXHASH_COMBINE(hash, hash2);
+                }
+
+            if (!NILP(list))
+            {
+                uint hash2 = sxhash(list, depth + 1);
+                hash = SXHASH_COMBINE(hash, hash2);
+            }
+
+            return hash;
+        }
+
+        /* Return a hash for vector VECTOR.  DEPTH is the current depth in
+           the Lisp structure.  */
+        public static uint sxhash_vector(LispObject vec, int depth)
+        {
+            uint hash = (uint)ASIZE(vec);
+            int i, n;
+
+            n = System.Math.Min(SXHASH_MAX_LEN, ASIZE(vec));
+            for (i = 0; i < n; ++i)
+            {
+                uint hash2 = sxhash(AREF(vec, i), depth + 1);
+                hash = SXHASH_COMBINE(hash, hash2);
+            }
+
+            return hash;
+        }
+
+        /* Return a hash for bool-vector VECTOR.  */
+        public static uint sxhash_bool_vector(LispObject vec)
+        {
+            uint hash = (uint)XBOOL_VECTOR(vec).Size;
+            int i, n;
+
+            n = System.Math.Min(SXHASH_MAX_LEN, XBOOL_VECTOR(vec).Size / LispBoolVector.BOOL_VECTOR_BITS_PER_CHAR);
+            for (i = 0; i < n; ++i)
+                hash = SXHASH_COMBINE(hash, XBOOL_VECTOR(vec)[i]);
+
+            return hash;
+        }
+
+        /* Return a hash code for OBJ.  DEPTH is the current depth in the Lisp
+           structure.  Value is an unsigned integer clipped to INTMASK.  */
+        public static uint sxhash(LispObject obj, int depth)
+        {
+            uint hash;
+
+            if (depth > SXHASH_MAX_DEPTH)
+                return 0;
+
+            if (obj is LispInt)
+            {
+                hash = XUINT(obj);
+            }
+            else if (obj is LispMisc)
+            {
+                hash = (uint)obj.GetHashCode();
+            }
+            else if (obj is LispSymbol)
+            {
+                obj = SYMBOL_NAME(obj);
+                hash = sxhash_string(SDATA(obj), SCHARS(obj));
+            }
+            else if (obj is LispString)
+            {
+                hash = sxhash_string(SDATA(obj), SCHARS(obj));
+            }
+            else if (obj is LispVectorLike<LispObject>)
+            {
+                /* This can be everything from a vector to an overlay.  */
+                if (VECTORP(obj))
+                    /* According to the CL HyperSpec, two arrays are equal only if
+                       they are `eq', except for strings and bit-vectors.  In
+                       Emacs, this works differently.  We have to compare element
+                       by element.  */
+                    hash = sxhash_vector(obj, depth);
+                else if (BOOL_VECTOR_P(obj))
+                    hash = sxhash_bool_vector(obj);
+                else
+                    /* Others are `equal' if they are `eq', so let's take their
+                       address as hash.  */
+                    hash = (uint)obj.GetHashCode();
+            }
+            else if (obj is LispCons)
+            {
+                hash = sxhash_list(obj, depth);
+            }
+            else if (obj is LispFloat)
+            {
+                hash = (uint)XFLOAT(obj).GetHashCode();
+            }
+            else
+            {
+                abort();
+                return 0;
+            }
+
+            return hash;
+        }
+
+
+
+        /* Compare KEY1 which has hash code HASH1 and KEY2 with hash code
+           HASH2 in hash table H using `eql'.  Value is non-zero if KEY1 and
+           KEY2 are the same.  */
+
+        public static bool cmpfn_eql (LispHashTable h, LispObject key1, uint hash1, LispObject key2, uint hash2)
+        {
+            return (FLOATP (key1) &&
+                    FLOATP (key2) &&
+                    XFLOAT_DATA (key1) == XFLOAT_DATA (key2));
+        }
+
+        /* Compare KEY1 which has hash code HASH1 and KEY2 with hash code
+           HASH2 in hash table H using `equal'.  Value is non-zero if KEY1 and
+           KEY2 are the same.  */
+        public static bool cmpfn_equal (LispHashTable h, LispObject key1, uint hash1, LispObject key2, uint hash2)
+        {
+            return hash1 == hash2 && !NILP (F.equal (key1, key2));
+        }
+
+        /* Compare KEY1 which has hash code HASH1, and KEY2 with hash code
+           HASH2 in hash table H using H->user_cmp_function.  Value is non-zero
+           if KEY1 and KEY2 are the same.  */
+        public static bool cmpfn_user_defined (LispHashTable h, LispObject key1, uint hash1, LispObject key2, uint hash2)
+        {
+            if (hash1 == hash2)
+            {
+                return !NILP(F.funcall(3, h.user_cmp_function, key1, key2));
+            }
+            else
+                return false;
+        }
+
+        /* Value is a hash code for KEY for use in hash table H which uses
+           `eq' to compare keys.  The hash code returned is guaranteed to fit
+           in a Lisp integer.  */
+        public static uint hashfn_eq (LispHashTable h, LispObject key)
+        {
+            return (uint) key.GetHashCode();
+        }
+
+        /* Value is a hash code for KEY for use in hash table H which uses
+           `eql' to compare keys.  The hash code returned is guaranteed to fit
+           in a Lisp integer.  */
+        public static uint hashfn_eql (LispHashTable h, LispObject key)
+        {
+            uint hash;
+            if (FLOATP (key))
+                hash = sxhash (key, 0);
+            else
+                hash = (uint)key.GetHashCode();
+            return hash;
+        }
+
+        /* Value is a hash code for KEY for use in hash table H which uses
+           `equal' to compare keys.  The hash code returned is guaranteed to fit
+           in a Lisp integer.  */
+        public static uint hashfn_equal (LispHashTable h, LispObject key)
+        {
+            uint hash = sxhash (key, 0);
+            return hash;
+        }
+
+        /* Value is a hash code for KEY for use in hash table H which uses as
+           user-defined function to compare keys.  The hash code returned is
+           guaranteed to fit in a Lisp integer.  */
+
+        public static uint hashfn_user_defined (LispHashTable h, LispObject key)
+        {
+            LispObject hash = F.funcall (2, h.user_hash_function, key);
+            if (!INTEGERP (hash))
+                signal_error ("Invalid hash code returned from user-supplied hash function", hash);
+            return XUINT (hash);
+        }
+
+        /* Create and initialize a new hash table.
+
+           TEST specifies the test the hash table will use to compare keys.
+           It must be either one of the predefined tests `eq', `eql' or
+           `equal' or a symbol denoting a user-defined test named TEST with
+           test and hash functions USER_TEST and USER_HASH.
+
+           Give the table initial capacity SIZE, SIZE >= 0, an integer.
+
+           If REHASH_SIZE is an integer, it must be > 0, and this hash table's
+           new size when it becomes full is computed by adding REHASH_SIZE to
+           its old size.  If REHASH_SIZE is a float, it must be > 1.0, and the
+           table's new size is computed by multiplying its old size with
+           REHASH_SIZE.
+
+           REHASH_THRESHOLD must be a float <= 1.0, and > 0.  The table will
+           be resized when the ratio of (number of entries in the table) /
+           (table size) is >= REHASH_THRESHOLD.
+
+           WEAK specifies the weakness of the table.  If non-nil, it must be
+           one of the symbols `key', `value', `key-or-value', or `key-and-value'.  */
+        public static LispObject make_hash_table (LispObject test, LispObject size, LispObject rehash_size, LispObject rehash_threshold,
+                                                  LispObject weak, LispObject user_test, LispObject user_hash)
+        {
+            LispHashTable h;
+            int index_size, i, sz;
+
+            /* Preconditions.  */
+#if READY_FOR_ASSERTS
+            xassert (SYMBOLP (test));
+            xassert (INTEGERP (size) && XINT (size) >= 0);
+            xassert ((INTEGERP (rehash_size) && XINT (rehash_size) > 0)
+                     || (FLOATP (rehash_size) && XFLOATINT (rehash_size) > 1.0));
+            xassert (FLOATP (rehash_threshold)
+                     && XFLOATINT (rehash_threshold) > 0
+                     && XFLOATINT (rehash_threshold) <= 1.0);
+#endif
+
+            if (XINT (size) == 0)
+                size = make_number (1);
+
+            /* Allocate a table and initialize it.  */
+            h = new LispHashTable ();
+
+            /* Initialize hash table slots.  */
+            sz = XINT (size);
+
+            h.test = test;
+            if (EQ (test, Q.eql))
+            {
+                h.cmpfn = cmpfn_eql;
+                h.hashfn = hashfn_eql;
+            }
+            else if (EQ (test, Q.eq))
+            {
+                h.cmpfn = null;
+                h.hashfn = hashfn_eq;
+            }
+            else if (EQ (test, Q.equal))
+            {
+                h.cmpfn = cmpfn_equal;
+                h.hashfn = hashfn_equal;
+            }
+            else
+            {
+                h.user_cmp_function = user_test;
+                h.user_hash_function = user_hash;
+                h.cmpfn = cmpfn_user_defined;
+                h.hashfn = hashfn_user_defined;
+            }
+
+            h.weak = weak;
+            h.rehash_threshold = rehash_threshold;
+            h.rehash_size = rehash_size;
+            h.count = 0;
+            h.key_and_value = F.make_vector (make_number (2 * sz), Q.nil);
+            h.hash = F.make_vector (size, Q.nil);
+            h.next = F.make_vector (size, Q.nil);
+            /* Cast to int here avoids losing with gcc 2.95 on Tru64/Alpha...  */
+            index_size = next_almost_prime ((int) (sz / XFLOATINT (rehash_threshold)));
+            h.index = F.make_vector (make_number (index_size), Q.nil);
+
+            /* Set up the free list.  */
+            for (i = 0; i < sz - 1; ++i)
+            {
+                ASET(h.next, i, make_number(i + 1));
+            }
+            h.next_free = make_number (0);
+
+            /* Maybe add this hash table to the list of all weak hash tables.  */
+            if (NILP (h.weak))
+                h.next_weak = null;
+            else
+            {
+                h.next_weak = weak_hash_tables;
+                weak_hash_tables = h;
+            }
+
+            return h;
+        }
+        
+        public static int hash_lookup(LispHashTable h, LispObject key)
         {
             uint stupid = 0;
             return hash_lookup(h, key, ref stupid);
@@ -546,7 +896,7 @@
         /* Lookup KEY in hash table H.  If HASH is non-null, return in *HASH
            the hash code of KEY.  Value is the index of the entry in H
            matching KEY, or -1 if not found.  */
-        public static int hash_lookup (LispHash h, LispObject key, ref uint hash)
+        public static int hash_lookup (LispHashTable h, LispObject key, ref uint hash)
         {
 #if COMEBACK_LATER
   unsigned hash_code;

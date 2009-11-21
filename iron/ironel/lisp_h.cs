@@ -195,6 +195,16 @@ namespace IronElisp
             return x is LispSymbol;
         }
 
+        public static LispFloat XFLOAT(LispObject a)
+        {
+            return a as LispFloat;
+        }
+
+        public static double XFLOATINT(LispObject n)
+        {
+            return extract_float(n);
+        }
+
         public static LispSymbol XSYMBOL(LispObject x)
         {
             return x as LispSymbol;
@@ -376,6 +386,16 @@ namespace IronElisp
             CHECK_TYPE(INTEGERP(x), Q.integerp, x);
         }
 
+        public static void CHECK_NUMBER_OR_FLOAT(LispObject x)
+        {
+            CHECK_TYPE(FLOATP(x) || INTEGERP(x), Q.numberp, x);
+        }
+
+        public static double XFLOAT_DATA(LispObject f)
+        {
+            return XFLOAT(f).val;
+        }
+
         public static void CHECK_NATNUM(LispObject x)
         {
             CHECK_TYPE (NATNUMP (x), Q.wholenump, x);
@@ -410,6 +430,11 @@ namespace IronElisp
             return x is LispInt;
         }
 
+        public static bool FLOATP(LispObject x)
+        {
+            return x is LispFloat;
+        }
+
         public static bool NATNUMP(LispObject x)
         {
             return (INTEGERP (x) && XINT (x) >= 0);
@@ -418,6 +443,11 @@ namespace IronElisp
         public static int XINT(LispObject x)
         {
             return (x as LispInt).val;
+        }
+
+        public static uint XUINT (LispObject x)
+        {
+            return (uint) XINT (x); 
         }
 
         public static bool SYMBOL_INTERNED_IN_INITIAL_OBARRAY_P(LispObject sym)
@@ -482,18 +512,47 @@ namespace IronElisp
                 V.current_load_list = F.cons(x, V.current_load_list);
         }
 
-        public static LispHash XHASH_TABLE(LispObject x)
+        public static LispHashTable XHASH_TABLE(LispObject x)
         {
-            return x as LispHash;
+            return x as LispHashTable;
+        }
+
+        /* Value is the key part of entry IDX in hash table H.  */
+        public static LispObject HASH_KEY(LispHashTable H, int IDX)
+        {
+            return AREF(H.key_and_value, 2 * (IDX));
         }
 
         /* Value is the value part of entry IDX in hash table H.  */
-        public static LispObject HASH_VALUE(LispHash H, int IDX)
+        public static LispObject HASH_VALUE(LispHashTable H, int IDX)
         {
-#if COMEBACK_LATER
-            AREF((H)->key_and_value, 2 * (IDX) + 1);
-#endif
-            throw new System.Exception("No hash yet");
+            return AREF(H.key_and_value, 2 * (IDX) + 1);
+        }
+
+        /* Value is the index of the next entry following the one at IDX
+           in hash table H.  */
+        public static LispObject HASH_NEXT(LispHashTable H, int IDX)
+        {
+            return AREF(H.next, IDX);
+        }
+
+        /* Value is the hash code computed for entry IDX in hash table H.  */
+        public static LispObject HASH_HASH(LispHashTable H, int IDX)
+        {
+            return AREF(H.hash, IDX);
+        }
+
+        /* Value is the index of the element in hash table H that is the
+           start of the collision list at index IDX in the index vector of H.  */
+        public static LispObject HASH_INDEX(LispHashTable H, int IDX)
+        {
+            return AREF(H.index, IDX);
+        }
+
+        /* Value is the size of hash table H.  */
+        public static int HASH_TABLE_SIZE(LispHashTable H)
+        {
+            return XVECTOR(H.next).Size;
         }
 
         /* Almost equivalent to Faref (CT, IDX) with optimization for ASCII
