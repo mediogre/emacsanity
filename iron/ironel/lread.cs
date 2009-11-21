@@ -732,6 +732,86 @@ it defaults to the value of `obarray'.");
             L.XVECTOR (obarray)[L.XINT (tem)] = sym;
             return sym;
         }
+
+        public static LispObject intern_soft (LispObject name, LispObject obarray)
+        {
+            LispObject tem, str;
+
+            if (L.NILP (obarray)) obarray = V.obarray;
+            obarray = L.check_obarray (obarray);
+
+            if (!L.SYMBOLP (name))
+            {
+                L.CHECK_STRING (name);
+                str = name;
+            }
+            else
+                str = L.SYMBOL_NAME (name);
+
+            tem = L.oblookup (obarray, L.SDATA (str), L.SCHARS (str), L.SBYTES (str));
+            if (L.INTEGERP (tem) || (L.SYMBOLP (name) && !L.EQ (name, tem)))
+                return Q.nil;
+            else
+                return tem;
+        }
+
+        public static LispObject unintern(LispObject name, LispObject obarray)
+        {
+            LispObject str, tem;
+            int hash;
+
+            if (L.NILP (obarray)) obarray = V.obarray;
+            obarray = L.check_obarray (obarray);
+
+            if (L.SYMBOLP (name))
+                str = L.SYMBOL_NAME (name);
+            else
+            {
+                L.CHECK_STRING (name);
+                str = name;
+            }
+
+            tem = L.oblookup (obarray, L.SDATA (str),
+                            L.SCHARS (str),
+                            L.SBYTES (str));
+            if (L.INTEGERP (tem))
+                return Q.nil;
+            /* If arg was a symbol, don't delete anything but that symbol itself.  */
+            if (L.SYMBOLP (name) && !L.EQ (name, tem))
+                return Q.nil;
+
+            L.XSYMBOL (tem).Interned = LispSymbol.symbol_interned.SYMBOL_UNINTERNED;
+            L.XSYMBOL (tem).Constant = false;
+            L.XSYMBOL (tem).IsIndirectVariable = false;
+
+            hash = L.oblookup_last_bucket_number;
+
+            if (L.EQ (L.XVECTOR (obarray)[hash], tem))
+            {
+                if (L.XSYMBOL (tem).next != null)
+                    L.XVECTOR (obarray)[hash] = L.XSYMBOL (tem).next;
+                else
+                    L.XVECTOR (obarray)[hash] = L.make_number (0);
+            }
+            else
+            {
+                LispObject tail, following;
+
+                for (tail = L.XVECTOR (obarray)[hash];
+                     L.XSYMBOL (tail).next != null;
+                     tail = following)
+                {
+                    following = L.XSYMBOL (tail).next;
+                    if (L.EQ (following, tem))
+                    {
+                        L.XSYMBOL (tail).next = L.XSYMBOL (following).next;
+                        break;
+                    }
+                }
+            }
+
+            return Q.t;
+        }
     }
 
     public partial class L
