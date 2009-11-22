@@ -180,24 +180,25 @@
             System.Array.Copy(contents, from, data, to, length);
         }
 
+        // returns inverted boolean to match C bcmp result
         public bool bcmp(byte[] other)
         {
             if (ReferenceEquals(data, other))
-                return true;
+                return false;
 
             if (other == null)
-                return false;
+                return true;
 
             if (other.Length != data.Length)
-                return false;
+                return true;
 
             for (int i = 0; i < data.Length; i++)
             {
                 if (data[i] != other[i])
-                    return false;
+                    return true;
             }
 
-            return true;
+            return false;
         }
     }
 
@@ -747,7 +748,22 @@
         /* This is the size in bits.  */
         int size;
         /* This contains the actual bits, packed into bytes.  */
-        byte[] data;
+        public byte[] data;
+
+        public LispBoolVector(int length, byte init)
+        {
+            size = length;
+
+            int length_in_chars = (length + BOOL_VECTOR_BITS_PER_CHAR - 1) / BOOL_VECTOR_BITS_PER_CHAR;
+            data = new byte[length_in_chars];
+
+            for (int i = 0; i < length_in_chars; i++)
+                data[i] = (byte) init;
+
+            /* Clear the extraneous bits in the last byte.  */
+            if (length != length_in_chars * BOOL_VECTOR_BITS_PER_CHAR)
+                data[length_in_chars - 1] &= (byte)((1 << (length % BOOL_VECTOR_BITS_PER_CHAR)) - 1);
+        }
 
         public int Size
         {
@@ -768,7 +784,32 @@
             {
                 data[index] = value;
             }
-        }        
+        }
+
+        public void bcopy(byte[] other, int length)
+        {
+            System.Array.Copy(other, data, length);
+        }
+
+        public bool bcmp(byte[] other)
+        {
+            if (ReferenceEquals(data, other))
+                return false;
+
+            if (other == null)
+                return true;
+
+            if (other.Length != data.Length)
+                return true;
+
+            for (int i = 0; i < data.Length; i++)
+            {
+                if (data[i] != other[i])
+                    return true;
+            }
+
+            return false;
+        }
     }
 
     public class LispHashTable : LispVectorLike<LispObject>

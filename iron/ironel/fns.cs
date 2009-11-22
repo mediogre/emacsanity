@@ -477,21 +477,28 @@
                 goto tail_recurse;
             }
 
-            // COMEBACK_WHEN_READY!!!
-            /*
-            switch (XTYPE (o1))
+            if (FLOATP(o1))
             {
-            case Lisp_Float:
-                {
-                    double d1, d2;
+                double d1, d2;
 
-                    d1 = extract_float (o1);
-                    d2 = extract_float (o2);
+                d1 = extract_float(o1);
+                d2 = extract_float(o2);
                     // If d is a NaN, then d != d. Two NaNs should be `equal' even
                     // though they are not =. 
-                    return d1 == d2 || (d1 != d1 && d2 != d2);
-                }
+                return d1 == d2 || (d1 != d1 && d2 != d2);
+            }
 
+            // Boolvectors are compared much like strings.  
+            if (BOOL_VECTOR_P(o1))
+            {
+                if (XBOOL_VECTOR(o1).Size != XBOOL_VECTOR(o2).Size)
+                    return false;
+                if (XBOOL_VECTOR(o1).bcmp(XBOOL_VECTOR(o2).data))
+                    return false;
+                return true;
+            }
+            // COMEBACK_WHEN_READY!!!
+            /*
             case Lisp_Vectorlike:
                 {
                     register int i;
@@ -501,20 +508,7 @@
                     // same size.  
                     if (ASIZE (o2) != size)
                         return 0;
-                    // Boolvectors are compared much like strings.  
-                    if (BOOL_VECTOR_P (o1))
-                    {
-                        int size_in_chars
-                            = ((XBOOL_VECTOR (o1)->size + BOOL_VECTOR_BITS_PER_CHAR - 1)
-                               / BOOL_VECTOR_BITS_PER_CHAR);
 
-                        if (XBOOL_VECTOR (o1)->size != XBOOL_VECTOR (o2)->size)
-                            return 0;
-                        if (bcmp (XBOOL_VECTOR (o1)->data, XBOOL_VECTOR (o2)->data,
-                                  size_in_chars))
-                            return 0;
-                        return 1;
-                    }
                     if (WINDOW_CONFIGURATIONP (o1))
                         return compare_window_configurations (o1, o2, 0);
 
@@ -677,6 +671,10 @@
             {
                 hash = sxhash_string(SDATA(obj), SCHARS(obj));
             }
+            else if (obj is LispBoolVector)
+            {
+                hash = sxhash_bool_vector(obj);
+            }
             else if (obj is LispVectorLike<LispObject>)
             {
                 /* This can be everything from a vector to an overlay.  */
@@ -686,8 +684,6 @@
                        Emacs, this works differently.  We have to compare element
                        by element.  */
                     hash = sxhash_vector(obj, depth);
-                else if (BOOL_VECTOR_P(obj))
-                    hash = sxhash_bool_vector(obj);
                 else
                     /* Others are `equal' if they are `eq', so let's take their
                        address as hash.  */

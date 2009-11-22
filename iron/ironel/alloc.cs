@@ -270,6 +270,13 @@
             return val;
         }
 
+        public static LispObject make_bool_vector(LispObject length, LispObject init)
+        {
+            L.CHECK_NATNUM (length);
+            byte real_init = (byte) (L.NILP(init) ? 0 : -1);
+            return new LispBoolVector(L.XINT(length), real_init);
+        }
+
         public static LispObject make_string (LispObject length, LispObject init)
         {
             LispObject val;

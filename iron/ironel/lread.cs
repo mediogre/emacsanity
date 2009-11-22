@@ -1299,7 +1299,7 @@ it defaults to the value of `obarray'.");
                     }
                     invalid_syntax ("#^", 2);
                 }
-
+#endif
                 if (c == '&')
                 {
                     LispObject length;
@@ -1308,9 +1308,8 @@ it defaults to the value of `obarray'.");
                     if (c == '"')
                     {
                         LispObject tmp, val;
-                        int size_in_chars
-                            = ((XINT (length) + BOOL_VECTOR_BITS_PER_CHAR - 1)
-                               / BOOL_VECTOR_BITS_PER_CHAR);
+                        int size_in_chars = ((XINT (length) + LispBoolVector.BOOL_VECTOR_BITS_PER_CHAR - 1)
+                               / LispBoolVector.BOOL_VECTOR_BITS_PER_CHAR);
 
                         unreadchar (readcharfun, c);
                         tmp = read1 (readcharfun, out pch, first_in_list);
@@ -1321,21 +1320,20 @@ it defaults to the value of `obarray'.");
                                    Accept such input in case it came from an old
                                    version.  */
                                 && ! (XINT (length)
-                                      == (SCHARS (tmp) - 1) * BOOL_VECTOR_BITS_PER_CHAR)))
-                            invalid_syntax ("#&...", 5);
+                                      == (SCHARS (tmp) - 1) * LispBoolVector.BOOL_VECTOR_BITS_PER_CHAR)))
+                            invalid_syntax ("#&...");
 
                         val = F.make_bool_vector (length, Q.nil);
-                        bcopy (SDATA (tmp), XBOOL_VECTOR (val)->data,
-                               size_in_chars);
+                        XBOOL_VECTOR(val).bcopy(SDATA(tmp), size_in_chars);
                         /* Clear the extraneous bits in the last byte.  */
-                        if (XINT (length) != size_in_chars * BOOL_VECTOR_BITS_PER_CHAR)
-                            XBOOL_VECTOR (val)->data[size_in_chars - 1]
-                                &= (1 << (XINT (length) % BOOL_VECTOR_BITS_PER_CHAR)) - 1;
+                        if (XINT (length) != size_in_chars * LispBoolVector.BOOL_VECTOR_BITS_PER_CHAR)
+                            XBOOL_VECTOR (val)[size_in_chars - 1]
+                                &= (byte)((1 << (XINT (length) % LispBoolVector.BOOL_VECTOR_BITS_PER_CHAR)) - 1);
                         return val;
                     }
-                    invalid_syntax ("#&...", 5);
+                    invalid_syntax ("#&...");
                 }
-#endif
+
                 if (c == '[')
                 {
                     /* Accept compiled functions at read-time so that we don't have to
