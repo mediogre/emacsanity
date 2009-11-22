@@ -82,6 +82,11 @@ namespace IronElisp
             return x is LispCharTable;
         }
 
+        public static bool SUB_CHAR_TABLE_P(LispObject x)
+        {
+            return x is LispSubCharTable;
+        }
+
         public static bool BOOL_VECTOR_P(LispObject x)
         {
             return x is LispBoolVector;
@@ -555,18 +560,46 @@ namespace IronElisp
             return XVECTOR(H.next).Size;
         }
 
+        /* A char-table is a kind of vectorlike, with contents are like a
+           vector but with a few other slots.  For some purposes, it makes
+           sense to handle a char-table with type struct Lisp_Vector.  An
+           element of a char table can be any Lisp objects, but if it is a sub
+           char-table, we treat it a table that contains information of a
+           specific range of characters.  A sub char-table has the same
+           structure as a vector.  A sub char table appears only in an element
+           of a char-table, and there's no way to access it directly from
+           Emacs Lisp program.  */
+
+        /* This is the number of slots that every char table must have.  This
+           counts the ordinary slots and the top, defalt, parent, and purpose
+           slots.  */
+        public const int CHAR_TABLE_STANDARD_SLOTS = LispCharTable.VECSIZE - 1; 
+
+        /* Return the number of "extra" slots in the char table CT.  */
+        public static int CHAR_TABLE_EXTRA_SLOTS(LispCharTable CT)
+        {
+            return CT.Size - CHAR_TABLE_STANDARD_SLOTS; 
+        }
+
         /* Almost equivalent to Faref (CT, IDX) with optimization for ASCII
            characters.  Do not check validity of CT.  */
         public static LispObject CHAR_TABLE_REF(LispObject CT, uint IDX)
         {
-#if COMEBACK_LATER
-  ((ASCII_CHAR_P (IDX)							 \
-    && SUB_CHAR_TABLE_P (XCHAR_TABLE (CT)->ascii)			 \
-    && !NILP (XSUB_CHAR_TABLE (XCHAR_TABLE (CT)->ascii)->contents[IDX])) \
-   ? XSUB_CHAR_TABLE (XCHAR_TABLE (CT)->ascii)->contents[IDX]		 \
-   : char_table_ref ((CT), (IDX)))
-#endif
-            throw new System.Exception("Come back with hashes");
+            return ((ASCII_CHAR_P (IDX)	&& 
+                     SUB_CHAR_TABLE_P (XCHAR_TABLE (CT).ascii) &&
+                     !NILP (XSUB_CHAR_TABLE (XCHAR_TABLE (CT).ascii).contents((int) IDX))) ?
+                      XSUB_CHAR_TABLE (XCHAR_TABLE (CT).ascii).contents((int) IDX) :
+                      char_table_ref(CT, (int) IDX));
+        }
+
+        public static LispCharTable XCHAR_TABLE(LispObject a)
+        {
+            return a as LispCharTable;
+        }
+
+        public static LispSubCharTable XSUB_CHAR_TABLE(LispObject a)
+        {
+            return a as LispSubCharTable;
         }
     }
 }

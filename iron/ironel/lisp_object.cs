@@ -669,20 +669,20 @@
         }        
     }
 
-    // LispCharTable is said to be used just like LispVector sometimes.
-    // This means that we'll need to have an indexer which will map indices into fields, like:
-    // 0 -> defalt
-    // 1 -> parent
-    // etc
-    // or we could write properties Default {get {return content[0];}}
-    // Either way we'll need to create these mappings from contents array to discrete fields. 
     public class LispCharTable : LispVectorLike<LispObject>
     {
+        private LispVector v_;
+
+        public LispCharTable(LispVector v)
+        {
+            v_ = v;
+        }
+
         public int Size
         {
             get
             {
-                throw new System.Exception("Comeback");
+                return v_.Size;
             }
         }
 
@@ -690,52 +690,138 @@
         {
             get
             {
-                throw new System.Exception("Comeback");
+                return v_[index];
             }
 
             set
             {
-                throw new System.Exception("Comeback");
+                v_[index] = value;
             }
         }    
+
         public const int CHARTAB_SIZE_BITS_0 = 6;
         public const int CHARTAB_SIZE_BITS_1 = 4;
         public const int CHARTAB_SIZE_BITS_2 = 5;
         public const int CHARTAB_SIZE_BITS_3 = 7;
 
-        /* This is the vector's size field, which also holds the
-           pseudovector type information.  It holds the size, too.
-           The size counts the defalt, parent, purpose, ascii,
-           contents, and extras slots.  */
-        // EMACS_UINT size;
-        // struct Lisp_Vector *next;
-
         /* This holds a default value,
            which is used whenever the value for a specific character is nil.  */
-        LispObject defalt;
+        public LispObject defalt
+        {
+            get { return this[0]; }
+            set { this[0] = value; }
+        }
 
         /* This points to another char table, which we inherit from when the
            value for a specific character is nil.  The `defalt' slot takes
            precedence over this.  */
-        LispObject parent;
+        public LispObject parent
+        {
+            get { return this[1]; }
+            set { this[1] = value; }
+        }
 
         /* This is a symbol which says what kind of use this char-table is
            meant for.  */
-        LispObject purpose;
+        public LispObject purpose
+        {
+            get { return this[2]; }
+            set { this[2] = value; }
+        }
 
         /* The bottom sub char-table for characters of the range 0..127.  It
            is nil if none of ASCII character has a specific value.  */
-        LispObject ascii;
+        public LispObject ascii
+        {
+            get { return this[3]; }
+            set { this[3] = value; }
+        }
 
-        LispObject[] contents = new LispObject[1 << CHARTAB_SIZE_BITS_0];
+        public LispObject contents(int i)
+        {
+            return this[3 + i];
+        }
+
+        public void set_contents(int i, LispObject value)
+        {
+            this[3 + i] = value;
+        }
 
         /* These hold additional data.  It is a vector.  */
-        LispObject[] extras;
-
-        public LispCharTable(int n_extras)
+        public LispObject extras(int i)
         {
-            extras = new LispObject[n_extras];
+            return this[3 + (1 << CHARTAB_SIZE_BITS_0) + i];
         }
+
+        public void set_extras(int i, LispObject value)
+        {
+            this[3 + (1 << CHARTAB_SIZE_BITS_0) + i] = value;
+        }
+
+        public const int VECSIZE = 5 + (1 << CHARTAB_SIZE_BITS_0);
+    }
+
+    public class LispSubCharTable : LispVectorLike<LispObject>
+    {
+        private LispVector v_;
+
+        public LispSubCharTable(LispVector v)
+        {
+            v_ = v;
+        }
+
+        public int Size
+        {
+            get
+            {
+                return v_.Size;
+            }
+        }
+
+        public LispObject this[int index]
+        {
+            get
+            {
+                return v_[index];
+            }
+
+            set
+            {
+                v_[index] = value;
+            }
+        }    
+
+
+        /* Depth of this sub char-table.  It should be 1, 2, or 3.  A sub
+           char-table of depth 1 contains 16 elments, and each element
+           covers 4096 (128*32) characters.  A sub char-table of depth 2
+           contains 32 elements, and each element covers 128 characters.  A
+           sub char-table of depth 3 contains 128 elements, and each element
+           is for one character.  */
+        public LispObject depth
+        {
+            get { return this[0]; }
+            set { this[0] = value; }
+        }
+
+        /* Minimum character covered by the sub char-table.  */
+        public LispObject min_char
+        {
+            get { return this[1]; }
+            set { this[1] = value; }
+        }
+
+        public LispObject contents(int i)
+        {
+            return this[i + 2];
+        }
+
+        public void set_contents(int i, LispObject value)
+        {
+            this[i + 2] = value;
+        }
+
+        public const int VECSIZE = 3;
     }
 
     /* A boolvector is a kind of vectorlike, with contents are like a string.  */

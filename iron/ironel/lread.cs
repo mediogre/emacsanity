@@ -1263,17 +1263,16 @@ it defaults to the value of `obarray'.");
 
             case '#':
                 c = readchar(readcharfun);
-#if COMEBACK_LATER
+
                 if (c == '^')
                 {
                     c = readchar(readcharfun);
                     if (c == '[')
                     {
-                        LispObject tmp = read_vector (readcharfun, 0);
+                        LispObject tmp = read_vector (readcharfun, false);
                         if (XVECTOR (tmp).Size < CHAR_TABLE_STANDARD_SLOTS)
                             error ("Invalid size char-table");
-                        XSETPVECTYPE (XVECTOR (tmp), PVEC_CHAR_TABLE);
-                        return tmp;
+                        return new LispCharTable(XVECTOR(tmp));
                     }
                     else if (c == '^')
                     {
@@ -1283,23 +1282,22 @@ it defaults to the value of `obarray'.");
                             LispObject tmp;
                             int depth, size;
 
-                            tmp = read_vector (readcharfun, 0);
+                            tmp = read_vector (readcharfun, false);
                             if (!INTEGERP (AREF (tmp, 0)))
                                 error ("Invalid depth in char-table");
                             depth = XINT (AREF (tmp, 0));
                             if (depth < 1 || depth > 3)
                                 error ("Invalid depth in char-table");
-                            size = XVECTOR (tmp)->size - 2;
+                            size = XVECTOR (tmp).Size - 2;
                             if (chartab_size [depth] != size)
                                 error ("Invalid size char-table");
-                            XSETPVECTYPE (XVECTOR (tmp), PVEC_SUB_CHAR_TABLE);
-                            return tmp;
+                            return new LispSubCharTable(XVECTOR(tmp));
                         }
-                        invalid_syntax ("#^^", 3);
+                        invalid_syntax ("#^^");
                     }
-                    invalid_syntax ("#^", 2);
+                    invalid_syntax ("#^");
                 }
-#endif
+
                 if (c == '&')
                 {
                     LispObject length;

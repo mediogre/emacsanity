@@ -47,6 +47,7 @@
     <Compile Include="callint.cs" />
     <Compile Include="character.cs" />
     <Compile Include="charset.cs" />
+    <Compile Include="chartab.cs" />
     <Compile Include="coding.cs" />
     <Compile Include="commands.cs" />
     <Compile Include="composite.cs" />
