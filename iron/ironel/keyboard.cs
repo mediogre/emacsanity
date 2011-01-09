@@ -196,7 +196,7 @@
 
     public partial class L
     {
-        public static bool immediate_quit = false;
+        public static int immediate_quit = 0;
         public static bool waiting_for_input = false;
 
         /* Total number of times read_char has returned, outside of macros.  */
@@ -212,6 +212,13 @@
         {
             get { return Defs.O[(int)Objects.top_level]; }
             set { Defs.O[(int)Objects.top_level] = value; }
+        }
+
+        /* Non-nil means deactivate the mark at end of this command.  */
+        public static LispObject deactivate_mark
+        {
+            get { return Defs.O[(int)Objects.deactivate_mark]; }
+            set { Defs.O[(int)Objects.deactivate_mark] = value; }
         }
     }
 

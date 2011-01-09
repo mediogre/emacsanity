@@ -64,6 +64,7 @@
     <Compile Include="CharacterTest.cs" />
     <Compile Include="InternTest.cs" />
     <Compile Include="LreadTest.cs" />
+    <Compile Include="SearchTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ironel\ironel.csproj">

@@ -19,9 +19,61 @@
 
     public partial class L
     {
+        /* Extract a substring of STRING, giving start and end positions
+           both in characters and in bytes.  */
+        public static LispObject substring_both(LispObject stringg, int from, int from_byte, int to, int to_byte)
+        {
+            LispObject res;
+            int size;
+            int size_byte;
+
+            CHECK_VECTOR_OR_STRING(stringg);
+
+            if (STRINGP(stringg))
+            {
+                size = SCHARS(stringg);
+                size_byte = SBYTES(stringg);
+            }
+            else
+                size = ASIZE(stringg);
+
+            if (!(0 <= from && from <= to && to <= size))
+                args_out_of_range_3(stringg, make_number(from), make_number(to));
+
+            if (STRINGP(stringg))
+            {
+                res = make_specified_string(SDATA(stringg), from_byte,
+                             to - from, to_byte - from_byte,
+                             STRING_MULTIBYTE(stringg));
+                copy_text_properties(make_number(from), make_number(to),
+                          stringg, make_number(0), res, Q.nil);
+            }
+            else
+            {
+                LispObject[] tmp = new LispObject[to - from];
+                for (int i = 0; i < to - from; i++)
+                {
+                    tmp[i] = AREF(stringg, from + i);
+                }
+                res = F.vector(to - from, tmp);
+            }
+
+            return res;
+        }
+
+        public static LispObject nconc2 (LispObject s1, LispObject s2)
+        {
+              return F.nconc (2, new LispObject[] {s1, s2});
+        }
+
         public static LispObject concat2(LispObject s1, LispObject s2)
         {
             return concat(2, new LispObject[] { s1, s2 }, typeof(LispString), false);
+        }
+
+        public static LispObject concat3(LispObject s1, LispObject s2, LispObject s3)
+        {
+            return concat(3, new LispObject[] { s1, s2, s3 }, typeof(LispString), false);
         }
 
         /* This structure holds information of an argument of `concat' that is
@@ -222,7 +274,7 @@
                         textprops[num_textprops++].to = toindex;
                     }
                     toindex_byte += copy_text (SDATA (thiss),
-                                               SDATA (val), toindex_byte,
+                                               new PtrEmulator<byte>(SDATA (val), toindex_byte),
                                                SCHARS (thiss), false, true);
                     toindex += thisleni;
                 }
@@ -261,8 +313,8 @@
                             {
                                 elt = XSETINT (SREF (thiss, (int) thisindex)); thisindex++;
                                 if (some_multibyte
-                                    && XINT (elt) >= 0200
-                                    && XINT (elt) < 0400)
+                                    && XINT (elt) >= 128
+                                    && XINT (elt) < 256)
                                 {
                                     c = (int) unibyte_char_to_multibyte ((uint) XINT (elt));
                                     elt = XSETINT (c);
@@ -407,6 +459,68 @@
             return i_byte;
         }
 
+        /* Return the character index corresponding to BYTE_INDEX in STRING.  */
+        public static int string_byte_to_char(LispObject stringg, int byte_index)
+        {
+            int i, i_byte;
+            int best_below, best_below_byte;
+            int best_above, best_above_byte;
+
+            best_below = best_below_byte = 0;
+            best_above = SCHARS(stringg);
+            best_above_byte = SBYTES(stringg);
+            if (best_above == best_above_byte)
+                return byte_index;
+
+            if (EQ(stringg, string_char_byte_cache_string))
+            {
+                if (string_char_byte_cache_bytepos < byte_index)
+                {
+                    best_below = string_char_byte_cache_charpos;
+                    best_below_byte = string_char_byte_cache_bytepos;
+                }
+                else
+                {
+                    best_above = string_char_byte_cache_charpos;
+                    best_above_byte = string_char_byte_cache_bytepos;
+                }
+            }
+
+            if (byte_index - best_below_byte < best_above_byte - byte_index)
+            {
+                PtrEmulator<byte> p = new PtrEmulator<byte>(SDATA(stringg), best_below_byte);
+                PtrEmulator<byte> pend = new PtrEmulator<byte>(SDATA(stringg), byte_index);
+
+                while (p < pend)
+                {
+                    p += BYTES_BY_CHAR_HEAD(p.Value);
+                    best_below++;
+                }
+                i = best_below;
+                i_byte = p - SDATA(stringg);
+            }
+            else
+            {
+                PtrEmulator<byte> p = new PtrEmulator<byte>(SDATA(stringg), best_above_byte);
+                PtrEmulator<byte> pbeg = new PtrEmulator<byte>(SDATA(stringg), byte_index);
+
+                while (p > pbeg)
+                {
+                    p--;
+                    while (!CHAR_HEAD_P(p.Value)) p--;
+                    best_above--;
+                }
+                i = best_above;
+                i_byte = p - SDATA(stringg);
+            }
+
+            string_char_byte_cache_bytepos = i_byte;
+            string_char_byte_cache_charpos = i;
+            string_char_byte_cache_string = stringg;
+
+            return i;
+        }
+
         /* Like Fassq but never report an error and do not allow quits.
            Use only on lists known never to be circular.  */
         public static LispObject assq_no_quit(LispObject key, LispObject list)
@@ -485,7 +599,7 @@
                 d2 = extract_float(o2);
                     // If d is a NaN, then d != d. Two NaNs should be `equal' even
                     // though they are not =. 
-                return d1 == d2 || (d1 != d1 && d2 != d2);
+                return d1 == d2 || (d1 == double.NaN && d2 == double.NaN);
             }
 
             // Boolvectors are compared much like strings.  
@@ -582,7 +696,7 @@
             while (p != end)
             {
                 c = ptr[p++];
-                if (c >= 0140)
+                if (c >= 96)
                     c -= 40;
                 hash = ((hash << 4) + (hash >> 28) + c);
             }
@@ -882,6 +996,70 @@
 
             return h;
         }
+
+        /* Resize hash table H if it's too full.  If H cannot be resized
+           because it's already too large, throw an error.  */
+        public static void maybe_resize_hash_table(LispHashTable h)
+        {
+            if (NILP(h.next_free))
+            {
+                int old_size = HASH_TABLE_SIZE(h);
+                int i, new_size, index_size;
+                int nsize;
+
+                if (INTEGERP(h.rehash_size))
+                    new_size = old_size + XINT(h.rehash_size);
+                else
+                    new_size = (int) (old_size * XFLOATINT(h.rehash_size));
+                new_size = System.Math.Max(old_size + 1, new_size);
+                index_size = next_almost_prime((int)
+                                (new_size
+                                 / XFLOATINT(h.rehash_threshold)));
+                /* Assignment to EMACS_INT stops GCC whining about limited range
+               of data type.  */
+                nsize = System.Math.Max(index_size, 2 * new_size);
+                if (nsize > MOST_POSITIVE_FIXNUM)
+                    error("Hash table too large to resize");
+
+                h.key_and_value = larger_vector(h.key_and_value, 2 * new_size, Q.nil);
+                h.next = larger_vector(h.next, new_size, Q.nil);
+                h.hash = larger_vector(h.hash, new_size, Q.nil);
+                h.index = F.make_vector(make_number(index_size), Q.nil);
+
+                /* Update the free list.  Do it so that new entries are added at
+                   the end of the free list.  This makes some operations like
+                   maphash faster.  */
+                for (i = old_size; i < new_size - 1; ++i)
+                    HASH_NEXT(h, i, make_number(i + 1));
+
+                if (!NILP(h.next_free))
+                {
+                    LispObject last, next;
+
+                    last = h.next_free;
+                    next = HASH_NEXT(h, XINT(last));
+                    while (!NILP(next))
+                    {
+                        last = next;
+                        next = HASH_NEXT(h, XINT(last));
+                    }
+
+                    HASH_NEXT(h, XINT(last), make_number(old_size));
+                }
+                else
+                    h.next_free = make_number(old_size);
+
+                /* Rehash.  */
+                for (i = 0; i < old_size; ++i)
+                    if (!NILP(HASH_HASH(h, i)))
+                    {
+                        uint hash_code = XUINT(HASH_HASH(h, i));
+                        int start_of_bucket = (int)hash_code % ASIZE(h.index);
+                        HASH_NEXT(h, i, HASH_INDEX(h, start_of_bucket));
+                        HASH_INDEX(h, start_of_bucket, make_number(i));
+                    }
+            }
+        }
         
         public static int hash_lookup(LispHashTable h, LispObject key)
         {
@@ -892,39 +1070,215 @@
         /* Lookup KEY in hash table H.  If HASH is non-null, return in *HASH
            the hash code of KEY.  Value is the index of the entry in H
            matching KEY, or -1 if not found.  */
-        public static int hash_lookup (LispHashTable h, LispObject key, ref uint hash)
+        public static int hash_lookup(LispHashTable h, LispObject key, ref uint hash)
         {
-#if COMEBACK_LATER
-  unsigned hash_code;
-  int start_of_bucket;
-  Lisp_Object idx;
+            uint hash_code;
+            uint start_of_bucket;
+            LispObject idx;
 
-  hash_code = h->hashfn (h, key);
-  if (hash)
-    *hash = hash_code;
+            hash_code = h.hashfn(h, key);
+            // if (hash)
+            hash = hash_code;
 
-  start_of_bucket = hash_code % ASIZE (h->index);
-  idx = HASH_INDEX (h, start_of_bucket);
+            start_of_bucket = hash_code % (uint) ASIZE(h.index);
+            idx = HASH_INDEX(h, (int) start_of_bucket);
 
-  while (!NILP (idx))
-    {
-      int i = XFASTINT (idx);
-      if (EQ (key, HASH_KEY (h, i))
-	  || (h->cmpfn
-	      && h->cmpfn (h, key, hash_code,
-			   HASH_KEY (h, i), XUINT (HASH_HASH (h, i)))))
-	break;
-      idx = HASH_NEXT (h, i);
-    }
+            while (!NILP(idx))
+            {
+                int i = XINT(idx);
+                if (EQ(key, HASH_KEY(h, i))
+                || (h.cmpfn != null
+                    && h.cmpfn(h, key, hash_code,
+                         HASH_KEY(h, i), XUINT(HASH_HASH(h, i)))))
+                    break;
+                idx = HASH_NEXT(h, i);
+            }
 
-  return NILP (idx) ? -1 : XFASTINT (idx);
-#endif
-            throw new System.Exception("No hash_lookup");
+            return NILP(idx) ? -1 : XINT(idx);
+        }
+
+        /* Put an entry into hash table H that associates KEY with VALUE.
+           HASH is a previously computed hash code of KEY.
+           Value is the index of the entry in H matching KEY.  */
+        public static int hash_put(LispHashTable h, LispObject key, LispObject value, uint hash)
+        {
+            int start_of_bucket, i;
+
+            // xassert((hash & ~INTMASK) == 0);
+
+            /* Increment count after resizing because resizing may fail.  */
+            maybe_resize_hash_table(h);
+            h.count++;
+
+            /* Store key/value in the key_and_value vector.  */
+            i = XINT(h.next_free);
+            h.next_free = HASH_NEXT(h, i);
+            HASH_KEY(h, i, key);
+            HASH_VALUE(h, i, value);
+
+            /* Remember its hash code.  */
+            HASH_HASH(h, i, make_number((int) hash));
+
+            /* Add new entry to its collision chain.  */
+            start_of_bucket = (int) hash % ASIZE(h.index);
+            HASH_NEXT(h, i, HASH_INDEX(h, start_of_bucket));
+            HASH_INDEX(h, start_of_bucket, make_number(i));
+            return i;
+        }
+
+        /* Return a Lisp vector which has the same contents as VEC but has
+           size NEW_SIZE, NEW_SIZE >= VEC->size.  Entries in the resulting
+           vector that are not copied from VEC are set to INIT.  */
+        public static LispObject larger_vector (LispObject vec, int new_size, LispObject init)
+        {
+            int i, old_size;
+
+            //xassert (VECTORP (vec));
+            old_size = ASIZE(vec);
+            //  xassert (new_size >= old_size);
+
+            LispVector v = new LispVector(new_size);
+            System.Array.Copy(XVECTOR (vec).Contents, v.Contents, old_size);
+            for (i = old_size; i < new_size; ++i)
+                v[i] = init;
+
+            return v;
         }
     }
 
     public partial class F
     {
+        public static LispObject string_lessp(LispObject s1, LispObject s2)
+        {
+            int end;
+            int i1, i1_byte, i2, i2_byte;
+
+            if (L.SYMBOLP(s1))
+                s1 = L.SYMBOL_NAME(s1);
+            if (L.SYMBOLP(s2))
+                s2 = L.SYMBOL_NAME(s2);
+            L.CHECK_STRING(s1);
+            L.CHECK_STRING(s2);
+
+            i1 = i1_byte = i2 = i2_byte = 0;
+
+            end = L.SCHARS(s1);
+            if (end > L.SCHARS(s2))
+                end = L.SCHARS(s2);
+
+            while (i1 < end)
+            {
+                /* When we find a mismatch, we must compare the
+               characters, not just the bytes.  */
+                int c1 = 0, c2 = 0;
+
+                L.FETCH_STRING_CHAR_ADVANCE(ref c1, s1, ref i1, ref i1_byte);
+                L.FETCH_STRING_CHAR_ADVANCE(ref c2, s2, ref i2, ref i2_byte);
+
+                if (c1 != c2)
+                    return c1 < c2 ? Q.t : Q.nil;
+            }
+            return i1 < L.SCHARS(s2) ? Q.t : Q.nil;
+        }
+
+        public static LispObject elt(LispObject sequence, LispObject n)
+        {
+            L.CHECK_NUMBER(n);
+            if (L.CONSP(sequence) || L.NILP(sequence))
+                return F.car(F.nthcdr(n, sequence));
+
+            /* Faref signals a "not array" error, so check here.  */
+            L.CHECK_ARRAY(sequence, Q.sequencep);
+            return F.aref(sequence, n);
+        }
+
+        public static LispObject member(LispObject elt, LispObject list)
+        {
+            LispObject tail;
+            for (tail = list; L.CONSP(tail); tail = L.XCDR(tail))
+            {
+                LispObject tem;
+                L.CHECK_LIST_CONS(tail, list);
+                tem = L.XCAR(tail);
+                if (!L.NILP(F.equal(elt, tem)))
+                    return tail;
+                L.QUIT();
+            }
+            return Q.nil;
+        }
+
+        public static LispObject concat(int nargs, params LispObject[] args)
+        {
+            return L.concat(nargs, args, typeof(LispString), false);
+        }
+
+        public static LispObject vconcat(int nargs, params LispObject[] args)
+        {
+            return L.concat(nargs, args, typeof(LispVectorLike<LispObject>), false);
+        }
+
+        public static LispObject copy_sequence(LispObject arg)
+        {
+            if (L.NILP(arg)) return arg;
+
+            if (L.CHAR_TABLE_P(arg))
+            {
+                return L.copy_char_table(arg);
+            }
+
+            if (L.BOOL_VECTOR_P(arg))
+            {
+                LispObject val;
+                int size_in_chars
+              = ((L.XBOOL_VECTOR(arg).Size + LispBoolVector.BOOL_VECTOR_BITS_PER_CHAR - 1)
+                 / LispBoolVector.BOOL_VECTOR_BITS_PER_CHAR);
+
+                val = F.make_bool_vector(F.length(arg), Q.nil);
+                L.XBOOL_VECTOR(val).bcopy(L.XBOOL_VECTOR(arg).data, size_in_chars);
+                return val;
+            }
+
+            if (!L.CONSP(arg) && !L.VECTORP(arg) && !L.STRINGP(arg))
+                L.wrong_type_argument(Q.sequencep, arg);
+
+            return L.concat(1, new LispObject[] { arg }, L.CONSP(arg) ? typeof(LispCons) : L.XTYPE(arg), false);
+        }
+
+        public static LispObject nconc(int nargs, params LispObject[] args)
+        {
+            int argnum;
+            LispObject tail, tem, val;
+
+            val = tail = Q.nil;
+
+            for (argnum = 0; argnum < nargs; argnum++)
+            {
+                tem = args[argnum];
+                if (L.NILP(tem)) continue;
+
+                if (L.NILP(val))
+                    val = tem;
+
+                if (argnum + 1 == nargs) break;
+
+                L.CHECK_LIST_CONS(tem, tem);
+
+                while (L.CONSP(tem))
+                {
+                    tail = tem;
+                    tem = L.XCDR(tail);
+                    L.QUIT();
+                }
+
+                tem = args[argnum + 1];
+                F.setcdr(tail, tem);
+                if (L.NILP(tem))
+                    args[argnum + 1] = tail;
+            }
+
+            return val;
+        }
+
         public static LispObject string_as_unibyte (LispObject stringg)
         {
             L.CHECK_STRING (stringg);
@@ -982,9 +1336,8 @@
             L.CHECK_STRING(s2);
 
             if (L.SCHARS(s1) != L.SCHARS(s2)
-                // COMEBACK_WHEN_READY
-                // || SBYTES(s1) != SBYTES(s2)
-                 || L.SDATA(s1) != L.SDATA(s2)
+                || L.SBYTES(s1) != L.SBYTES(s2)
+                 || L.XSTRING(s1).bcmp(L.SDATA(s2))
                )
             {
                 return Q.nil;
@@ -1183,6 +1536,70 @@
                 tail = next;
             }
             return prev;
+        }
+
+        public static LispObject substring(LispObject stringg, LispObject from, LispObject to)
+        {
+            LispObject res;
+            int size;
+            int size_byte = 0;
+            int from_char, to_char;
+            int from_byte = 0, to_byte = 0;
+
+            L.CHECK_VECTOR_OR_STRING(stringg);
+            L.CHECK_NUMBER(from);
+
+            if (L.STRINGP(stringg))
+            {
+                size = L.SCHARS(stringg);
+                size_byte = L.SBYTES(stringg);
+            }
+            else
+                size = L.ASIZE(stringg);
+
+            if (L.NILP(to))
+            {
+                to_char = size;
+                to_byte = size_byte;
+            }
+            else
+            {
+                L.CHECK_NUMBER(to);
+
+                to_char = L.XINT(to);
+                if (to_char < 0)
+                    to_char += size;
+
+                if (L.STRINGP(stringg))
+                    to_byte = L.string_char_to_byte(stringg, to_char);
+            }
+
+            from_char = L.XINT(from);
+            if (from_char < 0)
+                from_char += size;
+            if (L.STRINGP(stringg))
+                from_byte = L.string_char_to_byte(stringg, from_char);
+
+            if (!(0 <= from_char && from_char <= to_char && to_char <= size))
+                L.args_out_of_range_3(stringg, L.make_number(from_char),
+                         L.make_number(to_char));
+
+            if (L.STRINGP(stringg))
+            {
+                res = L.make_specified_string(L.SDATA(stringg), from_byte,
+                             to_char - from_char, to_byte - from_byte,
+                             L.STRING_MULTIBYTE(stringg));
+                L.copy_text_properties(L.make_number(from_char), L.make_number(to_char),
+                          stringg, L.make_number(0), res, Q.nil);
+            }
+            else
+            {
+                LispObject[] tmp = new LispObject[to_char - from_char];
+                System.Array.Copy(L.XVECTOR(stringg).Contents, from_char, tmp, 0, to_char - from_char);
+                res = F.vector(to_char - from_char, tmp);
+            }
+
+            return res;
         }
     }
 }

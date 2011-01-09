@@ -54,4 +54,12 @@
     {
         public kboard kboard;
     }
+
+    public partial class L
+    {
+        public static Terminal FRAME_TERMINAL(Frame f)
+        {
+            return f.terminal;
+        }
+    }
 }

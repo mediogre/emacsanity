@@ -174,10 +174,10 @@
             while (p != end)
             {
                 c = ptr[p++];
-                if (c >= 0140) c -= 40;
+                if (c >= 96) c -= 40;
                 hash = ((hash << 3) + (hash >> 28) + c);
             }
-            return (int) (hash & 07777777777);
+            return (int) (hash & 0x3fffffff);
         }
 
         /* Get an error if OBARRAY is not an obarray.
@@ -388,299 +388,301 @@ it defaults to the value of `obarray'.");
     {
         public static LispObject load(LispObject file, LispObject noerror, LispObject nomessage, LispObject nosuffix, LispObject must_suffix)
         {
-            // COMEBACK_WHEN_READY
-            /*
-            register FILE *stream;
-            register int fd = -1;
-            int count = SPECPDL_INDEX ();
-            Lisp_Object found, efound, hist_file_name;
-            // 1 means we printed the ".el is newer" message.  
-            int newer = 0;
-            // 1 means we are loading a compiled file.  
-            int compiled = 0;
-            Lisp_Object handler;
-            int safe_p = 1;
-            char *fmode = "r";
-            Lisp_Object tmp[2];
-            int version;
+            throw new System.Exception();
+#if COMEBACK_LATER
+  register FILE *stream;
+  register int fd = -1;
+  int count = SPECPDL_INDEX ();
+  Lisp_Object found, efound, hist_file_name;
+  /* 1 means we printed the ".el is newer" message.  */
+  int newer = 0;
+  /* 1 means we are loading a compiled file.  */
+  int compiled = 0;
+  Lisp_Object handler;
+  int safe_p = 1;
+  char *fmode = "r";
+  Lisp_Object tmp[2];
+  int version;
 
-            fmode = "rt";
+// ##ifdef DOS_NT
+  fmode = "rt";
+// ##endif /* DOS_NT */
 
-            CHECK_STRING (file);
+  CHECK_STRING (file);
 
-            // If file name is magic, call the handler.  
-            // This shouldn't be necessary any more now that `openp' handles it right.
-            // handler = Ffind_file_name_handler (file, Qload);
-            // if (!NILP (handler))
-            // return call5 (handler, Qload, file, noerror, nomessage, nosuffix); 
+  /* If file name is magic, call the handler.  */
+  /* This shouldn't be necessary any more now that `openp' handles it right.
+    handler = Ffind_file_name_handler (file, Qload);
+    if (!NILP (handler))
+      return call5 (handler, Qload, file, noerror, nomessage, nosuffix); */
 
-            // Do this after the handler to avoid
-            //    the need to gcpro noerror, nomessage and nosuffix.
-            //    (Below here, we care only whether they are nil or not.)
-            //    The presence of this call is the result of a historical accident:
-            //    it used to be in every file-operation and when it got removed
-            //    everywhere, it accidentally stayed here.  Since then, enough people
-            //    supposedly have things like (load "$PROJECT/foo.el") in their .emacs
-            //    that it seemed risky to remove.  
-            if (! NILP (noerror))
-            {
-                file = internal_condition_case_1 (Fsubstitute_in_file_name, file,
-                                                  Qt, load_error_handler);
-                if (NILP (file))
-                    return Qnil;
-            }
-            else
-                file = Fsubstitute_in_file_name (file);
+  /* Do this after the handler to avoid
+     the need to gcpro noerror, nomessage and nosuffix.
+     (Below here, we care only whether they are nil or not.)
+     The presence of this call is the result of a historical accident:
+     it used to be in every file-operation and when it got removed
+     everywhere, it accidentally stayed here.  Since then, enough people
+     supposedly have things like (load "$PROJECT/foo.el") in their .emacs
+     that it seemed risky to remove.  */
+  if (! NILP (noerror))
+    {
+      file = internal_condition_case_1 (Fsubstitute_in_file_name, file,
+					Qt, load_error_handler);
+      if (NILP (file))
+	return Qnil;
+    }
+  else
+    file = Fsubstitute_in_file_name (file);
 
 
-            // Avoid weird lossage with null string as arg,
-            // since it would try to load a directory as a Lisp file 
-            if (SCHARS (file) > 0)
-            {
-                int size = SBYTES (file);
+  /* Avoid weird lossage with null string as arg,
+     since it would try to load a directory as a Lisp file */
+  if (SCHARS (file) > 0)
+    {
+      int size = SBYTES (file);
 
-                found = Qnil;
+      found = Qnil;
 
-                if (! NILP (must_suffix))
-                {
-                    // Don't insist on adding a suffix if FILE already ends with one.  
-                    if (size > 3
-                        && !strcmp (SDATA (file) + size - 3, ".el"))
-                        must_suffix = Qnil;
-                    else if (size > 4
-                             && !strcmp (SDATA (file) + size - 4, ".elc"))
-                        must_suffix = Qnil;
-                    // Don't insist on adding a suffix
-                    // if the argument includes a directory name.  
-                    else if (! NILP (Ffile_name_directory (file)))
-                        must_suffix = Qnil;
-                }
+      if (! NILP (must_suffix))
+	{
+	  /* Don't insist on adding a suffix if FILE already ends with one.  */
+	  if (size > 3
+	      && !strcmp (SDATA (file) + size - 3, ".el"))
+	    must_suffix = Qnil;
+	  else if (size > 4
+		   && !strcmp (SDATA (file) + size - 4, ".elc"))
+	    must_suffix = Qnil;
+	  /* Don't insist on adding a suffix
+	     if the argument includes a directory name.  */
+	  else if (! NILP (Ffile_name_directory (file)))
+	    must_suffix = Qnil;
+	}
 
-                fd = openp (Vload_path, file,
-                            (!NILP (nosuffix) ? Qnil
-                             : !NILP (must_suffix) ? Fget_load_suffixes ()
-                             : Fappend (2, (tmp[0] = Fget_load_suffixes (),
-                                            tmp[1] = Vload_file_rep_suffixes,
-                                            tmp))),
-                            &found, Qnil);
-            }
+      fd = openp (Vload_path, file,
+		  (!NILP (nosuffix) ? Qnil
+		   : !NILP (must_suffix) ? Fget_load_suffixes ()
+		   : Fappend (2, (tmp[0] = Fget_load_suffixes (),
+				  tmp[1] = Vload_file_rep_suffixes,
+				  tmp))),
+		  &found, Qnil);
+    }
 
-            if (fd == -1)
-            {
-                if (NILP (noerror))
-                    xsignal2 (Qfile_error, build_string ("Cannot open load file"), file);
-                return Qnil;
-            }
+  if (fd == -1)
+    {
+      if (NILP (noerror))
+	xsignal2 (Qfile_error, build_string ("Cannot open load file"), file);
+      return Qnil;
+    }
 
-            // Tell startup.el whether or not we found the user's init file.
-            if (EQ (Qt, Vuser_init_file))
-                Vuser_init_file = found;
+  /* Tell startup.el whether or not we found the user's init file.  */
+  if (EQ (Qt, Vuser_init_file))
+    Vuser_init_file = found;
 
-            // If FD is -2, that means openp found a magic file. 
-            if (fd == -2)
-            {
-                if (NILP (Fequal (found, file)))
-                    // If FOUND is a different file name from FILE,
-                    //    find its handler even if we have already inhibited
-                    //    the `load' operation on FILE.
-                    handler = Ffind_file_name_handler (found, Qt);
-                else
-                    handler = Ffind_file_name_handler (found, Qload);
-                if (! NILP (handler))
-                    return call5 (handler, Qload, found, noerror, nomessage, Qt);
-            }
+  /* If FD is -2, that means openp found a magic file.  */
+  if (fd == -2)
+    {
+      if (NILP (Fequal (found, file)))
+	/* If FOUND is a different file name from FILE,
+	   find its handler even if we have already inhibited
+	   the `load' operation on FILE.  */
+	handler = Ffind_file_name_handler (found, Qt);
+      else
+	handler = Ffind_file_name_handler (found, Qload);
+      if (! NILP (handler))
+	return call5 (handler, Qload, found, noerror, nomessage, Qt);
+    }
 
-            //  Check if we're stuck in a recursive load cycle.
+  /* Check if we're stuck in a recursive load cycle.
 
-            //    2000-09-21: It's not possible to just check for the file loaded
-            //    being a member of Vloads_in_progress.  This fails because of the
-            //    way the byte compiler currently works; `provide's are not
-            //    evaluated, see font-lock.el/jit-lock.el as an example.  This
-            //    leads to a certain amount of ``normal'' recursion.
+     2000-09-21: It's not possible to just check for the file loaded
+     being a member of Vloads_in_progress.  This fails because of the
+     way the byte compiler currently works; `provide's are not
+     evaluated, see font-lock.el/jit-lock.el as an example.  This
+     leads to a certain amount of ``normal'' recursion.
 
-            //    Also, just loading a file recursively is not always an error in
-            //    the general case; the second load may do something different. 
-            {
-                int count = 0;
-                Lisp_Object tem;
-                for (tem = Vloads_in_progress; CONSP (tem); tem = XCDR (tem))
-                    if (!NILP (Fequal (found, XCAR (tem))) && (++count > 3))
-                    {
-                        if (fd >= 0)
-                            emacs_close (fd);
-                        signal_error ("Recursive load", Fcons (found, Vloads_in_progress));
-                    }
-                record_unwind_protect (record_load_unwind, Vloads_in_progress);
-                Vloads_in_progress = Fcons (found, Vloads_in_progress);
-            }
+     Also, just loading a file recursively is not always an error in
+     the general case; the second load may do something different.  */
+  {
+    int count = 0;
+    Lisp_Object tem;
+    for (tem = Vloads_in_progress; CONSP (tem); tem = XCDR (tem))
+      if (!NILP (Fequal (found, XCAR (tem))) && (++count > 3))
+	{
+	  if (fd >= 0)
+	    emacs_close (fd);
+	  signal_error ("Recursive load", Fcons (found, Vloads_in_progress));
+	}
+    record_unwind_protect (record_load_unwind, Vloads_in_progress);
+    Vloads_in_progress = Fcons (found, Vloads_in_progress);
+  }
 
-            // Get the name for load-history.
-            hist_file_name = (! NILP (Vpurify_flag)
-                              ? Fconcat (2, (tmp[0] = Ffile_name_directory (file),
-                                             tmp[1] = Ffile_name_nondirectory (found),
-                                             tmp))
-                              : found) ;
+  /* Get the name for load-history. */
+  hist_file_name = (! NILP (Vpurify_flag)
+                    ? Fconcat (2, (tmp[0] = Ffile_name_directory (file),
+                                   tmp[1] = Ffile_name_nondirectory (found),
+                                   tmp))
+                    : found) ;
 
-            version = -1;
+  version = -1;
 
-            // Check for the presence of old-style quotes and warn about them. 
-            specbind (Qold_style_backquotes, Qnil);
-            record_unwind_protect (load_warn_old_style_backquotes, file);
+  /* Check for the presence of old-style quotes and warn about them.  */
+  specbind (Qold_style_backquotes, Qnil);
+  record_unwind_protect (load_warn_old_style_backquotes, file);
 
-            if (!bcmp (SDATA (found) + SBYTES (found) - 4,
-                       ".elc", 4)
-                || (version = safe_to_load_p (fd)) > 0)
-                // Load .elc files directly, but not when they are
-                //   remote and have no handler! 
-            {
-                if (fd != -2)
-                {
-                    struct stat s1, s2;
-                    int result;
+  if (!bcmp (SDATA (found) + SBYTES (found) - 4,
+	     ".elc", 4)
+      || (version = safe_to_load_p (fd)) > 0)
+    /* Load .elc files directly, but not when they are
+       remote and have no handler!  */
+    {
+      if (fd != -2)
+	{
+	  struct stat s1, s2;
+	  int result;
 
-                    if (version < 0
-                        && ! (version = safe_to_load_p (fd)))
-                    {
-                        safe_p = 0;
-                        if (!load_dangerous_libraries)
-                        {
-                            if (fd >= 0)
-                                emacs_close (fd);
-                            error ("File `%s' was not compiled in Emacs",
-                                   SDATA (found));
-                        }
-                        else if (!NILP (nomessage))
-                            message_with_string ("File `%s' not compiled in Emacs", found, 1);
-                    }
+	  if (version < 0
+	      && ! (version = safe_to_load_p (fd)))
+	    {
+	      safe_p = 0;
+	      if (!load_dangerous_libraries)
+		{
+		  if (fd >= 0)
+		    emacs_close (fd);
+		  error ("File `%s' was not compiled in Emacs",
+			 SDATA (found));
+		}
+	      else if (!NILP (nomessage))
+		message_with_string ("File `%s' not compiled in Emacs", found, 1);
+	    }
 
-                    compiled = 1;
+	  compiled = 1;
 
-                    efound = ENCODE_FILE (found);
+	  efound = ENCODE_FILE (found);
 
-                    fmode = "rb";
+//##ifdef DOS_NT
+	  fmode = "rb";
+//##endif /* DOS_NT */
+	  stat ((char *)SDATA (efound), &s1);
+	  SSET (efound, SBYTES (efound) - 1, 0);
+	  result = stat ((char *)SDATA (efound), &s2);
+	  SSET (efound, SBYTES (efound) - 1, 'c');
 
-                    stat ((char *)SDATA (efound), &s1);
-                    SSET (efound, SBYTES (efound) - 1, 0);
-                    result = stat ((char *)SDATA (efound), &s2);
-                    SSET (efound, SBYTES (efound) - 1, 'c');
+	  if (result >= 0 && (unsigned) s1.st_mtime < (unsigned) s2.st_mtime)
+	    {
+	      /* Make the progress messages mention that source is newer.  */
+	      newer = 1;
 
-                    if (result >= 0 && (unsigned) s1.st_mtime < (unsigned) s2.st_mtime)
-                    {
-                        // Make the progress messages mention that source is newer.
-                        newer = 1;
+	      /* If we won't print another message, mention this anyway.  */
+	      if (!NILP (nomessage))
+		{
+		  Lisp_Object msg_file;
+		  msg_file = Fsubstring (found, make_number (0), make_number (-1));
+		  message_with_string ("Source file `%s' newer than byte-compiled file",
+				       msg_file, 1);
+		}
+	    }
+	}
+    }
+  else
+    {
+      /* We are loading a source file (*.el).  */
+      if (!NILP (Vload_source_file_function))
+	{
+	  Lisp_Object val;
 
-                        // If we won't print another message, mention this anyway.
-                        if (!NILP (nomessage))
-                        {
-                            Lisp_Object msg_file;
-                            msg_file = Fsubstring (found, make_number (0), make_number (-1));
-                            message_with_string ("Source file `%s' newer than byte-compiled file",
-                                                 msg_file, 1);
-                        }
-                    }
-                }
-            }
-            else
-            {
-                // We are loading a source file (*.el). 
-                if (!NILP (Vload_source_file_function))
-                {
-                    Lisp_Object val;
+	  if (fd >= 0)
+	    emacs_close (fd);
+	  val = call4 (Vload_source_file_function, found, hist_file_name,
+		       NILP (noerror) ? Qnil : Qt,
+		       NILP (nomessage) ? Qnil : Qt);
+	  return unbind_to (count, val);
+	}
+    }
 
-                    if (fd >= 0)
-                        emacs_close (fd);
-                    val = call4 (Vload_source_file_function, found, hist_file_name,
-                                 NILP (noerror) ? Qnil : Qt,
-                                 NILP (nomessage) ? Qnil : Qt);
-                    return unbind_to (count, val);
-                }
-            }
+//##ifdef WINDOWSNT
+  emacs_close (fd);
+  efound = ENCODE_FILE (found);
+  stream = fopen ((char *) SDATA (efound), fmode);
+//##else  /* not WINDOWSNT */
+  stream = fdopen (fd, fmode);
+//##endif /* not WINDOWSNT */
+  if (stream == 0)
+    {
+      emacs_close (fd);
+      error ("Failure to create stdio stream for %s", SDATA (file));
+    }
 
-            // #ifdef WINDOWSNT
-            emacs_close (fd);
-            efound = ENCODE_FILE (found);
-            stream = fopen ((char *) SDATA (efound), fmode);
-            // #else  / not WINDOWSNT 
-            // stream = fdopen (fd, fmode);
-            // #endif
-            if (stream == 0)
-            {
-                emacs_close (fd);
-                error ("Failure to create stdio stream for %s", SDATA (file));
-            }
+  if (! NILP (Vpurify_flag))
+    Vpreloaded_file_list = Fcons (file, Vpreloaded_file_list);
 
-            if (! NILP (Vpurify_flag))
-                Vpreloaded_file_list = Fcons (file, Vpreloaded_file_list);
+  if (NILP (nomessage))
+    {
+      if (!safe_p)
+	message_with_string ("Loading %s (compiled; note unsafe, not compiled in Emacs)...",
+		 file, 1);
+      else if (!compiled)
+	message_with_string ("Loading %s (source)...", file, 1);
+      else if (newer)
+	message_with_string ("Loading %s (compiled; note, source file is newer)...",
+		 file, 1);
+      else /* The typical case; compiled file newer than source file.  */
+	message_with_string ("Loading %s...", file, 1);
+    }
 
-            if (NILP (nomessage))
-            {
-                if (!safe_p)
-                    message_with_string ("Loading %s (compiled; note unsafe, not compiled in Emacs)...",
-                                         file, 1);
-                else if (!compiled)
-                    message_with_string ("Loading %s (source)...", file, 1);
-                else if (newer)
-                    message_with_string ("Loading %s (compiled; note, source file is newer)...",
-                                         file, 1);
-                else // The typical case; compiled file newer than source file. 
-                    message_with_string ("Loading %s...", file, 1);
-            }
+  record_unwind_protect (load_unwind, make_save_value (stream, 0));
+  record_unwind_protect (load_descriptor_unwind, load_descriptor_list);
+  specbind (Qload_file_name, found);
+  specbind (Qinhibit_file_name_operation, Qnil);
+  load_descriptor_list
+    = Fcons (make_number (fileno (stream)), load_descriptor_list);
+  load_in_progress++;
+  if (! version || version >= 22)
+    readevalloop (Qget_file_char, stream, hist_file_name,
+		  Feval, 0, Qnil, Qnil, Qnil, Qnil);
+  else
+    {
+      /* We can't handle a file which was compiled with
+	 byte-compile-dynamic by older version of Emacs.  */
+      specbind (Qload_force_doc_strings, Qt);
+      readevalloop (Qget_emacs_mule_file_char, stream, hist_file_name, Feval,
+		    0, Qnil, Qnil, Qnil, Qnil);
+    }
+  unbind_to (count, Qnil);
 
-            record_unwind_protect (load_unwind, make_save_value (stream, 0));
-            record_unwind_protect (load_descriptor_unwind, load_descriptor_list);
-            specbind (Qload_file_name, found);
-            specbind (Qinhibit_file_name_operation, Qnil);
-            load_descriptor_list
-                = Fcons (make_number (fileno (stream)), load_descriptor_list);
-            load_in_progress++;
-            if (! version || version >= 22)
-                readevalloop (Qget_file_char, stream, hist_file_name,
-                              Feval, 0, Qnil, Qnil, Qnil, Qnil);
-            else
-            {
-                // We can't handle a file which was compiled with
-                // byte-compile-dynamic by older version of Emacs.
-                specbind (Qload_force_doc_strings, Qt);
-                readevalloop (Qget_emacs_mule_file_char, stream, hist_file_name, Feval,
-                              0, Qnil, Qnil, Qnil, Qnil);
-            }
-            unbind_to (count, Qnil);
+  /* Run any eval-after-load forms for this file */
+  if (NILP (Vpurify_flag)
+      && (!NILP (Ffboundp (Qdo_after_load_evaluation))))
+    call1 (Qdo_after_load_evaluation, hist_file_name) ;
 
-            // Run any eval-after-load forms for this file
-            if (NILP (Vpurify_flag)
-                && (!NILP (Ffboundp (Qdo_after_load_evaluation))))
-                call1 (Qdo_after_load_evaluation, hist_file_name) ;
+  xfree (saved_doc_string);
+  saved_doc_string = 0;
+  saved_doc_string_size = 0;
 
-            xfree (saved_doc_string);
-            saved_doc_string = 0;
-            saved_doc_string_size = 0;
+  xfree (prev_saved_doc_string);
+  prev_saved_doc_string = 0;
+  prev_saved_doc_string_size = 0;
 
-            xfree (prev_saved_doc_string);
-            prev_saved_doc_string = 0;
-            prev_saved_doc_string_size = 0;
+  if (!noninteractive && NILP (nomessage))
+    {
+      if (!safe_p)
+	message_with_string ("Loading %s (compiled; note unsafe, not compiled in Emacs)...done",
+		 file, 1);
+      else if (!compiled)
+	message_with_string ("Loading %s (source)...done", file, 1);
+      else if (newer)
+	message_with_string ("Loading %s (compiled; note, source file is newer)...done",
+		 file, 1);
+      else /* The typical case; compiled file newer than source file.  */
+	message_with_string ("Loading %s...done", file, 1);
+    }
 
-            if (!noninteractive && NILP (nomessage))
-            {
-                if (!safe_p)
-                    message_with_string ("Loading %s (compiled; note unsafe, not compiled in Emacs)...done",
-                                         file, 1);
-                else if (!compiled)
-                    message_with_string ("Loading %s (source)...done", file, 1);
-                else if (newer)
-                    message_with_string ("Loading %s (compiled; note, source file is newer)...done",
-                                         file, 1);
-                else // The typical case; compiled file newer than source file.
-                    message_with_string ("Loading %s...done", file, 1);
-            }
+  if (!NILP (Fequal (build_string ("obsolete"),
+		     Ffile_name_nondirectory
+		     (Fdirectory_file_name (Ffile_name_directory (found))))))
+    message_with_string ("Package %s is obsolete", file, 1);
 
-            if (!NILP (Fequal (build_string ("obsolete"),
-                               Ffile_name_nondirectory
-                               (Fdirectory_file_name (Ffile_name_directory (found))))))
-                message_with_string ("Package %s is obsolete", file, 1);
-
-            return Qt;
-            */
-            return Q.nil; 
+  return Qt;
+#endif
         }
 
         public static LispObject read(LispObject stream)
@@ -971,9 +973,9 @@ it defaults to the value of `obarray'.");
                 case 'b':
                     return '\b';
                 case 'd':
-                    return 0177;
+                    return 127;
                 case 'e':
-                    return 033;
+                    return 27;
                 case 'f':
                     return '\f';
                 case 'n':
@@ -1049,15 +1051,15 @@ it defaults to the value of `obarray'.");
                     if (c == '\\')
                         c = read_escape(readcharfun, false);
                     if ((c & ~CHAR_MODIFIER_MASK) == '?')
-                        return (int) (0177 | (c & CHAR_MODIFIER_MASK));
+                        return (int) (127 | (c & CHAR_MODIFIER_MASK));
                     else if (!SINGLE_BYTE_CHAR_P((uint) (c & ~CHAR_MODIFIER_MASK)))
                         return c | (int) Modifiers.ctrl_modifier;
                     /* ASCII control chars are made from letters (both cases),
                    as well as the non-letters within 0100...0137.  */
-                    else if ((c & 0137) >= 0101 && (c & 0137) <= 0132)
-                        return (c & (037 | ~0177));
-                    else if ((c & 0177) >= 0100 && (c & 0177) <= 0137)
-                        return (c & (037 | ~0177));
+                    else if ((c & 95) >= 65 && (c & 95) <= 90)
+                        return (c & (31 | ~127));
+                    else if ((c & 127) >= 64 && (c & 127) <= 95)
+                        return (c & (31 | ~127));
                     else
                         return c | (int) Modifiers.ctrl_modifier;
 
@@ -1610,16 +1612,16 @@ it defaults to the value of `obarray'.");
                         int next_next_char = readchar(readcharfun);
                         unreadchar (readcharfun, next_next_char);
 
-                        ok = (next_next_char <= 040
-                              || (next_next_char < 0200
+                        ok = (next_next_char <= 32
+                              || (next_next_char < 128
                                   && (System.Array.Exists(new byte[] { (byte)'"', (byte)'\'', (byte)';', (byte)'(', (byte)'[', (byte)'#', (byte)'?' }, (x) => x == next_next_char)
                                       || (!first_in_list && next_next_char == '`')
                                       || (new_backquote_flag != 0 && next_next_char == ','))));
                     }
                     else
                     {
-                        ok = (next_char <= 040
-                              || (next_char < 0200
+                        ok = (next_char <= 32
+                              || (next_char < 128
                               && (System.Array.Exists(new byte[] {(byte)'"', (byte)'\'', (byte)';', (byte)'(', (byte)')', (byte)'[', (byte)']', (byte)'#', (byte)'?'}, (x) => x == next_char)
                                       || (!first_in_list && next_char == '`')
                                       || (new_backquote_flag != 0 && next_char == ','))));
@@ -1732,14 +1734,6 @@ it defaults to the value of `obarray'.");
                     if (c < 0)
                         end_of_file_error ();
 
-#if PURITY_SUPPORT
-                    /* If purifying, and string starts with \ newline,
-                       return zero instead.  This is for doc strings
-                       that we are really going to find in etc/DOC.nn.nn  */
-                    if (!NILP (Vpurify_flag) && NILP (Vdoc_file_name) && cancel)
-                        return make_number (0);
-#endif
-
                     if (force_multibyte)
                     {
                         /* READ_BUFFER already contains valid multibyte forms.  */
@@ -1769,8 +1763,8 @@ it defaults to the value of `obarray'.");
                     int next_char = readchar (readcharfun);
                     unreadchar(readcharfun, next_char);
 
-                    if (next_char <= 040
-                        || (next_char < 0200
+                    if (next_char <= 32
+                        || (next_char < 128
                             && (System.Array.Exists (new byte [] {(byte)'"', (byte)'\'', (byte)';', (byte)'(', (byte)'[', (byte) '#', (byte)'?'}, (x) => x == next_char)
                                 || (!first_in_list && next_char == '`')
                                 || (new_backquote_flag != 0 && next_char == ','))))
@@ -1786,7 +1780,7 @@ it defaults to the value of `obarray'.");
                 goto default;
             default:
                 default_label:
-                if (c <= 040) goto retry;
+                if (c <= 32) goto retry;
                 if (c == 0x8a0) /* NBSP */
                     goto retry;
                 {
@@ -1796,9 +1790,9 @@ it defaults to the value of `obarray'.");
                     {
                         int end = read_buffer_size;
 
-                        while (c > 040
+                        while (c > 32
                                && c != 0x8a0 /* NBSP */
-                               && (c >= 0200
+                               && (c >= 128
                                    || (!System.Array.Exists (new byte[] {(byte)'"', (byte)'\'', (byte) ';', (byte) '(', (byte)')', (byte) '[', (byte) ']', (byte) '#'}, (x) => x == c)
                                        && !(!first_in_list && c == '`')
                                        && !(new_backquote_flag != 0 && c == ','))))
@@ -2279,7 +2273,7 @@ it defaults to the value of `obarray'.");
                                        and find the end of the string,
                                        which is marked with ^_ (037).  */
                                     for (from = start, to = start;
-                                         saved_doc_string[from] != 037;)
+                                         saved_doc_string[from] != 31;)
                                     {
                                         int c = saved_doc_string[from++];
                                         if (c == 1)
@@ -2290,7 +2284,7 @@ it defaults to the value of `obarray'.");
                                             else if (c == '0')
                                                 saved_doc_string[to++] = 0;
                                             else if (c == '_')
-                                                saved_doc_string[to++] = 037;
+                                                saved_doc_string[to++] = 31;
                                         }
                                         else
                                             saved_doc_string[to++] = (byte) c;
@@ -2311,7 +2305,7 @@ it defaults to the value of `obarray'.");
                                        and find the end of the string,
                                        which is marked with ^_ (037).  */
                                     for (from = start, to = start;
-                                         prev_saved_doc_string[from] != 037;)
+                                         prev_saved_doc_string[from] != 31;)
                                     {
                                         int c = prev_saved_doc_string[from++];
                                         if (c == 1)
@@ -2322,7 +2316,7 @@ it defaults to the value of `obarray'.");
                                             else if (c == '0')
                                                 prev_saved_doc_string[to++] = 0;
                                             else if (c == '_')
-                                                prev_saved_doc_string[to++] = 037;
+                                                prev_saved_doc_string[to++] = 31;
                                         }
                                         else
                                             prev_saved_doc_string[to++] = (byte) c;
@@ -2378,10 +2372,9 @@ it defaults to the value of `obarray'.");
 
             readchar_count++;
 
-#if COMEBACK_LATER
             if (BUFFERP (readcharfun))
             {
-                buffer inbuffer = XBUFFER (readcharfun);
+                Buffer inbuffer = XBUFFER (readcharfun);
 
                 int pt_byte = BUF_PT_BYTE (inbuffer);
 
@@ -2391,23 +2384,23 @@ it defaults to the value of `obarray'.");
                 if (! NILP (inbuffer.enable_multibyte_characters))
                 {
                     /* Fetch the character code from the buffer.  */
-                    unsigned char *p = BUF_BYTE_ADDRESS (inbuffer, pt_byte);
-                    BUF_INC_POS (inbuffer, pt_byte);
-                    c = STRING_CHAR (p, pt_byte - orig_pt_byte);
-                    multibyte = 1;
+                    int p = BUF_BYTE_ADDRESS (inbuffer, pt_byte);
+                    BUF_INC_POS (inbuffer, ref pt_byte);
+                    c = (int) STRING_CHAR (inbuffer.text.beg, p, 0);
+                    multibyte = true;
                 }
                 else
                 {
                     c = BUF_FETCH_BYTE (inbuffer, pt_byte);
-                    if (! ASCII_BYTE_P (c))
-                        c = BYTE8_TO_CHAR (c);
+                    if (! ASCII_BYTE_P ((byte) c))
+                        c = (int) BYTE8_TO_CHAR ((byte) c);
                     pt_byte++;
                 }
                 SET_BUF_PT_BOTH (inbuffer, BUF_PT (inbuffer) + 1, pt_byte);
 
                 return c;
             }
-            
+#if COMEBACK_LATER            
             if (MARKERP (readcharfun))
             {
                 buffer inbuffer = XMARKER (readcharfun).buffer;

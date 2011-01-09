@@ -42,13 +42,14 @@
            5107:  DEFVAR_LISP_NOPRO ("default-scroll-up-aggressively",
            5113:  DEFVAR_LISP_NOPRO ("default-scroll-down-aggressively",
            5180:  DEFVAR_LISP_NOPRO ("default-major-mode", &buffer_defaults.major_mode,
-           5533:/*DEFVAR_LISP ("debug-check-symbol", &Vcheck_symbol,
-           5537:  DEFVAR_LISP ("before-change-functions", &Vbefore_change_functions,
-           5556:  DEFVAR_LISP ("after-change-functions", &Vafter_change_functions,
-           5577:  DEFVAR_LISP ("first-change-hook", &Vfirst_change_hook,
-           5692:  DEFVAR_LISP ("transient-mark-mode", &Vtransient_mark_mode,
-           5699:  DEFVAR_LISP ("inhibit-read-only", &Vinhibit_read_only,
-           5737:  DEFVAR_LISP ("kill-buffer-query-functions", &Vkill_buffer_query_functions,
+           5533:/*DEFVAR_LISP ("debug-check-symbol", &Vcheck_symbol,*/
+        before_change_functions,
+        after_change_functions,
+        first_change_hook,
+/*           5692:  DEFVAR_LISP ("transient-mark-mode", &Vtransient_mark_mode,*/
+
+        inhibit_read_only,
+/*           5737:  DEFVAR_LISP ("kill-buffer-query-functions", &Vkill_buffer_query_functions,
            5743:  DEFVAR_LISP ("change-major-mode-hook", &Vchange_major_mode_hook,
         1 match for "defvar_lisp" in buffer: bytecode.c
            1688:  DEFVAR_LISP ("byte-code-meter", &Vbyte_code_meter,
@@ -68,11 +69,11 @@
            1399:  DEFVAR_LISP ("configure-info-directory", &Vconfigure_info_directory,
            1406:  DEFVAR_LISP ("shared-game-score-directory", &Vshared_game_score_directory,
            1415:  DEFVAR_LISP ("initial-environment", &Vinitial_environment,
-           1421:  DEFVAR_LISP ("process-environment", &Vprocess_environment,
-        2 matches for "defvar_lisp" in buffer: category.c
-            496:  DEFVAR_LISP ("word-combining-categories", &Vword_combining_categories,
-            533:  DEFVAR_LISP ("word-separating-categories", &Vword_separating_categories,
-        3 matches for "defvar_lisp" in buffer: ccl.c
+           1421:  DEFVAR_LISP ("process-environment", &Vprocess_environment, */
+        // category.c
+        word_combining_categories,
+        word_separating_categories,
+/*        3 matches for "defvar_lisp" in buffer: ccl.c
            2343:  DEFVAR_LISP ("code-conversion-map-vector", &Vcode_conversion_map_vector,
            2347:  DEFVAR_LISP ("font-ccl-encoder-alist", &Vfont_ccl_encoder_alist,
            2360:  DEFVAR_LISP ("translation-hash-table-vector", &Vtranslation_hash_table_vector, */
@@ -116,25 +117,25 @@
           10742:  DEFVAR_LISP ("default-process-coding-system",
           10749:  DEFVAR_LISP ("latin-extra-code-table", &Vlatin_extra_code_table,
           10761:  DEFVAR_LISP ("select-safe-coding-system-function",
-          10825:  DEFVAR_LISP ("translation-table-for-input", &Vtranslation_table_for_input,
-        3 matches for "defvar_lisp" in buffer: composite.c
-           1762:  DEFVAR_LISP ("compose-chars-after-function", &Vcompose_chars_after_function,
-           1782:  DEFVAR_LISP ("auto-composition-function", &Vauto_composition_function,
-           1795:  DEFVAR_LISP ("composition-function-table", &Vcomposition_function_table,
-        2 matches for "defvar_lisp" in buffer: data.c
+          10825:  DEFVAR_LISP ("translation-table-for-input", &Vtranslation_table_for_input, */
+        // composite.c
+/*           1762:  DEFVAR_LISP ("compose-chars-after-function", &Vcompose_chars_after_function, */
+        auto_composition_function,
+        composition_function_table,
+/*        2 matches for "defvar_lisp" in buffer: data.c
            3195:  DEFVAR_LISP ("most-positive-fixnum", &Vmost_positive_fixnum,
            3200:  DEFVAR_LISP ("most-negative-fixnum", &Vmost_negative_fixnum,
         2 matches for "defvar_lisp" in buffer: dbusbind.c
            1884:  DEFVAR_LISP ("dbus-registered-functions-table",
            1915:  DEFVAR_LISP ("dbus-debug", &Vdbus_debug,
         1 match for "defvar_lisp" in buffer: dired.c
-           1066:  DEFVAR_LISP ("completion-ignored-extensions", &Vcompletion_ignored_extensions,
-        5 matches for "defvar_lisp" in buffer: dispnew.c
-           6271:  DEFVAR_LISP ("initial-window-system", &Vinitial_window_system,
+           1066:  DEFVAR_LISP ("completion-ignored-extensions", &Vcompletion_ignored_extensions, */
+        // dispnew.c
+/*           6271:  DEFVAR_LISP ("initial-window-system", &Vinitial_window_system,
            6281:  DEFVAR_LISP ("window-system-version", &Vwindow_system_version,
-           6288:  DEFVAR_LISP ("glyph-table", &Vglyph_table,
-           6299:  DEFVAR_LISP ("standard-display-table", &Vstandard_display_table,
-           6309:  DEFVAR_LISP ("redisplay-preemption-period", &Vredisplay_preemption_period,
+           6288:  DEFVAR_LISP ("glyph-table", &Vglyph_table,*/
+        standard_display_table,
+/*           6309:  DEFVAR_LISP ("redisplay-preemption-period", &Vredisplay_preemption_period,
 */
          // doc.c
             doc_file_name,
@@ -144,11 +145,12 @@
             727:  DEFVAR_LISP ("dos-version", &Vdos_version,
             731:  DEFVAR_LISP ("dos-windows-version", &Vdos_windows_version,
             735:  DEFVAR_LISP ("dos-display-scancodes", &Vdos_display_scancodes,
-        8 matches for "defvar_lisp" in buffer: editfns.c
-           4570:  DEFVAR_LISP ("inhibit-field-text-motion", &Vinhibit_field_text_motion,
-           4574:  DEFVAR_LISP ("buffer-access-fontify-functions",
-           4593:  DEFVAR_LISP ("buffer-access-fontified-property",
-           4600:  DEFVAR_LISP ("system-name", &Vsystem_name,
+*/
+            // editfns.c
+            inhibit_field_text_motion,
+            buffer_access_fontify_functions,
+            buffer_access_fontified_property,
+/*           4600:  DEFVAR_LISP ("system-name", &Vsystem_name,
            4603:  DEFVAR_LISP ("user-full-name", &Vuser_full_name,
            4606:  DEFVAR_LISP ("user-login-name", &Vuser_login_name,
            4609:  DEFVAR_LISP ("user-real-login-name", &Vuser_real_login_name,
@@ -180,19 +182,19 @@
                    signal_hook_function,
                    debug_on_signal,
                    macro_declaration_function,
-//                           13 matches for "defvar_lisp" in buffer: fileio.c
-/*                              5108:  DEFVAR_LISP ("file-name-coding-system", &Vfile_name_coding_system,
-                              5113:  DEFVAR_LISP ("default-file-name-coding-system",
-                              5149:  DEFVAR_LISP ("directory-sep-char", &Vdirectory_sep_char,
-                              5153:  DEFVAR_LISP ("file-name-handler-alist", &Vfile_name_handler_alist,
-                              5168:  DEFVAR_LISP ("set-auto-coding-function",
+                   // fileio.c
+                   file_name_coding_system,
+                   default_file_name_coding_system,
+/*                              5149:  DEFVAR_LISP ("directory-sep-char", &Vdirectory_sep_char,*/
+                   file_name_handler_alist,
+/*                              5168:  DEFVAR_LISP ("set-auto-coding-function",
                               5181:  DEFVAR_LISP ("after-insert-file-functions", &Vafter_insert_file_functions,
                               5191:  DEFVAR_LISP ("write-region-annotate-functions", &Vwrite_region_annotate_functions,
                               5219:  DEFVAR_LISP ("write-region-post-annotation-function",
-                              5230:  DEFVAR_LISP ("write-region-annotations-so-far",
-                              5237:  DEFVAR_LISP ("inhibit-file-name-handlers", &Vinhibit_file_name_handlers,
-                              5242:  DEFVAR_LISP ("inhibit-file-name-operation", &Vinhibit_file_name_operation,
-                              5246:  DEFVAR_LISP ("auto-save-list-file-name", &Vauto_save_list_file_name,
+                              5230:  DEFVAR_LISP ("write-region-annotations-so-far", */
+                   inhibit_file_name_handlers,
+                   inhibit_file_name_operation,
+/*                              5246:  DEFVAR_LISP ("auto-save-list-file-name", &Vauto_save_list_file_name,
                               5253:  DEFVAR_LISP ("auto-save-visited-file-name", &Vauto_save_visited_file_name,
                            1 match for "defvar_lisp" in buffer: filelock.c
                                759:  DEFVAR_LISP ("temporary-file-directory", &Vtemporary_file_directory,
@@ -232,9 +234,10 @@
                               7900:  DEFVAR_LISP ("max-image-size", &Vmax_image_size,
                               8031:  DEFVAR_LISP ("x-bitmap-file-path", &Vx_bitmap_file_path,
                               8035:  DEFVAR_LISP ("image-cache-eviction-delay", &Vimage_cache_eviction_delay,
-                           1 match for "defvar_lisp" in buffer: insdel.c
-                              2383:  DEFVAR_LISP ("combine-after-change-calls", &Vcombine_after_change_calls,
 */
+                   // insdel.c
+                   combine_after_change_calls,
+
 //                           48 matches for "defvar_lisp" in buffer: keyboard.c
 /*                             11241:  DEFVAR_LISP ("last-command-event", &last_command_event,
                              11244:  DEFVAR_LISP ("last-nonmenu-event", &last_nonmenu_event,
@@ -256,9 +259,9 @@
                              11406:  DEFVAR_LISP ("help-form", &Vhelp_form,
                              11412:  DEFVAR_LISP ("prefix-help-command", &Vprefix_help_command, */
                              top_level,
-/*                             11454:  DEFVAR_LISP ("menu-prompt-more-char", &menu_prompt_more_char,
-                             11472:  DEFVAR_LISP ("deactivate-mark", &Vdeactivate_mark,
-                             11481:  DEFVAR_LISP ("command-hook-internal", &Vcommand_hook_internal,
+/*                             11454:  DEFVAR_LISP ("menu-prompt-more-char", &menu_prompt_more_char, */
+                             deactivate_mark,
+/*                             11481:  DEFVAR_LISP ("command-hook-internal", &Vcommand_hook_internal,
                              11485:  DEFVAR_LISP ("pre-command-hook", &Vpre_command_hook,
                              11492:  DEFVAR_LISP ("post-command-hook", &Vpost_command_hook,
                              11500:  DEFVAR_LISP ("echo-area-clear-hook", ...,
@@ -350,31 +353,31 @@
    2296:  DEFVAR_LISP ("float-output-format", &Vfloat_output_format,
    2316:  DEFVAR_LISP ("print-length", &Vprint_length, */
         print_level,
-/*   2350:  DEFVAR_LISP ("print-gensym", &Vprint_gensym,
-   2359:  DEFVAR_LISP ("print-circle", &Vprint_circle,
-   2371:  DEFVAR_LISP ("print-continuous-numbering", &Vprint_continuous_numbering,
-   2378:  DEFVAR_LISP ("print-number-table", &Vprint_number_table,
-   2391:  DEFVAR_LISP ("print-charset-text-property", &Vprint_charset_text_property,
-2 matches for "defvar_lisp" in buffer: process.c
-   6973:  DEFVAR_LISP ("process-connection-type", &Vprocess_connection_type,
-   6982:  DEFVAR_LISP ("process-adaptive-read-buffering", &Vprocess_adaptive_read_buffering,
-2 matches for "defvar_lisp" in buffer: search.c
-   3332:  DEFVAR_LISP ("search-spaces-regexp", &Vsearch_spaces_regexp,
-   3340:  DEFVAR_LISP ("inhibit-changing-match-data", &Vinhibit_changing_match_data,
-1 match for "defvar_lisp" in buffer: syntax.c
-   3463:  DEFVAR_LISP ("find-word-boundary-function-table",
-2 matches for "defvar_lisp" in buffer: term.c
+        /*   2350:  DEFVAR_LISP ("print-gensym", &Vprint_gensym,
+           2359:  DEFVAR_LISP ("print-circle", &Vprint_circle,
+           2371:  DEFVAR_LISP ("print-continuous-numbering", &Vprint_continuous_numbering,
+           2378:  DEFVAR_LISP ("print-number-table", &Vprint_number_table,
+           2391:  DEFVAR_LISP ("print-charset-text-property", &Vprint_charset_text_property,
+        2 matches for "defvar_lisp" in buffer: process.c
+           6973:  DEFVAR_LISP ("process-connection-type", &Vprocess_connection_type,
+           6982:  DEFVAR_LISP ("process-adaptive-read-buffering", &Vprocess_adaptive_read_buffering,
+        2 matches for "defvar_lisp" in buffer: search.c */
+        search_spaces_regexp,
+        inhibit_changing_match_data, 
+        // syntax.c
+        find_word_boundary_function_table,
+/*2 matches for "defvar_lisp" in buffer: term.c
     171://  DEFVAR_LISP ("suspend-tty-functions", &Vsuspend_tty_functions,
     178://  DEFVAR_LISP ("resume-tty-functions", &Vresume_tty_functions,
 2 matches for "defvar_lisp" in buffer: terminal.c
     560:  DEFVAR_LISP ("ring-bell-function", &Vring_bell_function,
-    565:  DEFVAR_LISP ("delete-terminal-functions", &Vdelete_terminal_functions,
-4 matches for "defvar_lisp" in buffer: textprop.c
-   2237:  DEFVAR_LISP ("default-text-properties", &Vdefault_text_properties,
-   2243:  DEFVAR_LISP ("char-property-alias-alist", &Vchar_property_alias_alist,
-   2252:  DEFVAR_LISP ("inhibit-point-motion-hooks", &Vinhibit_point_motion_hooks,
-   2257:  DEFVAR_LISP ("text-property-default-nonsticky",
-2 matches for "defvar_lisp" in buffer: undo.c
+    565:  DEFVAR_LISP ("delete-terminal-functions", &Vdelete_terminal_functions, */
+        // textprop.c
+        default_text_properties,
+        char_property_alias_alist,
+        inhibit_point_motion_hooks,
+        text_property_default_nonsticky,
+/*2 matches for "defvar_lisp" in buffer: undo.c
     701:  DEFVAR_LISP ("undo-outer-limit", &Vundo_outer_limit,
     718:  DEFVAR_LISP ("undo-outer-limit-function", &Vundo_outer_limit_function,
 2 matches for "defvar_lisp" in buffer: w16select.c
@@ -404,14 +407,14 @@
    7013:  DEFVAR_LISP ("x-pixel-size-width-font-regexp",
    7023:  DEFVAR_LISP ("w32-bdf-filename-alist",
 1 match for "defvar_lisp" in buffer: w32font.c
-   2602:  DEFVAR_LISP ("w32-charset-info-alist",
-7 matches for "defvar_lisp" in buffer: w32proc.c
-   2298:  DEFVAR_LISP ("w32-quote-process-args", &Vw32_quote_process_args,
+   2602:  DEFVAR_LISP ("w32-charset-info-alist", */
+        // w32proc.c
+/*   2298:  DEFVAR_LISP ("w32-quote-process-args", &Vw32_quote_process_args,
    2310:  DEFVAR_LISP ("w32-start-process-show-window",
    2317:  DEFVAR_LISP ("w32-start-process-share-console",
-   2327:  DEFVAR_LISP ("w32-start-process-inherit-error-mode",
-   2345:  DEFVAR_LISP ("w32-downcase-file-names", &Vw32_downcase_file_names,
-   2354:  DEFVAR_LISP ("w32-generate-fake-inodes", &Vw32_generate_fake_inodes,
+   2327:  DEFVAR_LISP ("w32-start-process-inherit-error-mode", */
+        w32_downcase_file_names,
+/*   2354:  DEFVAR_LISP ("w32-generate-fake-inodes", &Vw32_generate_fake_inodes,
    2363:  DEFVAR_LISP ("w32-get-true-file-attributes", &Vw32_get_true_file_attributes,
 2 matches for "defvar_lisp" in buffer: w32select.c
    1062:  DEFVAR_LISP ("selection-coding-system", &Vselection_coding_system,
@@ -421,14 +424,14 @@
    6229:  DEFVAR_LISP ("w32-grab-focus-on-raise",
    6237:  DEFVAR_LISP ("w32-capslock-is-shiftlock",
    6243:  DEFVAR_LISP ("w32-recognize-altgr",
-   6283:  DEFVAR_LISP ("x-toolkit-scroll-bars", &Vx_toolkit_scroll_bars,
-6 matches for "defvar_lisp" in buffer: window.c
-   7161:  DEFVAR_LISP ("temp-buffer-show-function", &Vtemp_buffer_show_function,
+   6283:  DEFVAR_LISP ("x-toolkit-scroll-bars", &Vx_toolkit_scroll_bars, */
+        // window.c
+/*   7161:  DEFVAR_LISP ("temp-buffer-show-function", &Vtemp_buffer_show_function,
    7169:  DEFVAR_LISP ("minibuffer-scroll-window", &Vminibuf_scroll_window,
    7179:  DEFVAR_LISP ("other-window-scroll-buffer", &Vother_window_scroll_buffer,
-   7209:  DEFVAR_LISP ("scroll-preserve-screen-position",
-   7220:  DEFVAR_LISP ("window-point-insertion-type", &Vwindow_point_insertion_type,
-   7224:  DEFVAR_LISP ("window-configuration-change-hook",
+   7209:  DEFVAR_LISP ("scroll-preserve-screen-position", */
+        window_point_insertion_type,
+/*   7224:  DEFVAR_LISP ("window-configuration-change-hook",
 */
 // 32 matches for "defvar_lisp" in buffer: xdisp.c
         show_trailing_whitespace,
@@ -437,9 +440,10 @@
   24264:  DEFVAR_LISP ("void-text-area-pointer", &Vvoid_text_area_pointer,
   24270:  DEFVAR_LISP ("inhibit-redisplay", &Vinhibit_redisplay,
   24275:  DEFVAR_LISP ("global-mode-string", &Vglobal_mode_string,
-  24279:  DEFVAR_LISP ("overlay-arrow-position", &Voverlay_arrow_position,
-  24285:  DEFVAR_LISP ("overlay-arrow-string", &Voverlay_arrow_string,
-  24290:  DEFVAR_LISP ("overlay-arrow-variable-list", &Voverlay_arrow_variable_list,
+  24279:  DEFVAR_LISP ("overlay-arrow-position", &Voverlay_arrow_position, */
+        overlay_arrow_string,
+        overlay_arrow_variable_list,
+/*        
   24320:  DEFVAR_LISP ("display-pixels-per-inch",  &Vdisplay_pixels_per_inch,
   24325:  DEFVAR_LISP ("truncate-partial-width-windows",
   24346:  DEFVAR_LISP ("line-number-display-limit", &Vline_number_display_limit,
@@ -447,9 +451,9 @@
   24377:  DEFVAR_LISP ("icon-title-format", &Vicon_title_format,
 */
         message_log_max,
-/*  24400:  DEFVAR_LISP ("window-size-change-functions", &Vwindow_size_change_functions,
-  24408:  DEFVAR_LISP ("window-scroll-functions", &Vwindow_scroll_functions,
-  24416:  DEFVAR_LISP ("window-text-change-functions",
+/*  24400:  DEFVAR_LISP ("window-size-change-functions", &Vwindow_size_change_functions, */
+        window_scroll_functions,
+/*  24416:  DEFVAR_LISP ("window-text-change-functions",
   24421:  DEFVAR_LISP ("redisplay-end-trigger-functions", &Vredisplay_end_trigger_functions,
   24427:  DEFVAR_LISP ("mouse-autoselect-window", &Vmouse_autoselect_window,
   24447:  DEFVAR_LISP ("auto-resize-tool-bars", &Vauto_resize_tool_bars,
@@ -628,13 +632,15 @@
 1 match for "DEFVAR_BOOL" in buffer: frame.c
    4317:  DEFVAR_BOOL ("focus-follows-mouse", &focus_follows_mouse,
 1 match for "DEFVAR_BOOL" in buffer: image.c
-   8025:  DEFVAR_BOOL ("cross-disabled-images", &cross_disabled_images,
-1 match for "DEFVAR_BOOL" in buffer: indent.c
-   2185:  DEFVAR_BOOL ("indent-tabs-mode", &indent_tabs_mode,
-2 matches for "DEFVAR_BOOL" in buffer: insdel.c
-   2380:  DEFVAR_BOOL ("check-markers-debug-flag", &check_markers_debug_flag,
-   2387:  DEFVAR_BOOL ("inhibit-modification-hooks", &inhibit_modification_hooks,
-3 matches for "DEFVAR_BOOL" in buffer: keyboard.c
+   8025:  DEFVAR_BOOL ("cross-disabled-images", &cross_disabled_images,*/
+        // indent.c
+        indent_tabs_mode,
+
+        // insdel.c
+        check_markers_debug_flag,
+        inhibit_modification_hooks,
+
+/*3 matches for "DEFVAR_BOOL" in buffer: keyboard.c
   11371:  DEFVAR_BOOL ("inhibit-local-menu-bar-menus", &inhibit_local_menu_bar_menus,
   11439:  DEFVAR_BOOL ("cannot-suspend", &cannot_suspend,
   11444:  DEFVAR_BOOL ("menu-prompting", &menu_prompting,
@@ -662,19 +668,19 @@
    2339:  DEFVAR_BOOL ("print-escape-multibyte", &print_escape_multibyte,
    2345:  DEFVAR_BOOL ("print-quoted", &print_quoted,
 1 match for "DEFVAR_BOOL" in buffer: process.c
-   6967:  DEFVAR_BOOL ("delete-exited-processes", &delete_exited_processes,
-5 matches for "DEFVAR_BOOL" in buffer: syntax.c
-   3440:  DEFVAR_BOOL ("parse-sexp-ignore-comments", &parse_sexp_ignore_comments,
-   3443:  DEFVAR_BOOL ("parse-sexp-lookup-properties", &parse_sexp_lookup_properties,
-   3450:  DEFVAR_BOOL ("words-include-escapes", &words_include_escapes,
-   3453:  DEFVAR_BOOL ("multibyte-syntax-as-symbol", &multibyte_syntax_as_symbol,
-   3457:  DEFVAR_BOOL ("open-paren-in-column-0-is-defun-start",
+   6967:  DEFVAR_BOOL ("delete-exited-processes", &delete_exited_processes, */
+        // syntax.c
+/*   3440:  DEFVAR_BOOL ("parse-sexp-ignore-comments", &parse_sexp_ignore_comments, */
+        parse_sexp_lookup_properties, 
+        words_include_escapes,
+/*   3453:  DEFVAR_BOOL ("multibyte-syntax-as-symbol", &multibyte_syntax_as_symbol,
+   3457:  DEFVAR_BOOL ("open-paren-in-column-0-is-defun-start", 
 2 matches for "DEFVAR_BOOL" in buffer: term.c
     162://  DEFVAR_BOOL ("system-uses-terminfo", &system_uses_terminfo,
-    184://  DEFVAR_BOOL ("visible-cursor", &visible_cursor,
-1 match for "DEFVAR_BOOL" in buffer: undo.c
-    729:  DEFVAR_BOOL ("undo-inhibit-record-point", &undo_inhibit_record_point,
-1 match for "DEFVAR_BOOL" in buffer: w32console.c
+    184://  DEFVAR_BOOL ("visible-cursor", &visible_cursor,*/
+        // undo.c
+        undo_inhibit_record_point,
+/*1 match for "DEFVAR_BOOL" in buffer: w32console.c
     170:  DEFVAR_BOOL ("w32-use-full-screen-buffer",
 5 matches for "DEFVAR_BOOL" in buffer: w32fns.c
    6906:  DEFVAR_BOOL ("w32-enable-synthesized-fonts", &w32_enable_synthesized_fonts,
@@ -686,10 +692,11 @@
    6250:  DEFVAR_BOOL ("w32-use-visible-system-caret",
    6267:  DEFVAR_BOOL ("x-use-underline-position-properties",
    6275:  DEFVAR_BOOL ("x-underline-at-descent-line",
-2 matches for "DEFVAR_BOOL" in buffer: window.c
-   7173:  DEFVAR_BOOL ("mode-line-in-non-selected-windows", &mode_line_in_non_selected_windows,
-   7183:  DEFVAR_BOOL ("auto-window-vscroll", &auto_window_vscroll_p,
-14 matches for "DEFVAR_BOOL" in buffer: xdisp.c
+*/
+        // window.c
+        mode_line_in_non_selected_windows,
+        auto_window_vscroll_p,
+/*14 matches for "DEFVAR_BOOL" in buffer: xdisp.c
     614:/* The symbol `inhibit-menubar-update' and its DEFVAR_BOOL variable.  
   24243:  DEFVAR_BOOL ("x-stretch-cursor", &x_stretch_cursor_p,
   24340:  DEFVAR_BOOL ("mode-line-inverse-video", &mode_line_inverse_video,
@@ -700,9 +707,9 @@
   24491:  DEFVAR_BOOL ("unibyte-display-via-language-environment",
   24527:  DEFVAR_BOOL ("auto-hscroll-mode", &automatic_hscrolling_p,
   24556:  DEFVAR_BOOL ("message-truncate-lines", &message_truncate_lines,
-  24573:  DEFVAR_BOOL ("inhibit-menubar-update", &inhibit_menubar_update,
-  24603:  DEFVAR_BOOL ("inhibit-eval-during-redisplay", &inhibit_eval_during_redisplay,
-  24607:  DEFVAR_BOOL ("inhibit-free-realized-faces", &inhibit_free_realized_faces,
+  24573:  DEFVAR_BOOL ("inhibit-menubar-update", &inhibit_menubar_update, */
+        inhibit_eval_during_redisplay,
+/*  24607:  DEFVAR_BOOL ("inhibit-free-realized-faces", &inhibit_free_realized_faces,
   24626:  DEFVAR_BOOL ("display-hourglass", &display_hourglass_p,
 4 matches for "DEFVAR_BOOL" in buffer: xfns.c
    5888:  DEFVAR_BOOL ("x-gtk-use-old-file-dialog", &x_gtk_use_old_file_dialog,

@@ -531,8 +531,8 @@
             }
         }
 
-/* Check if X is a valid charset symbol.  If valid, set ID to the id
-   number of the charset.  Otherwise, signal an error. */
+        /* Check if X is a valid charset symbol.  If valid, set ID to the id
+           number of the charset.  Otherwise, signal an error. */
         public static void CHECK_CHARSET_GET_ID(LispObject x, ref int id)
         {
             int idx;

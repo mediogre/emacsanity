@@ -16,19 +16,48 @@
         public const uint MAX_4_BYTE_CHAR = 0x1FFFFF;
         public const uint MAX_5_BYTE_CHAR = 0x3FFF7F;
 
+        /* Minimum leading code of multibyte characters.  */
+        public const uint MIN_MULTIBYTE_LEADING_CODE = 0xC0;
+
+        /* Maximum leading code of multibyte characters.  */
+        public const uint MAX_MULTIBYTE_LEADING_CODE = 0xF8;
+
         /* Maximum Unicode character code.  */
         public const uint MAX_UNICODE_CHAR = 0x10FFFF;
 
         /* This is the maximum byte length of multibyte form.  */
         public const int MAX_MULTIBYTE_LENGTH = 5;
 
+        /* Variable used locally in the macro FETCH_MULTIBYTE_CHAR.  */
+        public static int _fetch_multibyte_char_p;
+
         /* Mapping table from unibyte chars to multibyte chars.  */
         public static uint[] unibyte_to_multibyte_table = new uint[256];
+
+        /* If C is not ASCII, make it unibyte. */
+        public static void MAKE_CHAR_UNIBYTE(ref int c)
+        {
+            if (!ASCII_CHAR_P((uint) c))
+                c = (int) CHAR_TO_BYTE8((uint) c);
+        }
+
+        /* If C is not ASCII, make it multibyte.  Assumes C < 256.  */
+        public static void MAKE_CHAR_MULTIBYTE(ref int c)
+        {
+            // (eassert ((c) >= 0 && (c) < 256);
+            c = (int)unibyte_to_multibyte_table[c];
+        }
 
         /* Nonzero iff X is a character.  */
         public static bool CHARACTERP(LispObject x)
         {
             return (NATNUMP(x) && XINT(x) <= MAX_CHAR);
+        }
+
+        /* Nonzero iff C is valid as a character code.  GENERICP is not used.  */
+        public static bool CHAR_VALID_P(int c, bool genericp)
+        {
+            return ((uint)c <= MAX_CHAR);
         }
 
         /* Check if Lisp object X is a character or not.  */
@@ -55,9 +84,9 @@
             if ((c & CHAR_SHIFT) != 0)
             {
                 /* Shift modifier is valid only with [A-Za-z].  */
-                if ((c & 0377) >= 'A' && (c & 0377) <= 'Z')
+                if ((c & 255) >= 'A' && (c & 255) <= 'Z')
                     c &= ~CHAR_SHIFT;
-                else if ((c & 0377) >= 'a' && (c & 0377) <= 'z')
+                else if ((c & 255) >= 'a' && (c & 255) <= 'z')
                     c = (c & ~CHAR_SHIFT) - ('a' - 'A');
                 /* Shift modifier for control characters and SPC is ignored.  */
                 else if ((c & ~CHAR_MODIFIER_MASK) <= 0x20)
@@ -67,16 +96,16 @@
             {
                 /* Simulate the code in lread.c.  */
                 /* Allow `\C- ' and `\C-?'.  */
-                if ((c & 0377) == ' ')
-                    c &= ~0177u & ~CHAR_CTL;
-                else if ((c & 0377) == '?')
-                    c = 0177u | (c & ~0177u & ~CHAR_CTL);
+                if ((c & 255) == ' ')
+                    c &= ~127u & ~CHAR_CTL;
+                else if ((c & 255) == '?')
+                    c = 127u | (c & ~127u & ~CHAR_CTL);
                 /* ASCII control chars are made from letters (both cases),
                    as well as the non-letters within 0100...0137.  */
-                else if ((c & 0137) >= 0101 && (c & 0137) <= 0132)
-                    c &= (037 | (~0177u & ~CHAR_CTL));
-                else if ((c & 0177) >= 0100 && (c & 0177) <= 0137)
-                    c &= (037 | (~0177u & ~CHAR_CTL));
+                else if ((c & 95) >= 65 && (c & 95) <= 90)
+                    c &= (31 | (~127u & ~CHAR_CTL));
+                else if ((c & 127) >= 64 && (c & 127) <= 95)
+                    c &= (31 | (~127u & ~CHAR_CTL));
             }
             if ((c & CHAR_META) != 0)
             {
@@ -99,6 +128,29 @@
                 else if (!NILP(val))
                     c = maybe_unify_char(c, val);
             }
+        }
+
+        /* Return the width of ASCII character C.  The width is measured by
+           how many columns C will occupy on the screen when displayed in the
+           current buffer.  */
+        public static int ASCII_CHAR_WIDTH(uint c)
+        {
+            return (c < 0x20
+   ? (c == '\t'
+      ? XINT(current_buffer.tab_width)
+      : (c == '\n' ? 0 : (NILP(current_buffer.ctl_arrow) ? 4 : 2)))
+   : (c < 0x7f
+      ? 1
+      : ((NILP(current_buffer.ctl_arrow) ? 4 : 2))));
+        }
+        /* Return the width of character C.  The width is measured by how many
+           columns C will occupy on the screen when displayed in the current
+           buffer.  */
+        public static int CHAR_WIDTH(uint c)
+        {
+            return (ASCII_CHAR_P(c)
+   ? ASCII_CHAR_WIDTH(c)
+   : XINT(CHAR_TABLE_REF(V.char_width_table, c)));
         }
 
         public static int char_string(uint c, byte[] p)
@@ -226,6 +278,22 @@
             return c;
         }
 
+        /* If P is after LIMIT, advance P to the previous character boundary.
+           Assumes that P is already at a character boundary of the same
+           mulitbyte form whose beginning address is LIMIT.  */
+        public static void PREV_CHAR_BOUNDARY(ref PtrEmulator<byte> p, PtrEmulator<byte> limit)
+        {
+            if (p > limit)
+            {
+                PtrEmulator<byte> p0 = p;
+                do
+                {
+                    p0--;
+                } while (p0 >= limit && !CHAR_HEAD_P(p0.Value));
+                p = (BYTES_BY_CHAR_HEAD(p0.Value) == p - p0) ? p0 : p - 1;
+            }
+        }
+
         /* Return the character code of character whose multibyte form is at
            P.  The argument LEN is ignored.  It will be removed in the
            future.  */
@@ -258,6 +326,11 @@
                     }
                 }
             }
+        }
+
+        public static uint STRING_CHAR_AND_LENGTH(PtrEmulator<byte> t, int len, ref int actual_len)
+        {
+            return STRING_CHAR_AND_LENGTH(t.Collection, t.Index, len, ref actual_len);
         }
 
         /* Like STRING_CHAR, but set ACTUAL_LEN to the length of multibyte
@@ -320,6 +393,48 @@
             }
         }
 
+        /* Like FETCH_STRING_CHAR_ADVANCE, but return a multibyte character
+           even if STRING is unibyte.  */
+        public static void FETCH_STRING_CHAR_AS_MULTIBYTE_ADVANCE(ref int OUTPUT, LispObject STRING, ref int CHARIDX, ref int BYTEIDX)
+        {
+            CHARIDX++;
+            if (STRING_MULTIBYTE(STRING))
+            {
+                PtrEmulator<byte> ptr = new PtrEmulator<byte>(SDATA(STRING), BYTEIDX);
+                int len = 0;
+
+                OUTPUT = (int) STRING_CHAR_AND_LENGTH(ptr, 0, ref len);
+                BYTEIDX += len;
+            }
+            else
+            {
+                OUTPUT = SREF(STRING, BYTEIDX);
+                BYTEIDX++;
+                MAKE_CHAR_MULTIBYTE(ref OUTPUT);
+            }
+        }
+
+        /* Like FETCH_STRING_CHAR_ADVANCE, but fetch character from the current
+           buffer.  */
+        public static void FETCH_CHAR_ADVANCE(ref int OUTPUT, ref int CHARIDX, ref int BYTEIDX)
+        {
+            CHARIDX++;
+            if (!NILP(current_buffer.enable_multibyte_characters))
+            {
+                PtrEmulator<byte> ptr = BYTE_POS_ADDR(BYTEIDX);
+                int len = 0;
+
+                OUTPUT = (int) STRING_CHAR_AND_LENGTH(ptr.Collection, ptr.Index, 0, ref len);
+                BYTEIDX += len;
+            }
+            else
+            {
+                PtrEmulator<byte> ptr = BYTE_POS_ADDR(BYTEIDX);
+                OUTPUT = ptr.Value;
+                BYTEIDX++;
+            }
+        }
+
         /* Like FETCH_STRING_CHAR_ADVANCE, but assumes STRING is multibyte.  */
         public static void FETCH_STRING_CHAR_ADVANCE_NO_CHECK(ref int OUTPUT, LispObject STRING, ref int CHARIDX, ref int BYTEIDX)
         {
@@ -328,6 +443,80 @@
             OUTPUT = (int)STRING_CHAR_AND_LENGTH(SDATA(STRING), BYTEIDX, 0, ref len);
             BYTEIDX += len;
             CHARIDX++;
+        }
+
+        /* Increment the buffer byte position POS_BYTE of the current buffer to
+           the next character boundary.  No range checking of POS.  */
+        public static void INC_POS(ref int pos_byte)
+        {
+            PtrEmulator<byte> p = BYTE_POS_ADDR(pos_byte);
+            pos_byte += BYTES_BY_CHAR_HEAD(p.Value);
+        }
+
+        /* Decrement the buffer byte position POS_BYTE of the current buffer to
+           the previous character boundary.  No range checking of POS.  */
+        public static void DEC_POS(ref int pos_byte)
+        {
+            int p;
+
+            pos_byte--;
+            if (pos_byte < GPT_BYTE)
+                p = pos_byte - BEG_BYTE();
+            else
+                p = GAP_SIZE + pos_byte - BEG_BYTE();
+
+            while (!CHAR_HEAD_P(BEG_ADDR()[p]))
+            {
+                p--;
+                pos_byte--;
+            }
+        }
+
+        /* Increment both CHARPOS and BYTEPOS, each in the appropriate way.  */
+        public static void INC_BOTH(ref int charpos, ref int bytepos)
+        {
+            charpos++;
+            if (NILP(current_buffer.enable_multibyte_characters))
+                bytepos++;
+            else
+                INC_POS(ref bytepos);
+        }
+
+        /* Decrement both CHARPOS and BYTEPOS, each in the appropriate way.  */
+        public static void DEC_BOTH(ref int charpos, ref int bytepos)
+        {
+            charpos--;
+            if (NILP(current_buffer.enable_multibyte_characters))
+                bytepos--;
+            else
+                DEC_POS(ref bytepos);
+        }
+
+        /* Increment the buffer byte position POS_BYTE of the current buffer to
+           the next character boundary.  This macro relies on the fact that
+           *GPT_ADDR and *Z_ADDR are always accessible and the values are
+           '\0'.  No range checking of POS_BYTE.  */
+        public static void BUF_INC_POS(Buffer buf, ref int pos_byte)
+        {
+            int p = BUF_BYTE_ADDRESS(buf, pos_byte);
+            pos_byte += BYTES_BY_CHAR_HEAD(buf.text.beg[p]);
+        }
+
+        /* Decrement the buffer byte position POS_BYTE of the current buffer to
+           the previous character boundary.  No range checking of POS_BYTE.  */
+        public static void BUF_DEC_POS(Buffer buf, ref int pos_byte)
+        {
+            int p;
+            pos_byte--;
+            if (pos_byte < BUF_GPT_BYTE(buf))
+                p = pos_byte - BEG_BYTE();
+            else
+                p = BUF_GAP_SIZE(buf) + pos_byte - BEG_BYTE();
+            while (!CHAR_HEAD_P(BUF_BEG_ADDR(buf)[p]))
+            {
+                p--;
+                pos_byte--;
+            }
         }
 
         /* Nonzero iff C is a character that corresponds to a raw 8-bit
@@ -350,6 +539,15 @@
             }
         }
 
+        /* Return the raw 8-bit byte for character C,
+           or -1 if C doesn't correspond to a byte.  */
+        public static int CHAR_TO_BYTE_SAFE(uint c)
+        {
+            return (CHAR_BYTE8_P(c)
+             ? (int) c - 0x3FFF00
+             : multibyte_char_to_unibyte_safe(c));
+        }
+
         /* Convert the multibyte character C to unibyte 8-bit character based
            on the current value of charset_unibyte.  If dimension of
            charset_unibyte is more than one, return (C & 0xFF).
@@ -367,6 +565,20 @@
             return ((c1 != CHARSET_INVALID_CODE(cset)) ? c1 : c & 0xFF);
         }
 
+        /* Like multibyte_char_to_unibyte, but return -1 if C is not supported
+           by charset_unibyte.  */
+        public static int multibyte_char_to_unibyte_safe(uint c)
+        {
+            charset charset;
+            uint c1;
+
+            if (CHAR_BYTE8_P(c))
+                return (int) CHAR_TO_BYTE8(c);
+            charset = CHARSET_FROM_ID(charset_unibyte);
+            c1 = ENCODE_CHAR(charset, c);
+            return ((c1 != CHARSET_INVALID_CODE(charset)) ? (int) c1 : -1);
+        }
+
         /* Nonzero iff C is an ASCII character.  */
         public static bool ASCII_CHAR_P(uint c)
         {
@@ -382,6 +594,17 @@
            : (c) <= MAX_4_BYTE_CHAR ? 4
            : (c) <= MAX_5_BYTE_CHAR ? 5
            : 2);
+        }
+
+        /* Return the leading code of multibyte form of C.  */
+        public static byte CHAR_LEADING_CODE(uint c)
+        {
+            return ((c) <= MAX_1_BYTE_CHAR ? (byte) c
+             : (c) <= MAX_2_BYTE_CHAR ? (byte) (0xC0 | ((c) >> 6))
+             : (c) <= MAX_3_BYTE_CHAR ? (byte) (0xE0 | ((c) >> 12))
+             : (c) <= MAX_4_BYTE_CHAR ? (byte) (0xF0 | ((c) >> 18))
+             : (c) <= MAX_5_BYTE_CHAR ? (byte) 0xF8
+             : (byte) (0xC0 | (((c) >> 6) & 0x01)));
         }
 
         public static int CHAR_STRING(uint c, byte[] p)
@@ -599,23 +822,23 @@
            area and that is enough.  Return the number of bytes of the
            resulting text.  */
 
-        public static int str_as_multibyte (byte[] str, int len, int nbytes, ref int nchars)
+        public static int str_as_multibyte(byte[] str, int len, int nbytes, ref int nchars)
         {
             int p = 0, endp = nbytes;
-             int chars = 0;
+            int chars = 0;
             int n;
 
             if (nbytes >= MAX_MULTIBYTE_LENGTH)
             {
                 int adjusted_endp = endp - MAX_MULTIBYTE_LENGTH;
                 while (p < adjusted_endp
-                       && (n = MULTIBYTE_LENGTH_NO_CHECK (str, p)) > 0)
-                       {
+                       && (n = MULTIBYTE_LENGTH_NO_CHECK(str, p)) > 0)
+                {
                     p += n;
                     chars++;
                 }
             }
-            while ((n = MULTIBYTE_LENGTH (str, p, endp)) > 0)
+            while ((n = MULTIBYTE_LENGTH(str, p, endp)) > 0)
             {
                 p += n;
                 chars++;
@@ -628,7 +851,7 @@
             int to = p;
             nbytes = endp - p;
             endp = len;
-            safe_bcopy (str, p, str, endp - nbytes, nbytes);
+            safe_bcopy(str, p, str, endp - nbytes, nbytes);
             p = endp - nbytes;
 
             if (nbytes >= MAX_MULTIBYTE_LENGTH)
@@ -636,7 +859,7 @@
                 int adjusted_endp = endp - MAX_MULTIBYTE_LENGTH;
                 while (p < adjusted_endp)
                 {
-                    if ((n = MULTIBYTE_LENGTH_NO_CHECK (str, p)) > 0)
+                    if ((n = MULTIBYTE_LENGTH_NO_CHECK(str, p)) > 0)
                     {
                         while (n-- != 0)
                         {
@@ -646,15 +869,15 @@
                     else
                     {
                         uint c = str[p++];
-                        c = BYTE8_TO_CHAR ((byte) c);
-                        to += CHAR_STRING (c, str, to);
+                        c = BYTE8_TO_CHAR((byte)c);
+                        to += CHAR_STRING(c, str, to);
                     }
                 }
                 chars++;
             }
             while (p < endp)
             {
-                if ((n = MULTIBYTE_LENGTH (str, p, endp)) > 0)
+                if ((n = MULTIBYTE_LENGTH(str, p, endp)) > 0)
                 {
                     while (n-- != 0)
                     {
@@ -664,8 +887,8 @@
                 else
                 {
                     uint c = str[p++];
-                    c = BYTE8_TO_CHAR ((byte) c);
-                    to += CHAR_STRING (c, str, to);
+                    c = BYTE8_TO_CHAR((byte)c);
+                    to += CHAR_STRING(c, str, to);
                 }
                 chars++;
             }
@@ -756,6 +979,13 @@
             return ((b & 0xC0) != 0x80);
         }
 
+        /* Kept for backward compatibility.  This macro will be removed in the
+           future.  */
+        public static bool BASE_LEADING_CODE_P(byte b)
+        {
+            return LEADING_CODE_P(b);
+        }
+
         /* How many bytes a character that starts with BYTE occupies in a
            multibyte form.  */
         public static int BYTES_BY_CHAR_HEAD(uint b)
@@ -779,6 +1009,15 @@
                     }
                 }
             }
+        }
+
+        /* Return the length of the multi-byte form at string STR of length
+           LEN while assuming that STR points a valid multi-byte form.  As
+           this macro isn't necessary anymore, all callers will be changed to
+           use BYTES_BY_CHAR_HEAD directly in the future.  */
+        public static int MULTIBYTE_FORM_LENGTH(PtrEmulator<byte> str, int len)
+        {
+            return BYTES_BY_CHAR_HEAD(str.Value);
         }
 
         /* Return the number of characters in the NBYTES bytes at PTR.
@@ -809,6 +1048,54 @@
         public static uint unibyte_char_to_multibyte(uint c)
         {
             return (c < 256 ? unibyte_to_multibyte_table[c] : c);
+        }
+
+        /* Parse multibyte string STR of length LENGTH and set BYTES to the
+           byte length of a character at STR while assuming that STR points a
+           valid multibyte form.  As this macro isn't necessary anymore, all
+           callers will be changed to use BYTES_BY_CHAR_HEAD directly in the
+           future.  */
+        public static void PARSE_MULTIBYTE_SEQ(byte[] str, int idx, int length, ref int bytes)
+        {
+            bytes = BYTES_BY_CHAR_HEAD(str[idx]);
+        }
+
+        /* Return the number of characters in the NBYTES bytes at PTR.
+           This works by looking at the contents and checking for multibyte
+           sequences while assuming that there's no invalid sequence.
+           However, if the current buffer has enable-multibyte-characters =
+           nil, we treat each byte as a character.  */
+        public static int chars_in_text(byte[] ptr, int nbytes)
+        {
+            /* current_buffer is null at early stages of Emacs initialization.  */
+            if (current_buffer == null
+                || NILP(current_buffer.enable_multibyte_characters))
+                return nbytes;
+
+            return multibyte_chars_in_text(ptr, nbytes);
+        }
+
+        /* Return the number of characters in the NBYTES bytes at PTR.
+           This works by looking at the contents and checking for multibyte
+           sequences while assuming that there's no invalid sequence.  It
+           ignores enable-multibyte-characters.  */
+        public static int multibyte_chars_in_text(byte[] str, int nbytes)
+        {
+            int ptr = 0;
+            int endp = nbytes;
+            int chars = 0;
+
+            while (ptr < endp)
+            {
+                int len = MULTIBYTE_LENGTH(str, ptr, endp);
+
+                if (len == 0)
+                    abort();
+                ptr += len;
+                chars++;
+            }
+
+            return chars;
         }
     }
 

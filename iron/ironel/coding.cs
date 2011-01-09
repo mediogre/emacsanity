@@ -7,11 +7,33 @@
         public static LispObject emacs_mule;
         public static LispObject raw_text;
         public static LispObject utf_8_emacs;
+
+        /* If a symbol has this property, evaluate the value to define the
+           symbol as a coding system.  */
+        public static LispObject coding_system_define_form;
+    }
+
+    public partial class V
+    {
+        public static LispObject coding_system_hash_table;
     }
 
     public partial class L
     {
         public static byte[] emacs_mule_bytes = new byte[256];
+
+        /* Encode the file name NAME using the specified coding system
+           for file names, if any.  */
+        public static LispObject ENCODE_FILE(LispObject name)						   
+        {
+            return (!NILP(V.file_name_coding_system)
+             && !EQ(V.file_name_coding_system, make_number(0))
+             ? code_convert_string_norecord(name, V.file_name_coding_system, true)
+             : (!NILP(V.default_file_name_coding_system)
+                && !EQ(V.default_file_name_coding_system, make_number(0))
+                ? code_convert_string_norecord(name, V.default_file_name_coding_system, true)
+                : name));
+        }
 
         public static LispObject code_convert_string (LispObject str, LispObject coding_system, LispObject dst_object,
                                                       bool encodep, bool nocopy, bool norecord)
@@ -55,6 +77,29 @@
                     : coding.dst_object);
 #endif
         }
+
+        /* Encode or decode STRING according to CODING_SYSTEM.
+           Do not set Vlast_coding_system_used.
+
+           This function is called only from macros DECODE_FILE and
+           ENCODE_FILE, thus we ignore character composition.  */
+        public static LispObject code_convert_string_norecord(LispObject stringg, LispObject coding_system, bool encodep)
+        {
+            return code_convert_string(stringg, coding_system, Q.t, encodep, false, true);
+        }
+
+        /* Return the ID of CODING_SYSTEM_SYMBOL.  */
+        public static int CODING_SYSTEM_ID(LispObject coding_system_symbol)
+        {
+            return hash_lookup(XHASH_TABLE(V.coding_system_hash_table), coding_system_symbol);
+        }
+
+/* Return 1 if CODING_SYSTEM_SYMBOL is a coding system.  */
+        public static bool CODING_SYSTEM_P(LispObject coding_system_symbol)
+        {
+            return (CODING_SYSTEM_ID(coding_system_symbol) >= 0 || (!NILP(coding_system_symbol) && !NILP(F.coding_system_p(coding_system_symbol))));
+        }
+
     }
 
     public partial class F
@@ -63,6 +108,16 @@
         {
             return L.code_convert_string(str, coding_system, buffer,
                                          false, !L.NILP(nocopy), false);
+        }
+
+        public static LispObject coding_system_p(LispObject obj)
+        {
+            if (L.NILP(obj) || L.CODING_SYSTEM_ID(obj) >= 0)
+                return Q.t;
+            if (!L.SYMBOLP(obj)
+                || L.NILP(F.get(obj, Q.coding_system_define_form)))
+                return Q.nil;
+            return Q.t;
         }
     }
 }

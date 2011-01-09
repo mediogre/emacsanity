@@ -1,5 +1,11 @@
 ﻿namespace IronElisp
 {
+    public partial class Q
+    {
+        public static LispObject standard_output;
+        public static LispObject temp_buffer_setup_hook;
+    }
+
     public partial class V
     {
         public static LispObject print_level
@@ -62,8 +68,6 @@
 
         public static void temp_output_buffer_setup (string bufname)
         {
-            // COMEBACK_WHEN_READY !!!
-            /*
             int count = SPECPDL_INDEX ();
             Buffer old = current_buffer;
 
@@ -91,7 +95,6 @@
             unbind_to (count, Q.nil);
 
             specbind (Q.standard_output, buf);
-            */
         }
 
         public static void temp_output_buffer_show (LispObject buf)

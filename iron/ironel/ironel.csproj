@@ -45,9 +45,14 @@
     <Compile Include="buffer.cs" />
     <Compile Include="bytecode.cs" />
     <Compile Include="callint.cs" />
+    <Compile Include="casefiddle.cs" />
+    <Compile Include="casetab.cs" />
+    <Compile Include="category.cs" />
+    <Compile Include="ccl.cs" />
     <Compile Include="character.cs" />
     <Compile Include="charset.cs" />
     <Compile Include="chartab.cs" />
+    <Compile Include="cmds.cs" />
     <Compile Include="coding.cs" />
     <Compile Include="commands.cs" />
     <Compile Include="composite.cs" />
@@ -55,8 +60,10 @@
     <Compile Include="defs.cs" />
     <Compile Include="dispextern.cs" />
     <Compile Include="dispnew.cs" />
+    <Compile Include="disptab.cs" />
     <Compile Include="doc.cs" />
     <Compile Include="doprnt.cs" />
+    <Compile Include="editfns.cs" />
     <Compile Include="emacs.cs" />
     <Compile Include="eval.cs" />
     <Compile Include="fileio.cs" />
@@ -75,14 +82,21 @@
     <Compile Include="marker.cs" />
     <Compile Include="minibuf.cs" />
     <Compile Include="print.cs" />
+    <Compile Include="regex.cs" />
     <Compile Include="region_cache.cs" />
     <Compile Include="search.cs" />
+    <Compile Include="syntax.cs" />
     <Compile Include="term.cs" />
     <Compile Include="termhooks.cs" />
     <Compile Include="textprop.cs" />
+    <Compile Include="undo.cs" />
+    <Compile Include="w32.cs" />
     <Compile Include="w32fns.cs" />
     <Compile Include="w32term.cs" />
+    <Compile Include="w32_proc.cs" />
+    <Compile Include="window.cs" />
     <Compile Include="xdisp.cs" />
+    <Compile Include="xfaces.cs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="System" />

@@ -85,24 +85,24 @@
            to shift from one frame to the other, any redirections to the
            original frame are shifted to the newly selected frame; if
            focus_frame is nil, Fselect_frame will leave it alone.  */
-        LispObject focus_frame;
+        public LispObject focus_frame;
 
         /* This frame's root window.  Every frame has one.
            If the frame has only a minibuffer window, this is it.
            Otherwise, if the frame has a minibuffer window, this is its sibling.  */
-        LispObject root_window;
+        public LispObject root_window;
 
         /* This frame's selected window.
            Each frame has its own window hierarchy
            and one of the windows in it is selected within the frame.
            The selected window of the selected frame is Emacs's selected window.  */
-        LispObject selected_window;
+        public LispObject selected_window;
 
         /* This frame's minibuffer window.
            Most frames have their own minibuffer windows,
            but only the selected frame's minibuffer window
            can actually appear to exist.  */
-        LispObject minibuffer_window;
+        public LispObject minibuffer_window;
 
         /* Parameter alist of this frame.
            These are the parameters specified when creating the frame
@@ -228,7 +228,7 @@
 
         /* Total size of this frame (i.e. its native window), in units of
            canonical characters.  */
-        int total_lines, total_cols;
+        public int total_lines, total_cols;
 
         /* New text height and width for pending size change.
            0 if no change pending.  */
@@ -259,21 +259,21 @@
         /* Width of the internal border.  This is a line of background color
            just inside the window's border.  When the frame is selected,
            a highlighting is displayed inside the internal border.  */
-        int internal_border_width;
+        public int internal_border_width;
 
         /* Canonical X unit.  Width of default font, in pixels.  */
-        int column_width;
+        public int column_width;
 
         /* Widht of space glyph of default font, in pixels.  */
         int space_width;
 
         /* Canonical Y unit.  Height of a line, in pixels.  */
-        int line_height;
+        public int line_height;
 
         /* The output method says how the contents of this frame are
            displayed.  It could be using termcap, or using an X window.
            This must be the same as the terminal->type. */
-        output_method output_method;
+        public output_method output_method;
 
         /* The terminal device that this frame uses.  If this is NULL, then
            the frame has been deleted. */
@@ -295,10 +295,10 @@
            units of the frame.  This must currently be the case because window
            sizes aren't pixel values.  If it weren't the case, we wouldn't be
            able to split windows horizontally nicely.  */
-        int fringe_cols;
+        public int fringe_cols;
 
         /* The extra width (in pixels) currently allotted for fringes.  */
-        int left_fringe_width, right_fringe_width;
+        public int left_fringe_width, right_fringe_width;
 
         /* See FULLSCREEN_ enum below */
         fullscreen_type want_fullscreen;
@@ -339,18 +339,18 @@
 
            These two are mutually exclusive.  They might both be zero, if the
            frame has been made invisible without an icon.  */
-        byte visible;
-        bool iconified;
+        public byte visible;
+        public byte iconified;
 
         /* Let's not use bitfields for volatile variables.  */
 
         /* Asynchronous input handlers change these, and
            FRAME_SAMPLE_VISIBILITY copies them into visible and iconified.
            See FRAME_SAMPLE_VISIBILITY, below.  */
-        volatile char async_visible, async_iconified;
+        public volatile byte async_visible, async_iconified;
 
         /* Nonzero if this frame should be redrawn.  */
-        volatile char garbaged;
+        public volatile byte garbaged;
 
         /* True if frame actually has a minibuffer window on it.
            0 if using a minibuffer window that isn't on this frame.  */
@@ -358,11 +358,11 @@
 
         /* 0 means, if this frame has just one window,
            show no modeline for that window.  */
-        bool wants_modeline;
+        public bool wants_modeline;
 
         /* Non-zero if the hardware device this frame is displaying on can
            support scroll bars.  */
-        bool can_have_scroll_bars;
+        public bool can_have_scroll_bars;
 
         /* Non-0 means raise this frame to the top of the heap when selected.  */
         bool auto_raise;
@@ -388,7 +388,7 @@
 
         /* If can_have_scroll_bars is non-zero, this is non-zero if we should
            actually display them on this frame.  */
-        vertical_scroll_bar_type vertical_scroll_bar_type;
+        public vertical_scroll_bar_type vertical_scroll_bar_type;
 
         /* What kind of text cursor should we draw in the future?
            This should always be filled_box_cursor or bar_cursor.  */
@@ -416,8 +416,8 @@
            latter is positive; a zero value in config_scroll_bar_width means
            to compute the actual width on the fly, using config_scroll_bar_cols
            and the current font width.  */
-        int config_scroll_bar_width;
-        int config_scroll_bar_cols;
+        public int config_scroll_bar_width;
+        public int config_scroll_bar_cols;
 
         /* The size of the extra width currently allotted for vertical
            scroll bars in this frame, in pixels.  */
@@ -466,5 +466,322 @@
         {
             return f.terminal.kboard;
         }
+
+        /* Given a window, return its frame as a Lisp_Object.  */
+        public static LispObject WINDOW_FRAME(Window w)
+        {
+            return w.frame;
+        }
+
+        /* Canonical y-unit on frame F.
+           This value currently equals the line height of the frame (which is
+           the height of the default font of F).  */
+        public static int FRAME_LINE_HEIGHT(Frame F)
+        {
+            return (F.line_height);
+        }
+
+        /* Canonical x-unit on frame F.
+           This value currently equals the average width of the default font of F.  */
+        public static int FRAME_COLUMN_WIDTH(Frame F)
+        {
+            return (F.column_width);
+        }
+
+        /* Pixel-width of internal border lines */
+        public static int FRAME_INTERNAL_BORDER_WIDTH(Frame F)
+        {
+            return (F.internal_border_width);
+        }
+
+        /* Nonzero if frame F supports scroll bars.
+           If this is zero, then it is impossible to enable scroll bars
+           on frame F.  */
+        public static bool FRAME_CAN_HAVE_SCROLL_BARS(Frame f)
+        {
+            return (f.can_have_scroll_bars);
+        }
+
+        /* This frame slot says whether scroll bars are currently enabled for frame F,
+           and which side they are on.  */
+        public static vertical_scroll_bar_type FRAME_VERTICAL_SCROLL_BAR_TYPE(Frame f)
+        {
+            return (f.vertical_scroll_bar_type);
+        }
+        public static bool FRAME_HAS_VERTICAL_SCROLL_BARS(Frame f)
+        {
+            return (f.vertical_scroll_bar_type != vertical_scroll_bar_type.vertical_scroll_bar_none);
+        }
+        public static bool FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT(Frame f)
+        {
+            return (f.vertical_scroll_bar_type == vertical_scroll_bar_type.vertical_scroll_bar_left);
+        }
+        public static bool FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT(Frame f)
+        {
+            return (f.vertical_scroll_bar_type == vertical_scroll_bar_type.vertical_scroll_bar_right);
+        }
+
+        /* Width that a scroll bar in frame F should have, if there is one.
+           Measured in pixels.
+           If scroll bars are turned off, this is still nonzero.  */
+        public static int FRAME_CONFIG_SCROLL_BAR_WIDTH(Frame f)
+        {
+            return (f.config_scroll_bar_width);
+        }
+
+        /* Width that a scroll bar in frame F should have, if there is one.
+           Measured in columns (characters).
+           If scroll bars are turned off, this is still nonzero.  */
+        public static int FRAME_CONFIG_SCROLL_BAR_COLS(Frame f)
+        {
+            return (f.config_scroll_bar_cols);
+        }
+
+        /* Width of a scroll bar in frame F, measured in columns (characters),
+           but only if scroll bars are on the left.  If scroll bars are on
+           the right in this frame, or there are no scroll bars, value is 0.  */
+        public static int FRAME_LEFT_SCROLL_BAR_COLS(Frame f)
+        {
+            return (FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT(f)
+             ? FRAME_CONFIG_SCROLL_BAR_COLS(f) : 0);
+        }
+
+        /* Width of a left scroll bar in frame F, measured in pixels */
+        public static int FRAME_LEFT_SCROLL_BAR_AREA_WIDTH(Frame f)
+        {
+            return (FRAME_HAS_VERTICAL_SCROLL_BARS_ON_LEFT(f)
+             ? (FRAME_CONFIG_SCROLL_BAR_COLS(f) * FRAME_COLUMN_WIDTH(f))
+             : 0);
+        }
+
+        /* Width of a scroll bar in frame F, measured in columns (characters),
+           but only if scroll bars are on the right.  If scroll bars are on
+           the left in this frame, or there are no scroll bars, value is 0.  */
+        public static int FRAME_RIGHT_SCROLL_BAR_COLS(Frame f)
+        {
+            return (FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT(f)
+             ? FRAME_CONFIG_SCROLL_BAR_COLS(f)
+             : 0);
+        }
+
+        /* Width of a right scroll bar area in frame F, measured in pixels */
+        public static int FRAME_RIGHT_SCROLL_BAR_AREA_WIDTH(Frame f)
+        {
+            return (FRAME_HAS_VERTICAL_SCROLL_BARS_ON_RIGHT(f)
+             ? (FRAME_CONFIG_SCROLL_BAR_COLS(f) * FRAME_COLUMN_WIDTH(f))
+             : 0);
+        }
+
+        /* Actual width of a scroll bar in frame F, measured in columns.  */
+        public static int FRAME_SCROLL_BAR_COLS(Frame f)
+        {
+            return (FRAME_HAS_VERTICAL_SCROLL_BARS(f)
+             ? FRAME_CONFIG_SCROLL_BAR_COLS(f)
+             : 0);
+        }
+
+        /* Actual width of a scroll bar area in frame F, measured in pixels.  */
+        public static int FRAME_SCROLL_BAR_AREA_WIDTH(Frame f)
+        {
+            return (FRAME_HAS_VERTICAL_SCROLL_BARS(f)
+             ? (FRAME_CONFIG_SCROLL_BAR_COLS(f) * FRAME_COLUMN_WIDTH(f))
+             : 0);
+        }
+
+        /* Total width of frame F, in columns (characters),
+           including the width used by scroll bars if any.  */
+        public static int FRAME_TOTAL_COLS(Frame f)
+        {
+            return (f.total_cols);
+        }
+
+        /* Total width of fringes reserved for drawing truncation bitmaps,
+           continuation bitmaps and alike.  The width is in canonical char
+           units of the frame.  This must currently be the case because window
+           sizes aren't pixel values.  If it weren't the case, we wouldn't be
+           able to split windows horizontally nicely.  */
+        public static int FRAME_FRINGE_COLS(Frame F)
+        {
+            return (F.fringe_cols);
+        }
+
+        /* Pixel-width of the left and right fringe.  */
+        public static int FRAME_LEFT_FRINGE_WIDTH(Frame F)
+        {
+            return (F.left_fringe_width);
+        }
+        public static int FRAME_RIGHT_FRINGE_WIDTH(Frame F)
+        {
+            return (F.right_fringe_width);
+        }
+
+        /* Not really implemented.  */
+        public static bool FRAME_WANTS_MODELINE_P(Frame f)
+        {
+            return f.wants_modeline;
+        }
+
+        /* The currently selected window of the window tree of frame F.  */
+        public static LispObject FRAME_SELECTED_WINDOW(Frame f)
+        {
+            return f.selected_window;
+        }
+
+        /* The root window of the window tree of frame F.  */
+        public static LispObject FRAME_ROOT_WINDOW(Frame f)
+        {
+            return f.root_window;
+        }
+
+        /* Emacs's redisplay code could become confused if a frame's
+           visibility changes at arbitrary times.  For example, if a frame is
+           visible while the desired glyphs are being built, but becomes
+           invisible before they are updated, then some rows of the
+           desired_glyphs will be left marked as enabled after redisplay is
+           complete, which should never happen.  The next time the frame
+           becomes visible, redisplay will probably barf.
+
+           Currently, there are no similar situations involving iconified, but
+           the principle is the same.
+
+           So instead of having asynchronous input handlers directly set and
+           clear the frame's visibility and iconification flags, they just set
+           the async_visible and async_iconified flags; the redisplay code
+           calls the FRAME_SAMPLE_VISIBILITY macro before doing any redisplay,
+           which sets visible and iconified from their asynchronous
+           counterparts.
+
+           Synchronous code must use the FRAME_SET_VISIBLE macro.
+
+           Also, if a frame used to be invisible, but has just become visible,
+           it must be marked as garbaged, since redisplay hasn't been keeping
+           up its contents.
+        
+           Note that a tty frame is visible if and only if it is the topmost
+           frame. */
+        public static void FRAME_SAMPLE_VISIBILITY(Frame f)
+        {
+            if (f.async_visible != 0 && f.visible != f.async_visible)
+            {
+                SET_FRAME_GARBAGED(f);
+            }
+            else
+            {
+                f.visible = f.async_visible;
+                f.iconified = f.async_iconified;
+            }
+        }
+
+        public static void SET_FRAME_GARBAGED(Frame f)
+        {
+            frame_garbaged = 1;
+            f.garbaged = 1;
+        }
+
+        public static bool FRAME_VISIBLE_P(Frame f)
+        {
+            return f.visible != 0;
+        }
+
+        /* Nonzero if frame F is currently iconified.  */
+        public static bool FRAME_ICONIFIED_P(Frame f)
+        {
+            return f.iconified != 0;
+        }
+
+        /* The minibuffer window of frame F, if it has one; otherwise nil.  */
+        public static LispObject FRAME_MINIBUF_WINDOW(Frame f)
+        {
+            return f.minibuffer_window;
+        }
+
+        public static LispObject FRAME_FOCUS_FRAME(Frame f)
+        {
+            return f.focus_frame;
+        }
+
+        /* Return 1 if it is ok to delete frame F;
+           0 if all frames aside from F are invisible.
+           (Exception: if F is the terminal frame, and we are using X, return 1.)  */
+        public static bool other_visible_frames(Frame f)
+        {
+            /* We know the selected frame is visible,
+               so if F is some other frame, it can't be the sole visible one.  */
+            if (f == SELECTED_FRAME())
+            {
+                LispObject frames;
+                int count = 0;
+
+                for (frames = V.frame_list;
+                 CONSP(frames);
+                 frames = XCDR(frames))
+                {
+                    LispObject thiss;
+
+                    thiss = XCAR(frames);
+                    /* Verify that the frame's window still exists
+                       and we can still talk to it.  And note any recent change
+                       in visibility.  */
+//#if HAVE_WINDOW_SYSTEM
+                    if (FRAME_WINDOW_P(XFRAME(thiss)))
+                    {
+                        // x_sync(XFRAME(thiss));
+                        FRAME_SAMPLE_VISIBILITY(XFRAME(thiss));
+                    }
+//#endif
+
+                    if (FRAME_VISIBLE_P(XFRAME(thiss))
+                        || FRAME_ICONIFIED_P(XFRAME(thiss))
+                        /* Allow deleting the terminal frame when at least
+                       one X frame exists!  */
+                        || (FRAME_WINDOW_P(XFRAME(thiss)) && !FRAME_WINDOW_P(f)))
+                        count++;
+                }
+                return count > 1;
+            }
+            return true;
+        }
+        
+        public static bool FRAME_W32_P(Frame f)
+        {
+            return f.output_method == output_method.output_w32;
+        }
+
+        /* FRAME_WINDOW_P tests whether the frame is a window, and is
+           defined to be the predicate for the window system being used.  */
+        public static bool FRAME_WINDOW_P(Frame f)
+        {
+            return FRAME_W32_P(f);
+        }
+
+        /* Delete FRAME.  When FORCE equals Qnoelisp, delete FRAME
+          unconditionally.  x_connection_closed and delete_terminal use
+          this.  Any other value of FORCE implements the semantics
+          described for Fdelete_frame.  */
+        public static LispObject delete_frame(LispObject frame, LispObject force)
+        {
+            // COME BACK WHEN READY
+            return null;
+        }
+    }
+
+    public partial class Q
+    {
+        public static LispObject left, right;
+        public static LispObject visible;
+    }
+
+    public partial class F
+    {
+        public static LispObject window_frame(LispObject window)
+        {
+            L.CHECK_LIVE_WINDOW(window);
+            return L.XWINDOW(window).frame;
+        }
+    }
+
+    public partial class V
+    {
+        public static LispObject frame_list;
     }
 }

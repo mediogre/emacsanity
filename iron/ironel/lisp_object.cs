@@ -132,6 +132,11 @@
 
         public LispString(int nchars, int nbytes)
         {
+            allocate_string_data(nchars, nbytes);
+        }
+
+        public void allocate_string_data(int nchars, int nbytes)
+        {
             size = nchars;
             size_byte = nbytes;
 
@@ -168,6 +173,11 @@
         public void bcopy(byte[] contents, int length)
         {
             System.Array.Copy(contents, data, length);
+        }
+
+        public void bcopy(L.PtrEmulator<byte> ptr, int length)
+        {
+            System.Array.Copy(ptr.Collection, ptr.Index, data, 0, length);
         }
 
         public void bcopy(byte[] contents, int to, int length)
@@ -428,7 +438,7 @@
        PLIST is the overlay's property list.  */
     public class LispOverlay : LispMisc
     {
-        LispOverlay next;
+        public LispOverlay next;
         public LispObject start, end, plist;
     }
 
@@ -491,7 +501,6 @@
             }
         }
 
-        // make a copy of our list
         public LispObject[] Contents
         {
             get
@@ -669,7 +678,12 @@
         }        
     }
 
-    public class LispCharTable : LispVectorLike<LispObject>
+    public interface ICharTable
+    {
+        LispObject contents(int i);
+    }
+
+    public class LispCharTable : LispVectorLike<LispObject>, ICharTable
     {
         private LispVector v_;
 
@@ -761,7 +775,7 @@
         public const int VECSIZE = 5 + (1 << CHARTAB_SIZE_BITS_0);
     }
 
-    public class LispSubCharTable : LispVectorLike<LispObject>
+    public class LispSubCharTable : LispVectorLike<LispObject>, ICharTable
     {
         private LispVector v_;
 
@@ -816,9 +830,10 @@
             return this[i + 2];
         }
 
-        public void set_contents(int i, LispObject value)
+        public LispObject set_contents(int i, LispObject value)
         {
             this[i + 2] = value;
+            return value;
         }
 
         public const int VECSIZE = 3;

@@ -926,7 +926,7 @@ namespace IronElisp
 
         public static void unwind_to_catch(catchtag catchtag, LispObject value)
         {
-            immediate_quit = false;
+            immediate_quit = 0;
             throw new LispCatch(catchtag, value);            // the meat of the original unwind_to_catch is in catch body of internal_xxx
         }
     }
@@ -1181,7 +1181,7 @@ namespace IronElisp
 
             LispObject real_error_symbol;
 
-            L.immediate_quit = false;
+            L.immediate_quit = 0;
             if (L.waiting_for_input)
                 L.abort();
 

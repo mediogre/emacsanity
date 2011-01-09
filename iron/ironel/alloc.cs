@@ -1,5 +1,10 @@
 ﻿namespace IronElisp
 {
+    public partial class Q
+    {
+        public static LispObject char_table_extra_slots;
+    }
+
     public partial class V
     {
         public static LispObject gc_cons_percentage
@@ -41,6 +46,12 @@
 
     public partial class L
     {
+        /* Put MARKER back on the free list after using it temporarily.  */
+        public static void free_marker (LispObject marker)
+        {
+            unchain_marker(XMARKER(marker));
+        }
+
         public static Interval make_interval()
         {
             Interval r = new Interval();
@@ -88,23 +99,28 @@
             return val;
         }
 
+        public static LispObject make_specified_string(byte[] contents, int nchars, int nbytes, bool multibyte)
+        {
+            return make_specified_string(contents, 0, nbytes, multibyte);
+        }
+
         /* Make a string from NCHARS characters occupying NBYTES bytes at
            CONTENTS.  The argument MULTIBYTE controls whether to label the
            string as multibyte.  If NCHARS is negative, it counts the number of
            characters by itself.  */
-        public static LispObject make_specified_string (byte[] contents, int nchars, int nbytes, bool multibyte)
+        public static LispObject make_specified_string(byte[] contents, int idx, int nchars, int nbytes, bool multibyte)
         {
             LispObject val;
 
             if (nchars < 0)
             {
                 if (multibyte)
-                    nchars = multibyte_chars_in_text (contents, 0, nbytes);
+                    nchars = multibyte_chars_in_text (contents, idx, nbytes);
                 else
                     nchars = nbytes;
             }
             val = make_uninit_multibyte_string (nchars, nbytes);
-            (val as LispString).bcopy(contents, nbytes);
+            (val as LispString).bcopy(contents, idx, 0, nbytes);
 
             if (!multibyte)
                 STRING_SET_UNIBYTE (ref val);
@@ -173,10 +189,55 @@
         {
             byte_stack_list = null;
         }
+
+        public static void alloc_buffer_text(Buffer b, int nbytes)
+        {
+            b.text.beg = new byte[nbytes];
+        }
     }
 
     public partial class F
     {
+        public static LispObject vector(int nargs, int from, params LispObject[] args)
+        {
+            LispObject len, val;
+            int index;
+            LispVector p;
+
+            len = L.XSETINT(nargs);
+            val = F.make_vector(len, Q.nil);
+            p = L.XVECTOR(val);
+            nargs += from;
+            for (index = from; index < nargs; index++)
+                p[index] = args[index];
+            return val;
+        }
+
+        public static LispObject vector(int nargs, params LispObject[] args)
+        {
+            LispObject len, val;
+            int index;
+            LispVector p;
+
+            len = L.XSETINT(nargs);
+            val = F.make_vector(len, Q.nil);
+            p = L.XVECTOR(val);
+            for (index = 0; index < nargs; index++)
+                p[index] = args[index];
+            return val;
+        }
+
+        public static LispObject make_marker()
+        {
+            LispMarker p = new LispMarker();
+            p.buffer = null;
+            p.bytepos = 0;
+            p.charpos = 0;
+            p.next = null;
+            p.insertion_type = false;
+            return p;
+        }
+
         public static LispObject make_list(LispObject length, LispObject init)
         {
             LispObject val;
@@ -383,6 +444,19 @@
         {
             LispObject val = Q.nil;
 
+            while (nargs > 0)
+            {
+                nargs--;
+                val = F.cons(args[nargs], val);
+            }
+            return val;
+        }
+
+        public static LispObject list_starting(int nargs, int start_idx, params LispObject[] args)
+        {
+            LispObject val = Q.nil;
+
+            nargs += start_idx;
             while (nargs > 0)
             {
                 nargs--;

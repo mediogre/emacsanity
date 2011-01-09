@@ -17,6 +17,10 @@ namespace IronElisp
 
         public const uint CHAR_MODIFIER_MASK = (CHAR_ALT | CHAR_SUPER | CHAR_HYPER | CHAR_SHIFT | CHAR_CTL | CHAR_META);
 
+        /* Actually, the current Emacs uses 22 bits for the character value
+           itself.  */
+        public const int CHARACTERBITS = 22;
+
         public static System.Type XTYPE(LispObject x)
         {
             return x.GetType();
@@ -170,6 +174,16 @@ namespace IronElisp
             return x == Q.nil;
         }
 
+        public static bool WINDOWP(LispObject x)
+        {
+            return x is Window;
+        }
+
+        public static Window XWINDOW(LispObject x)
+        {
+            return x as Window;
+        }
+
         public static bool FRAMEP(LispObject x)
         {
             return x is Frame;
@@ -308,11 +322,6 @@ namespace IronElisp
                 XSYMBOL(sym).Value = val;
         }
 
-        public static LispObject CAR_SAFE(LispObject c)
-        {
-            return (CONSP(c) ? XCAR(c) : Q.nil);
-        }
-
         /* Take the car or cdr of something whose type is not known.  */
         public static LispObject CAR(LispObject c)
         {
@@ -332,6 +341,17 @@ namespace IronElisp
                 return Q.nil;
             else
                 return wrong_type_argument(Q.listp, c);
+        }
+
+        /* Take the car or cdr of something whose type is not known.  */
+        public static LispObject CAR_SAFE(LispObject c)				
+        {
+            return (CONSP(c) ? XCAR(c) : Q.nil);
+        }
+
+        public static LispObject CDR_SAFE(LispObject c)
+        {
+            return (CONSP(c) ? XCDR(c) : Q.nil);
         }
 
         public static void abort()
@@ -425,6 +445,11 @@ namespace IronElisp
             CHECK_TYPE(STRINGP(x), Q.stringp, x);
         }
 
+        public static void CHECK_VECTOR(LispObject x)
+        {
+            CHECK_TYPE(VECTORP(x), Q.vectorp, x);
+        }
+
         public static bool SYMBOL_CONSTANT_P(LispObject sym)
         {
             return XSYMBOL(sym).Constant;
@@ -443,6 +468,11 @@ namespace IronElisp
         public static bool NATNUMP(LispObject x)
         {
             return (INTEGERP (x) && XINT (x) >= 0);
+        }
+
+        public static bool NUMBERP(LispObject x)
+        {
+            return (INTEGERP(x) || FLOATP(x));
         }
         
         public static int XINT(LispObject x)
@@ -528,10 +558,22 @@ namespace IronElisp
             return AREF(H.key_and_value, 2 * (IDX));
         }
 
+        /* Value is the key part of entry IDX in hash table H.  */
+        public static void HASH_KEY(LispHashTable H, int IDX, LispObject val)
+        {
+            ASET(H.key_and_value, 2 * (IDX), val);
+        }
+
         /* Value is the value part of entry IDX in hash table H.  */
         public static LispObject HASH_VALUE(LispHashTable H, int IDX)
         {
             return AREF(H.key_and_value, 2 * (IDX) + 1);
+        }
+
+        /* Value is the value part of entry IDX in hash table H.  */
+        public static void HASH_VALUE(LispHashTable H, int IDX, LispObject val)
+        {
+            ASET(H.key_and_value, 2 * (IDX) + 1, val);
         }
 
         /* Value is the index of the next entry following the one at IDX
@@ -541,17 +583,39 @@ namespace IronElisp
             return AREF(H.next, IDX);
         }
 
+        /* Value is the index of the next entry following the one at IDX
+           in hash table H.  */
+        public static void HASH_NEXT(LispHashTable H, int IDX, LispObject val)
+        {
+            ASET(H.next, IDX, val);
+        }
+
+
         /* Value is the hash code computed for entry IDX in hash table H.  */
         public static LispObject HASH_HASH(LispHashTable H, int IDX)
         {
             return AREF(H.hash, IDX);
         }
 
+        /* Value is the hash code computed for entry IDX in hash table H.  */
+        public static void HASH_HASH(LispHashTable H, int IDX, LispObject val)
+        {
+            ASET(H.hash, IDX, val);
+        }
+
+
         /* Value is the index of the element in hash table H that is the
            start of the collision list at index IDX in the index vector of H.  */
         public static LispObject HASH_INDEX(LispHashTable H, int IDX)
         {
             return AREF(H.index, IDX);
+        }
+
+        /* Value is the index of the element in hash table H that is the
+           start of the collision list at index IDX in the index vector of H.  */
+        public static void HASH_INDEX(LispHashTable H, int IDX, LispObject val)
+        {
+            ASET(H.index, IDX, val);
         }
 
         /* Value is the size of hash table H.  */
@@ -592,6 +656,16 @@ namespace IronElisp
                       char_table_ref(CT, (int) IDX));
         }
 
+        /* Equivalent to Faset (CT, IDX, VAL) with optimization for ASCII and
+           8-bit European characters.  Do not check validity of CT.  */
+        public static LispObject CHAR_TABLE_SET(LispObject CT, int IDX, LispObject VAL)					
+        {
+            return (((IDX) >= 0 && ASCII_CHAR_P((uint)IDX)
+              && SUB_CHAR_TABLE_P(XCHAR_TABLE(CT).ascii))
+             ? XSUB_CHAR_TABLE(XCHAR_TABLE(CT).ascii).set_contents(IDX, VAL)
+             : char_table_set(CT, IDX, VAL));
+        }
+
         public static LispCharTable XCHAR_TABLE(LispObject a)
         {
             return a as LispCharTable;
@@ -600,6 +674,184 @@ namespace IronElisp
         public static LispSubCharTable XSUB_CHAR_TABLE(LispObject a)
         {
             return a as LispSubCharTable;
+        }
+
+        public static void CHECK_NUMBER_COERCE_MARKER(ref LispObject x)
+        {
+            if (MARKERP(x))
+                x = XSETINT(marker_position(x));
+            else
+                CHECK_TYPE(INTEGERP(x), Q.integer_or_marker_p, x);
+        }
+
+        public static void CHECK_NUMBER_OR_FLOAT_COERCE_MARKER(ref LispObject x)
+        {
+            if (MARKERP(x))
+                x = XSETINT(marker_position(x));
+            else
+                CHECK_TYPE(INTEGERP(x) || FLOATP(x), Q.number_or_marker_p, x);
+        }
+
+        /* Complain if object is not string or buffer type */
+        public static void CHECK_STRING_OR_BUFFER(LispObject x)
+        {
+            CHECK_TYPE(STRINGP(x) || BUFFERP(x), Q.buffer_or_string_p, x);
+        }
+
+        public static void CHECK_OVERLAY(LispObject x)
+        {
+            CHECK_TYPE(OVERLAYP(x), Q.overlayp, x);
+        }
+
+        public static void CHECK_CHAR_TABLE(LispObject x)
+        {
+            CHECK_TYPE(CHAR_TABLE_P(x), Q.char_table_p, x);
+        }
+
+        public static void CHECK_CHARACTER_CAR(LispObject x)
+        {
+            LispObject tmp = XCAR(x);
+            CHECK_CHARACTER(tmp);
+            XSETCAR(x, tmp);
+        }
+
+        public static void CHECK_CHARACTER_CDR(LispObject x)
+        {
+            LispObject tmp = XCDR(x);
+            CHECK_CHARACTER(tmp);
+            XSETCDR((x), tmp);
+        }
+
+        public static bool ARRAYP(LispObject x)
+        {
+            return (VECTORP(x) || STRINGP(x) || CHAR_TABLE_P(x) || BOOL_VECTOR_P(x));
+        }
+
+        public static void CHECK_ARRAY(LispObject x, LispObject Qxxxp)
+        {
+            CHECK_TYPE(ARRAYP(x), Qxxxp, x);
+        }
+
+        /* Nonzero if ought to quit now.  */
+        public static bool QUITP()
+        {
+            return (!NILP(V.quit_flag) && NILP(V.inhibit_quit));
+        }
+
+        public static void CHECK_VECTOR_OR_STRING(LispObject x)
+        {
+            CHECK_TYPE(VECTORP(x) || STRINGP(x), Q.arrayp, x);
+        }
+
+        /* This macro rejects windows on the interior of the window tree as
+           "dead", which is what we want; this is an argument-checking macro, and
+           the user should never get access to interior windows.
+
+           A window of any sort, leaf or interior, is dead if the buffer,
+           vchild, and hchild members are all nil.  */
+        public static void CHECK_LIVE_WINDOW(LispObject x)
+        {
+            CHECK_TYPE(WINDOWP(x) && !NILP(XWINDOW(x).buffer), Q.window_live_p, x);
+        }
+
+        /* Variables used locally in the following case handling macros.  */
+        public static uint case_temp1;
+        public static LispObject case_temp2;
+
+        /* Current buffer's map from characters to lower-case characters.  */
+        public static LispObject DOWNCASE_TABLE()
+        {
+            return current_buffer.downcase_table;
+        }
+
+        /* Current buffer's map from characters to upper-case characters.  */
+        public static LispObject UPCASE_TABLE()
+        {
+            return current_buffer.upcase_table;
+        }
+
+        /* Downcase a character, or make no change if that cannot be done.  */
+        public static uint DOWNCASE(uint CH)
+        {
+            case_temp1 = (CH);
+            case_temp2 = CHAR_TABLE_REF(DOWNCASE_TABLE(), case_temp1);
+            if (NATNUMP(case_temp2))
+                return (uint) XINT(case_temp2);
+            else
+                return case_temp1;
+        }
+
+        /* 1 if CH is upper case.  */
+        public static bool UPPERCASEP(uint CH)
+        {
+            return (DOWNCASE(CH) != (CH));
+        }
+
+        /* 1 if CH is neither upper nor lower case.  */
+        public static bool NOCASEP(uint CH)
+        {
+            return (UPCASE1(CH) == (CH));
+        }
+
+        /* Upcase a character known to be not upper case.  */
+        public static uint UPCASE1(uint CH)
+        {
+            case_temp1 = (CH);
+            case_temp2 = CHAR_TABLE_REF(UPCASE_TABLE(), case_temp1);
+            if (NATNUMP(case_temp2))
+                return (uint) XINT(case_temp2);
+            else
+                return case_temp1;
+        }
+
+        /* 1 if CH is lower case.  */
+        public static bool LOWERCASEP(uint CH)
+        {
+            return (!UPPERCASEP(CH) && !NOCASEP(CH));
+        }
+
+        /* Glyph Code from a display vector may either be an integer which
+           encodes a char code in the lower CHARACTERBITS bits and a (very small)
+           face-id in the upper bits, or it may be a cons (CHAR . FACE-ID).  */
+        public static int GLYPH_CODE_CHAR(LispObject gc)
+        {
+            return (CONSP(gc) ? XINT(XCAR(gc)) : INTEGERP(gc) ? (XINT(gc) & ((1 << CHARACTERBITS) - 1)) : 0);
+        }
+
+        /* Return 1 if glyph code from display vector contains valid character code.  */
+        public static bool GLYPH_CODE_CHAR_VALID_P(LispObject gc)
+        {
+            return CHAR_VALID_P(GLYPH_CODE_CHAR(gc), true);
+        }
+
+        public static bool GLYPH_CODE_P(LispObject gc)
+        {
+            return ((CONSP(gc) && INTEGERP(XCAR(gc)) && INTEGERP(XCDR(gc))) || INTEGERP(gc));
+        }
+
+        /* Largest and smallest representable fixnum values.  These are the C
+           values.  */
+        public const int VALBITS = 29;
+        public const int MOST_NEGATIVE_FIXNUM =	- (1 << (VALBITS - 1));
+        public const int MOST_POSITIVE_FIXNUM = ((1 << (VALBITS - 1)) - 1);
+
+        /* Non-zero if OBJ is a Lisp function.  */
+        public static bool FUNCTIONP(LispObject OBJ)
+        {
+            return ((CONSP(OBJ) && EQ(XCAR(OBJ), Q.lambda))
+             || (SYMBOLP(OBJ) && !NILP(F.fboundp(OBJ)))
+             || COMPILEDP(OBJ)
+             || SUBRP(OBJ));
+        }
+
+        /* Almost equivalent to Faref (CT, IDX).  However, if the result is
+           not a character, return IDX.
+
+           For these characters, do not check validity of CT
+           and do not follow parent.  */
+        public static int CHAR_TABLE_TRANSLATE(LispObject CT, int IDX)
+        {
+            return char_table_translate(CT, IDX);
         }
     }
 }
